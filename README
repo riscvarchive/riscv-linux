@@ -1,0 +1,21 @@
+This is a port of Linux kernel for the RISC-V architecture.
+Development is currently based on the 3.4 stable branch.
+
+Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
+
+	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.4
+	$ wget -q -O - http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.4.tar.bz2 |
+		tar -xjv
+
+Generate default kernel configuration:
+
+	$ gmake ARCH=riscv defconfig
+
+Edit configuration via an ncurses interface:
+
+	$ gmake ARCH=riscv menuconfig
+
+Build static kernel image:
+
+	$ gmake ARCH=riscv vmlinux
+
