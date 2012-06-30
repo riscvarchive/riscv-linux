@@ -7,13 +7,6 @@ typedef struct {
 	unsigned long end_brk;
 } mm_context_t;
 
-typedef struct {
-	long unsigned int pud;
-	pgd_t pgd;
-} pud_t;
-
-#define pud_val(x) (((pud_t)x).pud)
-
 static inline struct vm_struct **
 pcpu_get_vm_areas(const unsigned long *offsets,
 		const size_t *sizes, int nr_vms,

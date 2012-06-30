@@ -1,5 +1,5 @@
 #include <linux/init.h>
-#include <asm/pgtable.h>
+#include <linux/mm.h>
 
 unsigned long empty_zero_page;
 

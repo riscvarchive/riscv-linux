@@ -19,10 +19,6 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 }
 
-static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
-{
-}
-
 #define pmd_pgtable(pmd)	pmd_page(pmd)
 
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)
@@ -61,7 +57,6 @@ do {							\
 } while (0)
 
 #define __pmd_free_tlb(tlb, x, addr)    pmd_free((tlb)->mm, x)
-#define __pud_free_tlb(tlb, x, addr)    pud_free((tlb)->mm, x)
 
 #define check_pgt_cache()          do { } while (0)
 
