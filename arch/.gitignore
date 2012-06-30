@@ -1,0 +1,3 @@
+# In ../, we ignored everything, so suppress that.
+!riscv/
+

@@ -4,8 +4,13 @@ Development is currently based on the 3.4 stable branch.
 Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
 	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.4
-	$ wget -q -O - http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.4.tar.bz2 |
-		tar -xjv
+	$ wget -q -O - http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.4.tar.bz2 | tar -xjv
+
+Apply patch to scripts/mod/modpost.c to stop segfaults on 64-bit, little-endian
+kernel builds 
+(http://www.linux-mips.org/archives/linux-mips/2006-04/msg00130.html):
+
+	$ patch scripts/mod/modpost.c modpost.patch
 
 Generate default kernel configuration:
 
