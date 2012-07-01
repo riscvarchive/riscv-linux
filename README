@@ -24,3 +24,7 @@ Build static kernel image:
 
 	$ gmake ARCH=riscv vmlinux
 
+Run the kernel image:
+
+	$ fesvr -nopk vmlinux
+

@@ -94,4 +94,7 @@ config RWSEM_GENERIC_SPINLOCK
 config GENERIC_CALIBRATE_DELAY
 	def_bool y
 
+config EARLY_PRINTK
+	def_bool y
+
 endmenu

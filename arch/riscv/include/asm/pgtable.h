@@ -28,23 +28,33 @@
 
 #define pgd_index(address)	(((address) >> PGDIR_SHIFT) & (PTRS_PER_PGD-1))
 
-static inline int pud_present(pud_t pud) { 
+static inline int pud_present(pud_t pud)
+{ 
 	return pud_val(pud) & _PAGE_PRESENT;
 }
-static inline int pmd_present(pmd_t pmd) {
+
+static inline int pmd_present(pmd_t pmd)
+{
 	return pmd_val(pmd) & _PAGE_PRESENT;
 }
-static inline int pte_present(pte_t pte)  { 
+
+static inline int pte_present(pte_t pte)
+{ 
 	return pte_val(pte) & _PAGE_PRESENT;
 }
 
-static inline int pud_none(pud_t pud) {
+static inline int pud_none(pud_t pud)
+{
 	return !(pud_val(pud) & _PAGE_PRESENT);
 }
-static inline int pmd_none(pmd_t pmd) {
+
+static inline int pmd_none(pmd_t pmd)
+{
 	return !(pmd_val(pmd) & _PAGE_PRESENT);
 }
-static inline int pte_none(pte_t pte) {
+
+static inline int pte_none(pte_t pte)
+{
 	return !(pte_val(pte) & _PAGE_PRESENT);
 }
 
@@ -53,18 +63,25 @@ static inline int pte_none(pte_t pte) {
  * within a page table are directly modified.  Thus, the following
  * hook is made available.
  */
-static inline void set_pte_at(struct mm_struct *mm, unsigned long addr, pte_t *ptep, pte_t entry) {
+static inline void set_pte_at(struct mm_struct *mm, unsigned long addr, 
+	pte_t *ptep, pte_t entry) 
+{
 	*(ptep) = entry;
 }
 
-static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *ptep) {
+static inline void pte_clear(struct mm_struct *mm, unsigned long addr, 
+	pte_t *ptep)
+{
 	set_pte_at(mm, addr, ptep, __pte(0));
 }
 
-static inline int pud_bad(pud_t pud) {
+static inline int pud_bad(pud_t pud)
+{
 	return (pud_val(pud) & ~PAGE_MASK); 
 }
-static inline int pmd_bad(pmd_t pmd) {
+
+static inline int pmd_bad(pmd_t pmd)
+{
 	return (pmd_val(pmd) & ~PAGE_MASK);
 }
 
@@ -72,48 +89,78 @@ static inline int pmd_bad(pmd_t pmd) {
 #define pte_page(x) pfn_to_page(pte_pfn(x))
 
 /* pte_present */
+
 /* pte_read */
-static inline int pte_write(pte_t pte) {
+
+static inline int pte_write(pte_t pte)
+{
 	return pte_val(pte) & _SUPERVISOR_WRITABLE;
 }
-static inline int pte_dirty(pte_t pte) {
+
+static inline int pte_dirty(pte_t pte)
+{
 	return pte_val(pte) & _PAGE_DIRTY;
 }
+
 /* What is this? */
-static inline int pte_file(pte_t pte) {
+static inline int pte_file(pte_t pte)
+{
 	return 0;
 }
-static inline int pte_young(pte_t pte) {
+
+static inline int pte_young(pte_t pte)
+{
 	return pte_val(pte) & _PAGE_REFERENCED;
 }
+
 /* pte_rdprotect */
-static inline pte_t pte_wrprotect(pte_t pte) {
+
+static inline pte_t pte_wrprotect(pte_t pte)
+{
 	return __pte(pte_val(pte) & ~(_USER_WRITABLE));
 }
+
 /* pte_mkread */
-static inline pte_t pte_mkwrite(pte_t pte) {
+
+static inline pte_t pte_mkwrite(pte_t pte)
+{
 	return __pte(pte_val(pte) | _USER_WRITABLE);
 }
+
 /* pte_mkexec */
-static inline pte_t pte_mkdirty(pte_t pte) {
+
+static inline pte_t pte_mkdirty(pte_t pte)
+{
 	return __pte(pte_val(pte) | _PAGE_DIRTY);
 }
-static inline pte_t pte_mkclean(pte_t pte) {
+
+static inline pte_t pte_mkclean(pte_t pte)
+{
 	return __pte(pte_val(pte) & ~(_PAGE_DIRTY));
 }
-static inline pte_t pte_mkyoung(pte_t pte) {
+
+static inline pte_t pte_mkyoung(pte_t pte)
+{
 	return __pte(pte_val(pte) & ~(_PAGE_REFERENCED)); 
 }
-static inline pte_t pte_mkold(pte_t pte) {
+
+static inline pte_t pte_mkold(pte_t pte)
+{
 	return __pte(pte_val(pte) | _PAGE_REFERENCED);
 }
-static inline int pte_special(pte_t pte) {
+
+static inline int pte_special(pte_t pte)
+{
 	return pte_val(pte) & _PAGE_SPECIAL;
 }
-static inline pte_t pte_mkspecial(pte_t pte) {
+
+static inline pte_t pte_mkspecial(pte_t pte)
+{
 	return __pte(pte_val(pte) | _PAGE_SPECIAL);
 }
-static inline pte_t pte_modify(pte_t pte, pgprot_t newprot) {
+
+static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+{
 	return pte;
 }
 
