@@ -5,24 +5,25 @@
 #include <linux/init.h>
 
 #include <asm/setup.h>
-#include <asm/htif.h>
+#include <asm/regs.h>
 
+#define PCR_TOHOST   "cr30"
+#define PCR_FROMHOST "cr31"
 #define FESVR_SYSCALL_WRITE 4
-#define FESVR_STDOUT 1
+#define FESVR_STDOUT        1
 
-static void __init
-early_console_write(struct console *con, const char *s, unsigned n)
+static void __init early_console_write(struct console *con,
+		const char *s, unsigned int n)
 {
-	static unsigned long packet[4]; 
+	volatile unsigned long packet[4]; 
 
 	packet[0] = FESVR_SYSCALL_WRITE;
 	packet[1] = FESVR_STDOUT;
 	packet[2] = (unsigned long)s;
 	packet[3] = n;
 
-	write_tohost((unsigned long)packet);
-	while (read_fromhost() == 0);
-
+	mtpcr(packet, PCR_TOHOST);
+	while (mfpcr(PCR_FROMHOST) == 0);
 }
 
 static struct console early_console __initdata = {
