@@ -85,6 +85,9 @@ menu "Kernel hacking"
 
 source "lib/Kconfig.debug"
 
+config EARLY_PRINTK
+	def_bool y
+
 config GENERIC_HWEIGHT
 	def_bool y
 
@@ -94,7 +97,8 @@ config RWSEM_GENERIC_SPINLOCK
 config GENERIC_CALIBRATE_DELAY
 	def_bool y
 
-config EARLY_PRINTK
+config GENERIC_BUG
 	def_bool y
+	depends on BUG
 
 endmenu
