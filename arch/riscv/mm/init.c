@@ -14,4 +14,4 @@ void free_initmem(void)
 #define __page_aligned(order) \
 	__attribute__((__aligned__(PAGE_SIZE << (order))))
 
-pgd_t swapper_pg_dir[PTRS_PER_PGD];
+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned(0);

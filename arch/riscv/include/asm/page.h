@@ -34,7 +34,7 @@
  * physical memory (aligned on a page boundary).
  */
 #ifdef CONFIG_64BIT
-#define PAGE_OFFSET		_AC(0xffff880000000000,UL)
+#define PAGE_OFFSET		_AC(0xffffff0000000000,UL)
 #else
 #define PAGE_OFFSET		_AC(0xc0000000,UL)
 #endif

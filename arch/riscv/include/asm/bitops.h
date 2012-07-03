@@ -184,7 +184,14 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
  */
 static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 {
-	return 0;
+  /* non-atomic because I am cheap and SMP isn't supported anyway. */
+  unsigned long mask, ret;
+
+  mask = (1 << nr);
+  ret = *addr | mask;
+  *addr &= ~mask;
+
+  return (ret != 0);
 }
 
 /**
