@@ -1,20 +1,35 @@
 #ifndef _ASM_RISCV_PGTABLE_BITS_H
 #define _ASM_RISCV_PGTABLE_BITS_H
 
-#define _PAGE_SPECIAL (1 << 11) /* Not in ISA */
-#define _PAGE_PRESENT (1 << 10) /* Not in ISA */
+/*
+ * RV32S page table entry:
+ * | 32  23 | 22  13 | 12  10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+ *   PPN[1]   PPN[0]     --    SR  SW  SR  UR  UW  UE   D   R   E   T
+ *
+ * RV64S page table entry:
+ * | 63  33 | 32  23 | 22  13 | 12  10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+ *   PPN[2]   PPN[1]   PPN[0]     --    SR  SW  SR  UR  UW  UE   D   R   E   T
+ */
 
-#define _SUPERVISOR_READABLE   (1 << 9)
-#define _SUPERVISOR_WRITABLE   (1 << 8)
-#define _SUPERVISOR_EXECUTABLE (1 << 7)
+#define _PAGE_SR        (1 << 9) /* Supervisor read */
+#define _PAGE_SW        (1 << 8) /* Supervisor write */
+#define _PAGE_SE        (1 << 7) /* Supervisor execute */
 
-#define _USER_READABLE   (1 << 6)
-#define _USER_WRITABLE   (1 << 5)
-#define _USER_EXECUTABLE (1 << 4)
+#define _PAGE_UR        (1 << 6) /* User read */
+#define _PAGE_UW        (1 << 5) /* User write */
+#define _PAGE_UE        (1 << 4) /* User execute */
 
-#define _PAGE_DIRTY      (1 << 3)
-#define _PAGE_REFERENCED (1 << 2) /* For LRU, etc., also young/old */
-#define _PAGE_ENTRY      (1 << 1) /* Leaf */
-#define _PAGE_TABLE_DESC (1 << 0) /* Descriptor */
+#define _PAGE_D         (1 << 3) /* Dirty */
+#define _PAGE_R         (1 << 2) /* Referenced */
+#define _PAGE_E         (1 << 1) /* Page table entry */
+#define _PAGE_T         (1 << 0) /* Page table descriptor */
+
+#define _PAGE_UNUSED1   (1 << 10)
+#define _PAGE_UNUSED2   (1 << 11)
+#define _PAGE_UNUSED3   (1 << 12)
+
+/* Set of bits to retain in pte_modify() */
+#define _PAGE_CHG_MASK  (~(_PAGE_SR | _PAGE_SW | _PAGE_SE | \
+                           _PAGE_UR | _PAGE_UW | _PAGE_UE))
 
 #endif /* _ASM_RISCV_PGTABLE_BITS_H */

@@ -37,13 +37,10 @@ endif
 
 KBUILD_CFLAGS += -Werror -Wall
 
-head-y := \
-	arch/riscv/kernel/head.o \
-	arch/riscv/kernel/init_task.o
+head-y := arch/riscv/kernel/head.o \
+          arch/riscv/kernel/init_task.o
 
-core-y += \
-	arch/riscv/kernel/ \
-	arch/riscv/mm/ \
+core-y += arch/riscv/kernel/ arch/riscv/mm/
 
 libs-y += arch/riscv/lib/
 

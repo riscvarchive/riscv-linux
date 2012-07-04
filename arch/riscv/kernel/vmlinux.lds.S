@@ -19,10 +19,10 @@ SECTIONS
 	__init_end = .;
 
 	.text : {
-	_text = .;
-	_stext = .;
-	SCHED_TEXT
-	_etext = .;
+		_text = .;
+		_stext = .;
+		SCHED_TEXT
+		_etext = .;
 	}
 
 	_sdata = .;
@@ -33,7 +33,11 @@ SECTIONS
 	EXCEPTION_TABLE(16)
 	NOTES
 
-	BSS_SECTION(0, 0, 0)
+#ifdef CONFIG_64BIT
+	BSS_SECTION(0, 8, 8)
+#else
+	BSS_SECTION(0, 4, 4)
+#endif /* CONFIG_64BIT */
 	_end = .;
 
 	STABS_DEBUG
