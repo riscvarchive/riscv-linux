@@ -1,4 +1,5 @@
-#include <asm-generic/vmlinux.lds.h>
+#define LOAD_OFFSET PAGE_OFFSET
+#include <asm/vmlinux.lds.h>
 #include <asm/page.h>
 #include <asm/thread_info.h>
 
@@ -9,9 +10,9 @@ jiffies = jiffies_64;
 
 SECTIONS
 {
-	/* Begining of code and text segment */
-	. = 0x00002000;
-	_start = .;
+	/* Beginning of code and text segment */
+	. = LOAD_OFFSET + 0x2000;
+	_start = 0x2000;
 	__init_begin = .;
 	HEAD_TEXT_SECTION
 	INIT_TEXT_SECTION(PAGE_SIZE)
@@ -21,6 +22,7 @@ SECTIONS
 	.text : {
 		_text = .;
 		_stext = .;
+		TEXT_TEXT
 		SCHED_TEXT
 		_etext = .;
 	}

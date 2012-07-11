@@ -63,3 +63,4 @@ generic-y += types.h
 generic-y += uaccess.h
 generic-y += unaligned.h
 generic-y += unistd.h
+generic-y += vmlinux.lds.h

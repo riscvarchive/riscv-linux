@@ -42,15 +42,6 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
 	return NULL;
 }
 
-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
-{
-	return NULL;
-}
-
-static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-{
-}
-
 #define pmd_ERROR(e) \
 	printk("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
 

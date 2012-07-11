@@ -29,15 +29,18 @@ else
 	KBUILD_CFLAGS += -meb
 endif
 
+export BITS
 ifeq ($(CONFIG_64BIT),y)
+	BITS := 64
 	KBUILD_CFLAGS += -mabi=64
 else
+	BITS := 32
 	KBUILD_CFLAGS += -mabi=32
 endif
 
 KBUILD_CFLAGS += -Werror -Wall
 
-head-y := arch/riscv/kernel/head.o \
+head-y := arch/riscv/kernel/head_$(BITS).o \
           arch/riscv/kernel/init_task.o
 
 core-y += arch/riscv/kernel/ arch/riscv/mm/

@@ -6,6 +6,7 @@
 
 #include <asm/setup.h>
 #include <asm/regs.h>
+#include <asm/page.h>
 
 #define PCR_TOHOST   "cr30"
 #define PCR_FROMHOST "cr31"
@@ -16,13 +17,15 @@ static void __init early_console_write(struct console *con,
 		const char *s, unsigned int n)
 {
 	volatile unsigned long packet[4]; 
+	unsigned long pkt_pa;
 
 	packet[0] = FESVR_SYSCALL_WRITE;
 	packet[1] = FESVR_STDOUT;
-	packet[2] = (unsigned long)s;
+	packet[2] = (unsigned long)(s) - PAGE_OFFSET;
 	packet[3] = n;
 
-	mtpcr(packet, PCR_TOHOST);
+	pkt_pa = (unsigned long)(packet) - PAGE_OFFSET;
+	mtpcr(pkt_pa, PCR_TOHOST);
 	while (mfpcr(PCR_FROMHOST) == 0);
 }
 

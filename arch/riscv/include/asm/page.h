@@ -16,6 +16,17 @@
 
 #ifdef __KERNEL__
 
+/*
+ * PAGE_OFFSET -- the first address of the first page of memory.
+ * When not using MMU this corresponds to the first free page in
+ * physical memory (aligned on a page boundary).
+ */
+#ifdef CONFIG_64BIT
+#define PAGE_OFFSET		_AC(0xffffffff80000000,UL)
+#else
+#define PAGE_OFFSET		_AC(0xc0000000,UL)
+#endif
+
 #ifndef __ASSEMBLY__
 
 #define PAGE_UP(addr)	(((addr)+((PAGE_SIZE)-1))&(~((PAGE_SIZE)-1)))
@@ -27,17 +38,6 @@
 
 /* align addr on a size boundary - adjust address up if needed */
 #define _ALIGN(addr, size)	_ALIGN_UP(addr, size)
-
-/*
- * PAGE_OFFSET -- the first address of the first page of memory.
- * When not using MMU this corresponds to the first free page in
- * physical memory (aligned on a page boundary).
- */
-#ifdef CONFIG_64BIT
-#define PAGE_OFFSET		_AC(0xffffff0000000000,UL)
-#else
-#define PAGE_OFFSET		_AC(0xc0000000,UL)
-#endif
 
 #define clear_page(pgaddr)			memset((pgaddr), 0, PAGE_SIZE)
 #define copy_page(to, from)			memcpy((to), (from), PAGE_SIZE)

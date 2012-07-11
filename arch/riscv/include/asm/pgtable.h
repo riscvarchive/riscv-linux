@@ -19,7 +19,9 @@
 #include <asm/pgtable-64.h>
 #endif /* CONFIG_64BIT */
 
+/* Number of entries in the page global directory */
 #define PTRS_PER_PGD    (PAGE_SIZE / sizeof(pgd_t))
+/* Number of entries in the page table */
 #define PTRS_PER_PTE    (PAGE_SIZE / sizeof(pte_t))
 
 #define VMALLOC_START   (PAGE_OFFSET - 0x4000000)
@@ -270,6 +272,11 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 #endif /* CONFIG_MMU */
 
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
+
+#ifndef __PAGETABLE_PMD_FOLDED
+extern pmd_t ident_pm_dir[PTRS_PER_PMD];
+extern pmd_t kern_pm_dir[PTRS_PER_PMD];
+#endif /* __PAGETABLE_PMD_FOLDED */
 
 #endif /* !__ASSEMBLY__ */
 
