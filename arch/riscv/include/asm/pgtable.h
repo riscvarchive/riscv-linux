@@ -24,8 +24,8 @@
 /* Number of entries in the page table */
 #define PTRS_PER_PTE    (PAGE_SIZE / sizeof(pte_t))
 
-#define VMALLOC_START   (PAGE_OFFSET - 0x4000000)
-#define VMALLOC_END     (PAGE_OFFSET)
+#define VMALLOC_START   (PAGE_OFFSET)
+#define VMALLOC_END     (PAGE_OFFSET + (2048 << PAGE_SHIFT))
 
 static inline void pgtable_cache_init(void)
 {
@@ -272,6 +272,7 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 #endif /* CONFIG_MMU */
 
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
+extern void paging_init(void);
 
 #ifndef __PAGETABLE_PMD_FOLDED
 extern pmd_t ident_pm_dir[PTRS_PER_PMD];

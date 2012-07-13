@@ -38,7 +38,7 @@ else
 	KBUILD_CFLAGS += -mabi=32
 endif
 
-KBUILD_CFLAGS += -Werror -Wall
+KBUILD_CFLAGS += -Wall
 
 head-y := arch/riscv/kernel/head_$(BITS).o \
           arch/riscv/kernel/init_task.o

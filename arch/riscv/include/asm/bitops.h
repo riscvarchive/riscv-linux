@@ -9,6 +9,14 @@
 
 #include <linux/compiler.h>
 #include <asm/barrier.h>
+#include <asm/bitsperlong.h>
+
+#define LONG_MASK(nr) (1UL << ((nr) & (BITS_PER_LONG - 1)))
+#ifdef CONFIG_64BIT
+#define LONG_WORD(nr) ((nr) >> 6)
+#else
+#define LONG_WORD(nr) ((nr) >> 5)
+#endif /* CONFIG_64BIT */
 
 #ifndef smp_mb__before_clear_bit
 #define smp_mb__before_clear_bit()  smp_mb()
@@ -21,10 +29,13 @@
  *
  * Undefined if no bit exists, so code should check against 0 first.
  */
+/*
 static __always_inline unsigned long __ffs(unsigned long word)
 {
 	return 0;
 }
+*/
+#include <asm-generic/bitops/__ffs.h>
 
 #include <asm-generic/bitops/ffz.h>
 
@@ -35,10 +46,13 @@ static __always_inline unsigned long __ffs(unsigned long word)
  * This is defined the same way as ffs.
  * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
  */
+/*
 static __always_inline int fls(int x)
 {
 	return 0;
 }
+*/
+#include <asm-generic/bitops/fls.h>
 
 /**
  * __fls - find last (most-significant) set bit in a long word
@@ -46,10 +60,13 @@ static __always_inline int fls(int x)
  *
  * Undefined if no set bit exists, so code should check against 0 first.
  */
+/*
 static __always_inline unsigned long __fls(unsigned long word)
 {
 	return 0;
 }
+*/
+#include <asm-generic/bitops/__fls.h>
 
 #include <asm-generic/bitops/fls64.h>
 #include <asm-generic/bitops/find.h>
@@ -63,10 +80,13 @@ static __always_inline unsigned long __fls(unsigned long word)
  * the libc and compiler builtin ffs routines, therefore
  * differs in spirit from the above ffz (man ffs).
  */
+/*
 static __always_inline int ffs(int x)
 {
 	return 0;
 }
+*/
+#include <asm-generic/bitops/ffs.h>
 
 #include <asm-generic/bitops/hweight.h>
 
@@ -113,6 +133,73 @@ static inline void __clear_bit_unlock(
 }
 
 /**
+ * test_and_set_bit - Set a bit and return its old value
+ * @nr: Bit to set
+ * @addr: Address to count from
+ *
+ * This operation is atomic and cannot be reordered.
+ * It may be reordered on other architectures than x86.
+ * It also implies a memory barrier.
+ */
+static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
+{
+	unsigned long res;
+	unsigned long mask;
+	volatile unsigned long *p;
+
+	mask = LONG_MASK(nr);
+	p = addr + LONG_WORD(nr);
+
+	__asm__ __volatile__ (
+		"amoor.d %0, %2, 0(%1)"
+		: "=&r" (res)
+		: "r" (p), "r" (mask)
+		: "memory");
+
+	return ((res & mask) != 0);
+}
+
+/**
+ * test_and_clear_bit - Clear a bit and return its old value
+ * @nr: Bit to clear
+ * @addr: Address to count from
+ *
+ * This operation is atomic and cannot be reordered.
+ * It can be reordered on other architectures other than x86.
+ * It also implies a memory barrier.
+ */
+static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
+{
+	unsigned long res;
+	unsigned long mask;
+	volatile unsigned long *p;
+
+	mask = LONG_MASK(nr);
+	p = addr + LONG_WORD(nr);
+
+	__asm__ __volatile__ (
+		"amoand.d %0, %2, 0(%1)"
+		: "=&r" (res)
+		: "r" (p), "r" (~mask)
+		: "memory");
+
+	return ((res & mask) != 0);
+}
+
+/**
+ * test_and_change_bit - Change a bit and return its old value
+ * @nr: Bit to change
+ * @addr: Address to count from
+ *
+ * This operation is atomic and cannot be reordered.
+ * It also implies a memory barrier.
+ */
+static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
+{
+	return 0;
+}
+
+/**
  * set_bit - Atomically set a bit in memory
  * @nr: the bit to set
  * @addr: the address to start counting from
@@ -129,6 +216,7 @@ static inline void __clear_bit_unlock(
  */
 static inline void set_bit(int nr, volatile unsigned long *addr)
 {
+	(void)test_and_set_bit(nr, addr);
 }
 
 /**
@@ -143,6 +231,7 @@ static inline void set_bit(int nr, volatile unsigned long *addr)
  */
 static inline void clear_bit(int nr, volatile unsigned long *addr)
 {
+	(void)test_and_clear_bit(nr, addr);
 }
 
 /**
@@ -159,53 +248,8 @@ static inline void change_bit(int nr, volatile unsigned long *addr)
 {
 }
 
-/**
- * test_and_set_bit - Set a bit and return its old value
- * @nr: Bit to set
- * @addr: Address to count from
- *
- * This operation is atomic and cannot be reordered.
- * It may be reordered on other architectures than x86.
- * It also implies a memory barrier.
- */
-static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-{
-	return 0;
-}
-
-/**
- * test_and_clear_bit - Clear a bit and return its old value
- * @nr: Bit to clear
- * @addr: Address to count from
- *
- * This operation is atomic and cannot be reordered.
- * It can be reorderdered on other architectures other than x86.
- * It also implies a memory barrier.
- */
-static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-{
-  /* non-atomic because I am cheap and SMP isn't supported anyway. */
-  unsigned long mask, ret;
-
-  mask = (1 << nr);
-  ret = *addr | mask;
-  *addr &= ~mask;
-
-  return (ret != 0);
-}
-
-/**
- * test_and_change_bit - Change a bit and return its old value
- * @nr: Bit to change
- * @addr: Address to count from
- *
- * This operation is atomic and cannot be reordered.
- * It also implies a memory barrier.
- */
-static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
-{
-	return 0;
-}
+#undef LONG_MASK
+#undef LONG_WORD
 
 #include <asm-generic/bitops/non-atomic.h>
 #include <asm-generic/bitops/le.h>

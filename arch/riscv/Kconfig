@@ -101,4 +101,10 @@ config GENERIC_BUG
 	def_bool y
 	depends on BUG
 
+config HAVE_MEMBLOCK_NODE_MAP
+	def_bool y
+
+config HAVE_MEMBLOCK
+	def_bool y
+
 endmenu

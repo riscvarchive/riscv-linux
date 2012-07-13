@@ -37,6 +37,8 @@ static inline void pud_clear(pud_t *pudp)
 {
 }
 
+#define pmd_index(addr) (((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
+
 static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
 {
 	return NULL;

@@ -73,8 +73,8 @@ extern unsigned long max_pfn;
 #define phys_to_pfn(phys)	(PFN_DOWN(phys))
 #define pfn_to_phys(pfn)	(PFN_PHYS(pfn))
 
-#define virt_to_pfn(vaddr)	(phys_to_pfn((__pa(vaddr))))
-#define pfn_to_virt(pfn)	__va(pfn_to_phys((pfn)))
+#define virt_to_pfn(vaddr)	(phys_to_pfn(__pa(vaddr)))
+#define pfn_to_virt(pfn)	(__va(pfn_to_phys(pfn)))
 
 #define virt_to_page(vaddr)	(pfn_to_page(virt_to_pfn(vaddr)))
 #define page_to_virt(page)	(pfn_to_virt(page_to_pfn(page)))
@@ -85,7 +85,8 @@ extern unsigned long max_pfn;
 
 #define pfn_valid(pfn)		(((pfn) >= min_low_pfn) && ((pfn) < max_low_pfn))
 
-#define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
+//#define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
+#define ARCH_PFN_OFFSET		(0UL)
 
 #endif /* __ASSEMBLY__ */
 

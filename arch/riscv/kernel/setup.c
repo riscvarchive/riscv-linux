@@ -1,26 +1,28 @@
 #include <linux/init.h>
+#include <linux/mm.h>
 #include <linux/bootmem.h>
 
-#include <asm-generic/sections.h>
+#include <asm/sections.h>
 #include <asm/setup.h>
+#include <asm/pgtable.h>
 
 #define MEMORY_START 0
-#define MEMORY_SIZE 0x20000000 /* = 512 MiB */
 
-void __init bootmem_init(void)
+static void __init setup_bootmem(void)
 {
-  unsigned long start_pfn, bootmap_size;
-  unsigned long ram_start_pfn, ram_end_pfn;
+	unsigned long start_pfn, end_pfn;
+	unsigned long mem_size, bootmap_size;
 
-  /* The first page after kernel */
-  start_pfn = PFN_UP((u32)__pa(&_end));
-  ram_start_pfn = PFN_UP(MEMORY_START);
-  ram_end_pfn = PFN_UP(MEMORY_START + MEMORY_SIZE);
+	mem_size = MEMORY_SIZE;
+	printk(KERN_INFO "Detected 0x%lx bytes of physical memory\n", mem_size);
+	end_pfn = PFN_DOWN(min(VMALLOC_END - PAGE_OFFSET, mem_size));
 
-  bootmap_size = init_bootmem(start_pfn, ram_end_pfn - ram_start_pfn);
-  free_bootmem(PFN_PHYS(start_pfn),
-          (ram_end_pfn - start_pfn) << PAGE_SHIFT);
-  reserve_bootmem(PFN_PHYS(start_pfn), bootmap_size, BOOTMEM_DEFAULT);
+	/* First page after kernel image */
+	start_pfn = PFN_UP(__pa(&_end));
+
+	bootmap_size = init_bootmem(start_pfn, end_pfn);
+	free_bootmem(PFN_PHYS(start_pfn), (end_pfn - start_pfn) << PAGE_SHIFT);
+	reserve_bootmem(PFN_PHYS(start_pfn), bootmap_size, BOOTMEM_DEFAULT);
 }
 
 void __init setup_arch(char **cmdline_p)
@@ -28,5 +30,6 @@ void __init setup_arch(char **cmdline_p)
 #ifdef CONFIG_EARLY_PRINTK
 	setup_early_printk();
 #endif /* CONFIG_EARLY_PRINTK */
-//	bootmem_init();
+	setup_bootmem();
+	paging_init();
 }
