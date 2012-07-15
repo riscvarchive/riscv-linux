@@ -60,59 +60,21 @@ extern unsigned long get_wchan(struct task_struct *p);
 
 /* CPU-specific state of a task */
 struct thread_struct {
-	unsigned long reg0, reg2, reg3;
-	unsigned long reg12, reg13, reg14, reg15, reg16;
-	unsigned long reg17, reg18, reg19, reg20, reg21;
-
-	unsigned long cp0_psr;
-	unsigned long cp0_ema;		/* Last user fault */
-	unsigned long cp0_badvaddr;	/* Last user fault */
-	unsigned long cp0_baduaddr;	/* Last kernel fault accessing USEG */
-	unsigned long error_code;
-	unsigned long trap_no;
-
-	unsigned long mflags;
-	unsigned long reg29;
-
-	unsigned long single_step;
-	unsigned long ss_nextcnt;
-
-	unsigned long insn1_type;
-	unsigned long addr1;
-	unsigned long insn1;
-
-	unsigned long insn2_type;
-	unsigned long addr2;
-	unsigned long insn2;
-
-	mm_segment_t current_ds;
+	unsigned long sp;
+	unsigned long status;
+	unsigned long pc;
 };
 
-#define INIT_THREAD {						\
-	.reg0			= 0,				\
-	.reg2			= 0,				\
-	.reg3			= 0,				\
-	.reg12			= 0,				\
-	.reg13			= 0,				\
-	.reg14			= 0,				\
-	.reg15			= 0,				\
-	.reg16			= 0,				\
-	.reg17			= 0,				\
-	.reg18			= 0,				\
-	.reg19			= 0,				\
-	.reg20			= 0,				\
-	.reg21			= 0,				\
-	.cp0_psr		= 0,				\
-	.error_code		= 0,				\
-	.trap_no		= 0,				\
+#define INIT_THREAD {		\
+	.sp = sizeof(init_stack) + (long)&init_stack, \
 }
 
-#define kstk_tos(tsk)		\
+ #define kstk_tos(tsk)		\
 	((unsigned long)task_stack_page(tsk) + THREAD_SIZE - 32)
 #define task_pt_regs(tsk)	((struct pt_regs *)kstk_tos(tsk) - 1)
 
-#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->cp0_epc)
-#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->regs[29])
+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)
+#define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)
 
 #endif /* __ASSEMBLY__ */
 

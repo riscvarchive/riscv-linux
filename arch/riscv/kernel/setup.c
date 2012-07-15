@@ -8,6 +8,8 @@
 
 #define MEMORY_START 0
 
+static char __initdata command_line[COMMAND_LINE_SIZE];
+
 static void __init setup_bootmem(void)
 {
 	unsigned long start_pfn, end_pfn;
@@ -27,6 +29,9 @@ static void __init setup_bootmem(void)
 
 void __init setup_arch(char **cmdline_p)
 {
+	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
+	*cmdline_p = command_line;
+
 #ifdef CONFIG_EARLY_PRINTK
 	setup_early_printk();
 #endif /* CONFIG_EARLY_PRINTK */

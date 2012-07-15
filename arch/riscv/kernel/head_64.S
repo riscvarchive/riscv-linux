@@ -23,6 +23,8 @@ _start:
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
+	/* Initialize current thread info pointer */
+	la tp, init_thread_union
 
 	lui x29, (PAGE_OFFSET >> 12) & 0xfffff
 	/* Clear .bss segment, assumed to start and end

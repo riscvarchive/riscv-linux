@@ -1,7 +1,27 @@
 #ifndef _ASM_RISCV_REGS_H
 #define _ASM_RISCV_REGS_H
 
-#ifndef __ASSEMBLY__
+#ifdef __ASSEMBLY__
+
+#define PCR_STATUS 	cr0
+#define PCR_EPC		cr1
+#define PCR_BADVADDR	cr2
+#define PCR_EVEC	cr3
+#define PCR_COUNT	cr4
+#define PCR_COMPARE	cr5
+#define PCR_CAUSE	cr6
+#define PCR_PTBR	cr7
+
+#else /* __ASSEMBLY__ */
+
+#define PCR_STATUS 	"cr0"
+#define PCR_EPC		"cr1"
+#define PCR_BADVADDR	"cr2"
+#define PCR_EVEC	"cr3"
+#define PCR_COUNT	"cr4"
+#define PCR_COMPARE	"cr5"
+#define PCR_CAUSE	"cr6"
+#define PCR_PTBR	"cr7"
 
 #define mtpcr(val,pcr)			\
 do {                                    \

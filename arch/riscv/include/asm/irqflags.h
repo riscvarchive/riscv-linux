@@ -3,13 +3,17 @@
 
 #ifndef __ASSEMBLY__
 
+#include <asm/processor.h>
+#include <asm/regs.h>
+
 static unsigned long arch_local_save_flags(void)
 {
-	return 0;
+	return mfpcr(PCR_STATUS) & SR_ET;
 }
 
 static void arch_local_irq_restore(unsigned long flags)
 {
+	mtpcr((mfpcr(PCR_STATUS) & ~SR_ET) | !!flags, PCR_STATUS);
 }
 
 #endif /* __ASSEMBLY__ */
