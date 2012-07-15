@@ -4,7 +4,7 @@
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
-#include <asm/regs.h>
+#include <asm/pcr.h>
 
 extern asmlinkage void ret_from_fork(void);
 extern asmlinkage void kernel_thread_helper(void);
@@ -23,14 +23,13 @@ void __noreturn cpu_idle(void)
 }
 
 struct task_struct* __switch_to(struct task_struct *prev_p,
-                 struct task_struct *next_p)
+	struct task_struct *next_p)
 {
 	return prev_p; 
 }
 
 void exit_thread(void)
 {
-	
 }
 
 void flush_thread(void)
@@ -89,13 +88,14 @@ int kernel_execve(const char *filename,
 {
 	int ret;
 
-	__asm__ volatile ("move a0, %0;"
-	                  "move a1, %1;"
-			  "move a2, %2;"
-			  "syscall;"
-			  "move %3, v0"
-			  : "=r" (ret)
-			  : "r" (filename), "r" (argv), "r" (envp)
-			  : "memory" );
+	__asm__ __volatile__ (
+		"move a0, %0;"
+		"move a1, %1;"
+		"move a2, %2;"
+		"syscall;"
+		"move %3, v0"
+		: "=r" (ret)
+		: "r" (filename), "r" (argv), "r" (envp)
+		: "memory");
 	return ret;
 }

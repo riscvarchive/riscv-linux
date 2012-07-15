@@ -1,22 +1,24 @@
 #ifndef _ASM_RISCV_IRQFLAGS_H
 #define _ASM_RISCV_IRQFLAGS_H
 
-#ifndef __ASSEMBLY__
-
 #include <asm/processor.h>
-#include <asm/regs.h>
+#include <asm/pcr.h>
+
+#define ARCH_IRQ_DISABLED       0
+#define ARCH_IRQ_ENABLED        (SR_ET)
 
 static unsigned long arch_local_save_flags(void)
 {
-	return mfpcr(PCR_STATUS) & SR_ET;
+	return (mfpcr(PCR_STATUS) & SR_ET);
 }
 
 static void arch_local_irq_restore(unsigned long flags)
 {
-	mtpcr((mfpcr(PCR_STATUS) & ~SR_ET) | !!flags, PCR_STATUS);
+	unsigned long status;
+	status = mfpcr(PCR_STATUS);
+	status = (status & ~(SR_ET)) | flags;
+	mtpcr(PCR_STATUS, status);
 }
-
-#endif /* __ASSEMBLY__ */
 
 #include <asm-generic/irqflags.h>
 

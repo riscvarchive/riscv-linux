@@ -1,7 +1,7 @@
 #ifndef _ASM_RISCV_PTRACE_H
 #define _ASM_RISCV_PTRACE_H
 
-#include <asm/processor.h>
+#include <asm/pcr.h>
 
 typedef struct pt_regs {
 	unsigned long zero;

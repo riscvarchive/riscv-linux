@@ -1,9 +1,9 @@
 #include <linux/init.h>
 
-#include <asm/regs.h>
+#include <asm/pcr.h>
 
 void __init time_init(void)
 {
-	mtpcr(0, PCR_COUNT);
-	mtpcr(1000, PCR_COMPARE);
+	mtpcr(PCR_COUNT, 0);
+	mtpcr(PCR_COMPARE, 1000);
 }

@@ -31,7 +31,6 @@ void __init setup_arch(char **cmdline_p)
 {
 	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
 	*cmdline_p = command_line;
-
 #ifdef CONFIG_EARLY_PRINTK
 	setup_early_printk();
 #endif /* CONFIG_EARLY_PRINTK */

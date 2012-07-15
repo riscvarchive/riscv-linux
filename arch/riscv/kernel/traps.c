@@ -5,7 +5,7 @@
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
-#include <asm/regs.h>
+#include <asm/pcr.h>
 
 #define FESVR_EXC_TIMER_INTERRUPT 7
 
@@ -30,9 +30,10 @@ void do_exception(unsigned long cause,
 {
 	switch (cause) {
 		case FESVR_EXC_TIMER_INTERRUPT:
-			mtpcr(0, PCR_COUNT);
-			mtpcr(1000, PCR_COMPARE);
-			__asm__ volatile ("amoadd.d x0, %0, 0(%1)" \
+			mtpcr(PCR_COUNT, 0);
+			mtpcr(PCR_COMPARE, 1000);
+			__asm__ __volatile__ (
+				"amoadd.d x0, %0, 0(%1)"
 			    : 
 			    : "r" (1UL), "r" (&jiffies_64)
 			    : "memory");
@@ -45,7 +46,7 @@ void do_exception(unsigned long cause,
 void __init trap_init(void)
 {
 	/* This clears the IPI exception that started the processor */
-	mtpcr(0, "cr9");
+	mtpcr("cr9", 0);
 
-	mtpcr(&handle_exception, PCR_EVEC);
+	mtpcr(PCR_EVEC, &handle_exception);
 }

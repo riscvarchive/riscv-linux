@@ -1,7 +1,6 @@
 #include <linux/init.h>
 
-#include <asm/processor.h>
-#include <asm/regs.h>
+#include <asm/pcr.h>
 
 .macro SAVE_ALL
 	addi sp, sp, -248

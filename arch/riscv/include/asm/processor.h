@@ -1,20 +1,8 @@
 #ifndef _ASM_RISCV_PROCESSOR_H
 #define _ASM_RISCV_PROCESSOR_H
 
-/* Status register flags */
-#define SR_ET   0x00000001 /* Enable exceptions */
-#define SR_EF   0x00000002 /* Enable floating-point */
-#define SR_EV   0x00000004 /* Enable vector unit */
-#define SR_PS   0x00000010 /* Previous supervisor */
-#define SR_S    0x00000020 /* Supervisor */
-#define SR_U64  0x00000040 /* RV64 user mode */
-#define SR_S64  0x00000080 /* RV64 supervisor mode */
-#define SR_VM   0x00000100 /* Enable virtual memory */
-#define SR_IM   0x00FF0000 /* Interrupt mask */
-
 #ifndef __ASSEMBLY__
 
-//#include <linux/cpumask.h>
 #include <linux/threads.h>
 #include <asm/segment.h>
 

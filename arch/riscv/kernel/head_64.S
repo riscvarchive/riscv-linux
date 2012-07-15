@@ -1,9 +1,9 @@
 #include <linux/init.h>
 #include <linux/linkage.h>
-#include <asm/processor.h>
 #include <asm/thread_info.h>
 #include <asm/page.h>
 #include <asm/pgtable-bits.h>
+#include <asm/pcr.h>
 
 #define __pa(x) ((x) - PAGE_OFFSET)
 
@@ -23,7 +23,7 @@ _start:
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
-	/* Initialize current thread info pointer */
+	/* Initialize current thread_info pointer */
 	la tp, init_thread_union
 
 	lui x29, (PAGE_OFFSET >> 12) & 0xfffff

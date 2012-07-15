@@ -5,11 +5,9 @@
 #include <linux/init.h>
 
 #include <asm/setup.h>
-#include <asm/regs.h>
 #include <asm/page.h>
+#include <asm/pcr.h>
 
-#define PCR_TOHOST   "cr30"
-#define PCR_FROMHOST "cr31"
 #define FESVR_SYSCALL_WRITE 4
 #define FESVR_STDOUT        1
 
@@ -21,11 +19,11 @@ static void __init early_console_write(struct console *con,
 
 	packet[0] = FESVR_SYSCALL_WRITE;
 	packet[1] = FESVR_STDOUT;
-	packet[2] = (unsigned long)(s) - PAGE_OFFSET;
+	packet[2] = (unsigned long)(__pa(s));
 	packet[3] = n;
 
-	pkt_pa = (unsigned long)(packet) - PAGE_OFFSET;
-	mtpcr(pkt_pa, PCR_TOHOST);
+	pkt_pa = (unsigned long)(__pa(packet));
+	mtpcr(PCR_TOHOST, pkt_pa);
 	while (mfpcr(PCR_FROMHOST) == 0);
 }
 
