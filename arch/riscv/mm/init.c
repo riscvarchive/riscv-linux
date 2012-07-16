@@ -4,6 +4,7 @@
 #include <linux/memblock.h>
 #include <linux/swap.h>
 
+#include <asm/tlbflush.h>
 #include <asm/sections.h>
 
 unsigned long empty_zero_page;
@@ -68,6 +69,7 @@ static void __init zone_sizes_init(void)
 void __init paging_init(void)
 {
 	pagetable_init();
+	flush_tlb_all();
 	zone_sizes_init();
 }
 

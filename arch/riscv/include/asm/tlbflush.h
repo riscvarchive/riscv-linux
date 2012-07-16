@@ -1,54 +1,75 @@
 #ifndef _ASM_RISCV_TLBFLUSH_H
 #define _ASM_RISCV_TLBFLUSH_H
 
-#include <linux/bug.h>
+#ifdef CONFIG_MMU
+
 #include <linux/mm.h>
+#include <linux/bug.h>
+#include <asm/pcr.h>
 
-/*
- * TLB flushing:
- *
- * flush_tlb_all() : flushes all processes TLB entries
- * flush_tlb_mm(mm) : flushes the specified mm context TLB entries
- * flush_tlb_page(vma, vmaddr) : flushes one page
- * flush_tlb_range(vma, start, end) : flushes a range of pages
- * flush_tlb_kernel_range(start, end) : flushes a range of kernel pages
- */
-
-static inline void local_flush_tlb_mm(struct mm_struct *mm)
+/* Flush all TLB entries */
+static inline void flush_tlb_all(void)
 {
+	mtpcr(PCR_PTBR, mfpcr(PCR_PTBR));
 }
 
-static inline void local_flush_tlb_page(
-	struct vm_area_struct *vma, unsigned long page)
+/* Flush the TLB entries of the specified mm context */
+static inline void flush_tlb_mm(struct mm_struct *mm)
 {
+	flush_tlb_all();
 }
 
-static inline void local_flush_tlb_range(struct vm_area_struct *vma,
+/* Flush one page */
+static inline void flush_tlb_page(struct vm_area_struct *vma,
+	unsigned long addr)
+{
+	flush_tlb_all();
+}
+
+/* Flush a range of pages */
+static inline void flush_tlb_range(struct vm_area_struct *vma,
 	unsigned long start, unsigned long end)
 {
+	flush_tlb_all();
 }
 
-static inline void local_flush_tlb_kernel_range(
+/* Flush a range of kernel pages */
+static inline void flush_tlb_kernel_range(unsigned long start,
+	unsigned long end)
+{
+	flush_tlb_all();
+}
+
+#else /* !CONFIG_MMU */
+
+static inline void flush_tlb_all(void)
+{
+	BUG();
+}
+
+static inline void flush_tlb_mm(struct mm_struct *mm)
+{
+	BUG();
+}
+
+static inline void flush_tlb_page(struct vm_area_struct *vma,
+	unsigned long addr)
+{
+	BUG();
+}
+
+static inline void flush_tlb_range(struct vm_area_struct *vma,
 	unsigned long start, unsigned long end)
 {
+	BUG();
 }
 
-extern void local_flush_tlb_all(void);
-extern void local_flush_tlb_one(unsigned long vaddr);
+static inline void flush_tlb_kernel_range(unsigned long start,
+	unsigned long end)
+{
+	BUG();
+}
 
-#define flush_tlb_all()			local_flush_tlb_all()
-#define flush_tlb_mm(mm)		local_flush_tlb_mm(mm)
-#define flush_tlb_range(vma, vmaddr, end) \
-	local_flush_tlb_range(vma, vmaddr, end)
-#define flush_tlb_kernel_range(vmaddr, end) \
-	local_flush_tlb_kernel_range(vmaddr, end)
-#define flush_tlb_page(vma, page)	local_flush_tlb_page(vma, page)
-#define flush_tlb_one(vaddr)		local_flush_tlb_one(vaddr)
-
-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
-
-#define tlb_start_vma(tlb, vma) do { } while (0)
-#define tlb_end_vma(tlb, vma) do { } while (0)
-#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+#endif /* CONFIG_MMU */
 
 #endif /* _ASM_RISCV_TLBFLUSH_H */

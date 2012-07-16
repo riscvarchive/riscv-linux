@@ -14,12 +14,12 @@ ENTRY(_start)
 	.ent _start
 _start:
 
-	mfpcr x1, cr0
+	mfpcr x1, PCR_STATUS
 	li x2, (SR_S64 | SR_U64)
 	li x3, ~(SR_VM)
 	or x1, x1, x2
 	and x1, x1, x3
-	mtpcr x1, cr0
+	mtpcr x1, PCR_STATUS
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
@@ -43,12 +43,12 @@ _start:
 	la x1, swapper_pg_dir
 	sub x1, x1, x29
 	/* Set PTBR and flush TLB */
-	mtpcr x1, cr7
+	mtpcr x1, PCR_PTBR
 
 	/* Enable paging */
-	mfpcr x1, cr0
+	mfpcr x1, PCR_STATUS
 	ori x1, x1, SR_VM
-	mtpcr x1, cr0
+	mtpcr x1, PCR_STATUS
 
 	la x1, start_kernel
 	jr x1

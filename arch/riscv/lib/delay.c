@@ -1,5 +1,7 @@
 #include <linux/delay.h>
 
+#include <asm/timex.h>
+
 #define LOOPS_PER_JIFFY 1337
 
 inline void __const_udelay(unsigned long xloops)
@@ -11,12 +13,9 @@ inline void __const_udelay(unsigned long xloops)
 
 inline void __delay(unsigned long loops)
 {
-	unsigned long start, now;
-
-	__asm__ __volatile__ (
-		"rdcycle %0" : "=r" (start));
+	cycles_t start, now;
+	start = get_cycles();
 	do {
-		__asm__ __volatile__ (
-			"rdcycle %0" : "=r" (now));
+		now = get_cycles();
 	} while ((now - start) < loops);
 }
