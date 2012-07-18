@@ -5,14 +5,10 @@
 
 source "init/Kconfig"
 
-source "mm/Kconfig"
-
-source "kernel/Kconfig.hz"
-
 config MMU
 	def_bool y
 
-menu "Processor type and features"
+menu "Platform type"
 
 choice
 	prompt "CPU selection"
@@ -32,6 +28,19 @@ config CPU_RV_GENERIC
 
 endchoice
 
+config CPU_SUPPORTS_LITTLE_ENDIAN
+	bool
+config CPU_SUPPORTS_BIG_ENDIAN
+	bool
+config CPU_SUPPORTS_32BIT_KERNEL
+	bool
+config CPU_SUPPORTS_64BIT_KERNEL
+	bool
+
+endmenu
+
+menu "Kernel type"
+
 choice
 	prompt "Endianess selection"
 	default CPU_LITTLE_ENDIAN
@@ -50,15 +59,6 @@ config CPU_BIG_ENDIAN
 
 endchoice
 
-config CPU_SUPPORTS_LITTLE_ENDIAN
-	bool
-config CPU_SUPPORTS_BIG_ENDIAN
-	bool
-config CPU_SUPPORTS_32BIT_KERNEL
-	bool
-config CPU_SUPPORTS_64BIT_KERNEL
-	bool
-
 choice
 	prompt "Kernel code model"
 	default 64BIT
@@ -76,6 +76,12 @@ config 64BIT
 	  Select this option to build a 64-bit kernel.
 
 endchoice
+
+source "mm/Kconfig"
+
+source "kernel/Kconfig.hz"
+
+source "kernel/time/Kconfig"
 
 endmenu
 
@@ -105,6 +111,12 @@ config HAVE_MEMBLOCK_NODE_MAP
 	def_bool y
 
 config HAVE_MEMBLOCK
+	def_bool y
+
+config GENERIC_CLOCKEVENTS
+	def_bool y
+
+config HAVE_GENERIC_HARDIRQS
 	def_bool y
 
 endmenu

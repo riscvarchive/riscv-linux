@@ -14,6 +14,9 @@
 #define SR_VM   _AC(0x00000100,UL) /* Enable virtual memory */
 #define SR_IM   _AC(0x00FF0000,UL) /* Interrupt mask */
 
+#define SR_IM_SHIFT     16
+#define SR_IM_MASK(n)   ((_AC(1,UL)) << ((n) + SR_IM_SHIFT))
+
 #ifdef __ASSEMBLY__
 
 #define PCR_STATUS 	cr0

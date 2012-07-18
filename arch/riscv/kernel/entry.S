@@ -71,16 +71,27 @@
 	addi sp, sp, 248
 .endm
 
-.global handle_exception
-.ent handle_exception
+	.global handle_exception
+	.ent handle_exception
 handle_exception:
 	SAVE_ALL
 	mfpcr a0, PCR_CAUSE
-	andi a0, a0, 0x1f /* Cause only [4:0] */
+
+	/* Temporary workaround to accommodate simulator bug
+	   resulting in incorrect exception cause values */
+	addi v0, x0, 1
+	slli v0, v0, 63
+	andi a0, a0, 0xf
+	beqz v0, 1f
+
+	move a1, sp
+	jal do_IRQ
+	j 2f
+1:
 	mfpcr a1, PCR_EPC
 	mfpcr a2, PCR_BADVADDR
 	jal do_exception
-
+2:
 	mfpcr t0, PCR_STATUS
 	li t1, SR_PS
 	and t0, t0, t1
@@ -91,22 +102,22 @@ resume_userspace:
 restore_and_return:
 	RESTORE_ALL
 	eret
-.end handle_exception
+	.end handle_exception
 
-.global ret_from_fork
-.ent ret_from_fork
+	.global ret_from_fork
+	.ent ret_from_fork
 ret_from_fork:
 	jal schedule_tail
 	/* Change back to user mode? */
 	RESTORE_ALL
 	ret
-.end ret_from_fork
+	.end ret_from_fork
 
-.global kernel_thread_helper
-.ent kernel_thread_helper
+	.global kernel_thread_helper
+	.ent kernel_thread_helper
 kernel_thread_helper:
 	jalr t0
 	move a0, v0
 	j do_exit
-.end kernel_thread_helper
+	.end kernel_thread_helper
 
