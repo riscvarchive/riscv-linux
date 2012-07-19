@@ -7,7 +7,6 @@
 #include <asm/pcr.h>
 
 extern asmlinkage void ret_from_fork(void);
-extern asmlinkage void kernel_thread_helper(void);
 
 void __noreturn cpu_idle(void)
 {
@@ -43,7 +42,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	struct pt_regs *childregs;
 	unsigned long childksp;
 
-	childksp = (unsigned long)task_stack_page(p) + THREAD_SIZE - sizeof(pt_regs);
+	childksp = (unsigned long)task_stack_page(p) + THREAD_SIZE;
 
 	childregs = (struct pt_regs *)childksp - 1;
 
@@ -56,12 +55,19 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	}
 
 	childregs->v[0] = 0; /* Set return value for child: v0 */
+	childregs->tp = (unsigned long)task_stack_page(p);
 
-	p->thread.status = (mfpcr(PCR_STATUS) | SR_S);
+	p->thread.status = (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_PS | SR_S);
 	p->thread.sp = (unsigned long)childregs; /* ksp */
 	p->thread.pc = (unsigned long)ret_from_fork; /* pc */
+	p->thread.tp = (unsigned long)task_stack_page(p);
 
 	return 0;
+}
+
+static void __noreturn kernel_thread_helper(void *arg, int(*fn)(void *))
+{
+	do_exit(fn(arg));
 }
 
 long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
@@ -71,9 +77,9 @@ long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 	memset(&kregs, 0, sizeof(kregs));
 
 	kregs.a[0] = (unsigned long)arg;
-	kregs.ra = (unsigned long)fn;
-	kregs.pc = (unsigned long)kernel_thread_helper;
-	kregs.status = (mfpcr(PCR_STATUS) | SR_S);
+	kregs.a[1] = (unsigned long)fn;
+	kregs.ra = (unsigned long)kernel_thread_helper;
+	kregs.status = (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_S | SR_PS);
 
 	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &kregs, 0, NULL, NULL);
 }

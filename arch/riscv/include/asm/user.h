@@ -17,6 +17,7 @@ typedef struct user_regs_struct {
 	unsigned long usp;
 	unsigned long status;
 	unsigned long pc; 
+	unsigned long epc;
 } user_regs_struct;
 
 #endif /* _ASM_RISCV_USER_H */

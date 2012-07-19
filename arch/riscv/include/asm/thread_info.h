@@ -11,7 +11,7 @@
 #include <linux/const.h>
 
 /* thread information allocation */
-#define THREAD_SIZE_ORDER 	(1)
+#define THREAD_SIZE_ORDER 	(0)
 #define THREAD_SIZE 		(PAGE_SIZE << THREAD_SIZE_ORDER)
 #define THREAD_MASK 		(THREAD_SIZE - _AC(1,UL))
 #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
@@ -56,9 +56,9 @@ struct thread_info {
 {						\
 	.task		= &tsk,			\
 	.exec_domain	= &default_exec_domain,	\
+	.flags		= 0,			\
 	.cpu		= 0,			\
 	.preempt_count	= 1,			\
-	.addr_limit	= KERNEL_DS,		\
 	.restart_block	= {			\
 		.fn = do_no_restart_syscall,	\
 	},					\

@@ -1,7 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/export.h>
 #include <linux/init.h>
-#include <linux/jiffies.h>
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>

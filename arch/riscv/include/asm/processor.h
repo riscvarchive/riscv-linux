@@ -51,6 +51,7 @@ struct thread_struct {
 	unsigned long sp;
 	unsigned long status;
 	unsigned long pc;
+	unsigned long tp;
 };
 
 #define INIT_THREAD {		\
@@ -58,7 +59,7 @@ struct thread_struct {
 }
 
  #define kstk_tos(tsk)		\
-	((unsigned long)task_stack_page(tsk) + THREAD_SIZE - 32)
+	((unsigned long)task_stack_page(tsk) + THREAD_SIZE)
 #define task_pt_regs(tsk)	((struct pt_regs *)kstk_tos(tsk) - 1)
 
 #define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)

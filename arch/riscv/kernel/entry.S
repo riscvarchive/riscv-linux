@@ -3,7 +3,7 @@
 #include <asm/pcr.h>
 
 .macro SAVE_ALL
-	addi sp, sp, -248
+	addi sp, sp, -288
 	sd x0, 0(sp)
 	sd x1, 8(sp)
 	sd x2, 16(sp)
@@ -34,10 +34,18 @@
 	sd x27, 216(sp)
 	sd x28, 224(sp)
 	sd x29, 232(sp)
-	sd x30, 240(sp)
+	sd x31, 248(sp)
+	mfpcr x1, PCR_STATUS
+	sd x1, 264(sp)
+	mfpcr x1, PCR_EPC
+	sd x1, 280(sp)
 .endm
 
 .macro RESTORE_ALL
+	ld x1, 280(sp)
+	mtpcr x1, PCR_EPC
+	ld x1, 264(sp)
+	mtpcr x1, PCR_STATUS
 	ld x1, 8(sp)
 	ld x2, 16(sp)
 	ld x3, 24(sp)
@@ -67,8 +75,8 @@
 	ld x27, 216(sp)
 	ld x28, 224(sp)
 	ld x29, 232(sp)
-	ld x30, 240(sp)
-	addi sp, sp, 248
+	ld x31, 248(sp)
+	addi sp, sp, 288
 .endm
 
 	.global handle_exception
@@ -77,8 +85,8 @@ handle_exception:
 	SAVE_ALL
 	mfpcr a0, PCR_CAUSE
 
-	/* Temporary workaround to accommodate simulator bug
-	   resulting in incorrect exception cause values */
+	/* Temporary workaround to accommodate simulator's
+	   different exception cause values */
 	addi v0, x0, 1
 	slli v0, v0, 63
 	andi a0, a0, 0xf
@@ -93,8 +101,7 @@ handle_exception:
 	jal do_exception
 2:
 	mfpcr t0, PCR_STATUS
-	li t1, SR_PS
-	and t0, t0, t1
+	andi t0, t0, SR_PS
 	beqz t0, resume_userspace
 	j restore_and_return
 resume_userspace:
@@ -113,11 +120,59 @@ ret_from_fork:
 	ret
 	.end ret_from_fork
 
-	.global kernel_thread_helper
-	.ent kernel_thread_helper
-kernel_thread_helper:
-	jalr t0
-	move a0, v0
-	j do_exit
-	.end kernel_thread_helper
+/* Not the entire context, just the callee save registers, and a2 */
+.macro SAVE_SWITCH_CONTEXT
+	addi sp, sp, -96
+	sd ra, 0(sp)
+	sd s0, 8(sp)
+	sd s1, 16(sp)
+	sd s2, 24(sp)
+	sd s3, 32(sp)
+	sd s4, 40(sp)
+	sd s5, 48(sp)
+	sd s6, 56(sp)
+	sd s7, 64(sp)
+	sd s8, 72(sp)
+	sd s9, 80(sp)
+	sd a2, 88(sp)
+.endm
+
+.macro RESTORE_SWITCH_CONTEXT
+	ld ra, 0(sp)
+	ld s0, 8(sp)
+	ld s1, 16(sp)
+	ld s2, 24(sp)
+	ld s3, 32(sp)
+	ld s4, 40(sp)
+	ld s5, 48(sp)
+	ld s6, 56(sp)
+	ld s7, 64(sp)
+	ld s8, 72(sp)
+	ld s9, 80(sp)
+	ld a2, 88(sp)
+	addi sp, sp, 96
+.endm
+
+
+/* 
+ * void switch_to(struct task_struct *prev,
+ *     struct task_struct *next, struct task_struct *last);
+ */
+.global switch_to
+.ent switch_to
+switch_to:
+	SAVE_SWITCH_CONTEXT /* Save ra, s[0-9], and a2 */
+	sd sp, 728(a0)      /* prev->thread.sp = sp */
+	la ra, 1f           /* Create return addr when we come back to prev */
+	sd ra, 744(a0)      /* prev->thread.pc = 1f */ 
+	sd tp, 752(a0)      /* prev->thread.tp = tp */
+	ld sp, 728(a1)      /* sp = next->thread.sp */
+	ld ra, 744(a1)      /* ra = next->thread.pc */
+	ld tp, 752(a1)      /* tp = next->thread.tp */
+	j __switch_to       /* == { mov v0, a0; ret } */
+1: 
+	RESTORE_SWITCH_CONTEXT /* Restore ra, s[0-9], and a2 */
+	sd v0, 0(a2)        /* *last = prev */
+	ret
+.end switch_to
 

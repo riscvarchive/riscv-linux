@@ -17,6 +17,7 @@ typedef struct pt_regs {
 	unsigned long usp;
 	unsigned long status;
 	unsigned long pc; 
+	unsigned long epc;
 } pt_regs;
 
 #define user_mode(regs) (((regs)->status & SR_S) == 0)
