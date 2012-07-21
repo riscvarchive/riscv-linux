@@ -149,7 +149,7 @@ handle_syscall:
 	add t0, t0, v0
 	ld t0, 0(t0)
 	jalr t0
-	j handle_exception_tail
+#	j handle_exception_tail
 
 handle_exception_tail:
 	mfpcr t0, PCR_STATUS
