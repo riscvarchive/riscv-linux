@@ -58,7 +58,7 @@ struct thread_struct {
 	.sp = sizeof(init_stack) + (long)&init_stack, \
 }
 
- #define kstk_tos(tsk)		\
+#define kstk_tos(tsk) \
 	((unsigned long)task_stack_page(tsk) + THREAD_SIZE)
 #define task_pt_regs(tsk)	((struct pt_regs *)kstk_tos(tsk) - 1)
 

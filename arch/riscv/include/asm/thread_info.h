@@ -19,6 +19,7 @@
 #ifndef __ASSEMBLY__
 
 #include <asm/processor.h>
+#include <asm/pcr.h>
 
 /*
  * low level task data that entry.S needs immediate access to
@@ -67,9 +68,14 @@ struct thread_info {
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 
-/* How to get the thread information struct from C. */
-register struct thread_info *__current_thread_info __asm__("x31");
-#define current_thread_info()	__current_thread_info
+/* Pointer to the thread_info struct of the current process */
+#define current_thread_info() ({                \
+	register struct thread_info *__ptr;     \
+	__asm__ __volatile__ (                  \
+		"mfpcr %0, " PCR_K0 ";"         \
+		: "=r" (__ptr));                \
+	__ptr;                                  \
+	})
 
 #define alloc_thread_info_node(tsk, node) kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
 #define free_thread_info(info) kfree(info)

@@ -17,6 +17,14 @@
 #define SR_IM_SHIFT     16
 #define SR_IM_MASK(n)   ((_AC(1,UL)) << ((n) + SR_IM_SHIFT))
 
+#define EXC_INST_MISALIGNED     0
+#define EXC_INST_ACCESS         1
+#define EXC_SYSCALL             6
+#define EXC_LOAD_MISALIGNED     8
+#define EXC_STORE_MISALIGNED    9
+#define EXC_LOAD_ACCESS         10
+#define EXC_STORE_ACCESS        11
+
 #ifdef __ASSEMBLY__
 
 #define PCR_STATUS 	cr0
@@ -27,6 +35,8 @@
 #define PCR_COMPARE	cr5
 #define PCR_CAUSE	cr6
 #define PCR_PTBR	cr7
+#define PCR_K0		cr12
+#define PCR_K1		cr13
 #define PCR_TOHOST	cr30
 #define PCR_FROMHOST	cr31
 
@@ -40,6 +50,8 @@
 #define PCR_COMPARE	"cr5"
 #define PCR_CAUSE	"cr6"
 #define PCR_PTBR	"cr7"
+#define PCR_K0		"cr12"
+#define PCR_K1		"cr13"
 #define PCR_TOHOST	"cr30"
 #define PCR_FROMHOST	"cr31"
 

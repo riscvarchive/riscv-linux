@@ -2,15 +2,17 @@
 #include <linux/sched.h>
 #include <linux/tick.h>
 
+#include <asm/unistd.h>
 #include <asm/processor.h>
 #include <asm/ptrace.h>
 #include <asm/pcr.h>
+#include <asm/string.h>
 
 extern asmlinkage void ret_from_fork(void);
 
 void __noreturn cpu_idle(void)
 {
-	while (1) {
+	for (;;) {
 		tick_nohz_idle_enter();
 		rcu_idle_enter();
 		while (!need_resched())
@@ -19,12 +21,6 @@ void __noreturn cpu_idle(void)
 		tick_nohz_idle_exit();
 		schedule_preempt_disabled();
 	}
-}
-
-struct task_struct* __switch_to(struct task_struct *prev_p,
-	struct task_struct *next_p)
-{
-	return prev_p; 
 }
 
 void exit_thread(void)
@@ -43,17 +39,11 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	unsigned long childksp;
 
 	childksp = (unsigned long)task_stack_page(p) + THREAD_SIZE;
-
 	childregs = (struct pt_regs *)childksp - 1;
 
-	*childregs = *regs;
+	memcpy(childregs, regs, sizeof(struct pt_regs));
 
-	if (user_mode(regs)) {
-		childregs->sp = usp;
-	} else {
-		childregs->sp = (unsigned long)childregs;
-	}
-
+	childregs->sp = (user_mode(regs) ? usp : (unsigned long)childregs);
 	childregs->v[0] = 0; /* Set return value for child: v0 */
 	childregs->tp = (unsigned long)task_stack_page(p);
 
@@ -92,16 +82,20 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
 int kernel_execve(const char *filename,
 	char *const argv[], char *const envp[])
 {
-	int ret;
+	register unsigned long __a0 __asm__ ("a0");
+	register unsigned long __a1 __asm__ ("a1");
+	register unsigned long __a2 __asm__ ("a2");
+	register int __res __asm__ ("v0");
+
+	__a0 = (unsigned long)(filename);
+	__a1 = (unsigned long)(argv);
+	__a2 = (unsigned long)(envp);
 
 	__asm__ __volatile__ (
-		"move a0, %0;"
-		"move a1, %1;"
-		"move a2, %2;"
+		"li v0, %4;"
 		"syscall;"
-		"move %3, v0"
-		: "=r" (ret)
-		: "r" (filename), "r" (argv), "r" (envp)
+		: "=&r" (__res)
+		: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
 		: "memory");
-	return ret;
+	return __res;
 }

@@ -89,10 +89,19 @@ source "drivers/Kconfig"
 
 menu "Kernel hacking"
 
+config EARLY_PRINTK
+	bool "Early printk"
+	default n
+	---help---
+	  This is useful for kernel debugging when your machine crashes very
+	  early before the console code is initialized. For normal operation
+	  it is not recommended because it looks ugly and doesn't cooperate
+	  with klogd/syslogd or the X server. You should normally N here,
+	  unless you want to debug such a crash.
+
 source "lib/Kconfig.debug"
 
-config EARLY_PRINTK
-	def_bool y
+endmenu
 
 config GENERIC_HWEIGHT
 	def_bool y
@@ -119,4 +128,3 @@ config GENERIC_CLOCKEVENTS
 config HAVE_GENERIC_HARDIRQS
 	def_bool y
 
-endmenu

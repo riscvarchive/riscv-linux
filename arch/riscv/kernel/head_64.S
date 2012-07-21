@@ -24,7 +24,8 @@ _start:
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current thread_info pointer */
-	la tp, init_thread_union
+	la x1, init_thread_union
+	mtpcr x1, PCR_K0
 
 	lui x29, (PAGE_OFFSET >> 12) & 0xfffff
 	/* Clear .bss segment, assumed to start and end

@@ -1,5 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/export.h>
+#include <linux/syscalls.h>
 #include <linux/init.h>
 
 #include <asm/processor.h>
@@ -21,8 +22,10 @@ void show_regs(struct pt_regs *regs)
 {
 }
 
-void do_exception(unsigned long cause,
-    unsigned long epc, unsigned long badvaddr)
+extern void *sys_call_table[__NR_syscalls];
+
+void report_exception(unsigned long cause, unsigned long epc,
+	unsigned long badvaddr)
 {
 	panic("Unhandled exception %ld\n", cause);
 }
