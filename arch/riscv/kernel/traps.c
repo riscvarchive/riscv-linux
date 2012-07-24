@@ -27,7 +27,7 @@ extern void *sys_call_table[__NR_syscalls];
 void report_exception(unsigned long cause, unsigned long epc,
 	unsigned long badvaddr)
 {
-	panic("Unhandled exception %ld\n", cause);
+	panic("unhandled exception %ld", cause);
 }
 
 void __init trap_init(void)

@@ -32,7 +32,17 @@ CONFIG_UTS_NS=y
 CONFIG_PID_NS=y
 # CONFIG_SCHED_AUTOGROUP is not set
 # CONFIG_RELAY is not set
-# CONFIG_BLK_DEV_INITRD is not set
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_INITRAMFS_SOURCE="arch/riscv/initramfs.txt"
+CONFIG_INITRAMFS_ROOT_UID=0
+CONFIG_INITRAMFS_ROOT_GID=0
+CONFIG_RD_GZIP=y
+# CONFIG_RD_BZIP2 is not set
+# CONFIG_RD_LZMA is not set
+# CONFIG_RD_XZ is not set
+# CONFIG_RD_LZO is not set
+CONFIG_INITRAMFS_COMPRESSION_NONE=y
+# CONFIG_INITRAMFS_COMPRESSION_GZIP is not set
 # CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
 CONFIG_ANON_INODES=y
 CONFIG_EXPERT=y
@@ -296,6 +306,51 @@ CONFIG_DEVKMEM=y
 #
 # CONFIG_VIRT_DRIVERS is not set
 # CONFIG_PM_DEVFREQ is not set
+#
+# File systems
+#
+# CONFIG_EXT2_FS is not set
+# CONFIG_EXT3_FS is not set
+# CONFIG_EXT4_FS is not set
+# CONFIG_REISERFS_FS is not set
+# CONFIG_JFS_FS is not set
+# CONFIG_XFS_FS is not set
+# CONFIG_GFS2_FS is not set
+# CONFIG_FS_POSIX_ACL is not set
+CONFIG_FILE_LOCKING=y
+CONFIG_FSNOTIFY=y
+CONFIG_DNOTIFY=y
+CONFIG_INOTIFY_USER=y
+# CONFIG_FANOTIFY is not set
+# CONFIG_QUOTA is not set
+# CONFIG_QUOTACTL is not set
+# CONFIG_AUTOFS4_FS is not set
+# CONFIG_FUSE_FS is not set
+#
+# Caches
+#
+# CONFIG_FSCACHE is not set
+#
+# CD-ROM/DVD Filesystems
+#
+# CONFIG_ISO9660_FS is not set
+# CONFIG_UDF_FS is not set
+#
+# DOS/FAT/NT Filesystems
+#
+# CONFIG_MSDOS_FS is not set
+# CONFIG_VFAT_FS is not set
+# CONFIG_NTFS_FS is not set
+#
+# Pseudo filesystems
+#
+# CONFIG_PROC_FS is not set
+# CONFIG_SYSFS is not set
+# CONFIG_TMPFS is not set
+# CONFIG_HUGETLB_PAGE is not set
+# CONFIG_CONFIGFS_FS is not set
+# CONFIG_MISC_FILESYSTEMS is not set
+# CONFIG_NLS is not set
 #
 # Kernel hacking
 #

@@ -87,6 +87,8 @@ endmenu
 
 source "drivers/Kconfig"
 
+source "fs/Kconfig"
+
 menu "Kernel hacking"
 
 config EARLY_PRINTK

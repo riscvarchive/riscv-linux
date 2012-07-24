@@ -132,7 +132,8 @@ handle_exception:
 	slli t0, t0, 3
 	add t1, t1, t0
 	/* Check if exception code lies within bounds */
-	bgeu t2, t1, handle_fault_generic
+	bgeu t1, t2, handle_fault_generic
+	ld t1, 0(t1)
 	jalr t1
 	j handle_exception_tail
 
@@ -243,7 +244,8 @@ excp_vect_tab:
 	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic
-	.quad handle_syscall
+#	.quad handle_syscall
+	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic

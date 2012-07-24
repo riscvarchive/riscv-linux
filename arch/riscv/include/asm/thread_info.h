@@ -3,10 +3,6 @@
 
 #ifdef __KERNEL__
 
-#define KU_MASK	0x08
-#define KU_USER	0x08
-#define KU_KERN	0x00
-
 #include <asm/page.h>
 #include <linux/const.h>
 
@@ -60,6 +56,7 @@ struct thread_info {
 	.flags		= 0,			\
 	.cpu		= 0,			\
 	.preempt_count	= 1,			\
+	.addr_limit	= KERNEL_DS,		\
 	.restart_block	= {			\
 		.fn = do_no_restart_syscall,	\
 	},					\

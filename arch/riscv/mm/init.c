@@ -1,6 +1,7 @@
 #include <linux/init.h>
 #include <linux/mm.h>
 #include <linux/bootmem.h>
+#include <linux/initrd.h>
 #include <linux/memblock.h>
 #include <linux/swap.h>
 
@@ -139,4 +140,10 @@ void __init mem_init(void)
 void free_initmem(void)
 {
 }
+
+#ifdef CONFIG_BLK_DEV_INITRD
+void free_initrd_mem(unsigned long start, unsigned long end)
+{
+}
+#endif /* CONFIG_BLK_DEV_INITRD */
 
