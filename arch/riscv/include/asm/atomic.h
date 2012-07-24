@@ -60,12 +60,7 @@ static inline void atomic_add(int i, atomic_t *v)
  */
 static inline void atomic_sub(int i, atomic_t *v)
 {
-	__asm__ __volatile__ (
-		"subw %0, x0, %0;"
-		"amoadd.w x0, %0, 0(%1);"
-		: "+r" (i)
-		: "r" (&(v->counter))
-		: "memory");
+	return atomic_add(-i, v);
 }
 
 /**
@@ -95,14 +90,7 @@ static inline int atomic_add_return(int i, atomic_t *v)
  */
 static inline int atomic_sub_return(int i, atomic_t *v)
 {
-	register int c;
-	__asm__ __volatile__ (
-		"subw %1, x0, %1;"
-		"amoadd.w %0, %1, 0(%2);"
-		: "=r" (c), "+r" (i)
-		: "r" (&(v->counter))
-		: "memory");
-	return (c + i);
+	return atomic_add_return(-i, v);
 }
 
 /**
@@ -243,9 +231,9 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 	int c, old;
 	c = atomic_read(v);
 	for (;;) {
-		if (unlikely(c == (u)))
+		if (unlikely(c == u))
 			break;
-		old = atomic_cmpxchg((v), c, c + (a));
+		old = atomic_cmpxchg(v, c, c + a);
 		if (likely(old == c))
 			break;
 		c = old;
