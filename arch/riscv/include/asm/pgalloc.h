@@ -1,24 +1,26 @@
 #ifndef _ASM_RISCV_PGALLOC_H
 #define _ASM_RISCV_PGALLOC_H
 
-/* borrowed from score */
-
 #include <linux/mm.h>
 #include <asm/tlb.h>
 
-static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
-	pte_t *pte)
+static inline void pmd_populate_kernel(struct mm_struct *mm,
+	pmd_t *pmd, pte_t *pte)
 {
+	*pmd = __pmd(__pa(pte) | _PAGE_PRESENT | _PAGE_T);
 }
 
-static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
-	pgtable_t pte)
+static inline void pmd_populate(struct mm_struct *mm,
+	pmd_t *pmd, pgtable_t pte)
 {
+	*pmd = __pmd((unsigned long)page_address(pte)
+		| _PAGE_PRESENT | _PAGE_T);
 }
 
 #ifndef __PAGETABLE_PMD_FOLDED
 static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
+	*pud = __pud(__pa(pmd) | _PAGE_PRESENT | _PAGE_T);
 }
 #endif /* __PAGETABLE_PMD_FOLDED */
 
@@ -26,22 +28,36 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 {
-	return NULL;
+	pgd_t *pgd;
+
+	pgd = (pgd_t *)__get_free_page(GFP_KERNEL);
+	if (likely(pgd != NULL)) {
+		memset(pgd, 0, USER_PTRS_PER_PGD * sizeof(pgd_t));
+		/* Copy kernel mappings */
+		memcpy(pgd + USER_PTRS_PER_PGD,
+			swapper_pg_dir + USER_PTRS_PER_PGD,
+			(PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
+
+	}
+	return pgd;
 }
 
 static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
+	free_page((unsigned long)pgd);
 }
 
 #ifndef __PAGETABLE_PMD_FOLDED
 
 static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
 {
-	return NULL;
+	return (pmd_t *)__get_free_page(
+		GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
 }
 
 static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 {
+	free_page((unsigned long)pmd);
 }
 
 #endif /* __PAGETABLE_PMD_FOLDED */
@@ -49,21 +65,29 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
 	unsigned long address)
 {
-	return NULL;
+	return (pte_t *)__get_free_page(
+		GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
 }
 
 static inline struct page *pte_alloc_one(struct mm_struct *mm,
 	unsigned long address)
 {
-	return NULL;
+	struct page *pte;
+	pte = alloc_page(GFP_KERNEL | __GFP_REPEAT);
+	if (likely(pte != NULL))
+		pgtable_page_ctor(pte);
+	return pte;
 }
 
 static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 {
+	free_page((unsigned long)pte);
 }
 
 static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
 {
+	pgtable_page_dtor(pte);
+	__free_page(pte);
 }
 
 #define __pte_free_tlb(tlb, pte, buf)   \

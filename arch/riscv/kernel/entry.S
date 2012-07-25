@@ -150,6 +150,12 @@ handle_syscall:
 	add t0, t0, v0
 	ld t0, 0(t0)
 	jalr t0
+
+	/* Advance EPC to avoid executing the original
+	   syscall instruction on eret */
+	ld t0, 0x118(sp)
+	addi t0, t0, 0x4
+	sw t0, 0x118(sp)
 #	j handle_exception_tail
 
 handle_exception_tail:
@@ -244,7 +250,7 @@ excp_vect_tab:
 	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic
-#	.quad handle_syscall
+	.quad handle_syscall
 	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic

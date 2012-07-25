@@ -101,6 +101,8 @@ config EARLY_PRINTK
 	  with klogd/syslogd or the X server. You should normally N here,
 	  unless you want to debug such a crash.
 
+source "fs/Kconfig.binfmt"
+
 source "lib/Kconfig.debug"
 
 endmenu

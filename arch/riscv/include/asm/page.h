@@ -4,15 +4,14 @@
 #include <linux/pfn.h>
 #include <linux/const.h>
 
-/* Page size determined by PAGE_SHIFT */
 #ifdef CONFIG_64BIT
 #define PAGE_SHIFT	(13)
 #else
 #define PAGE_SHIFT	(12)
-#endif
+#endif /* CONFIG_64BIT */
 
 #define PAGE_SIZE	(_AC(1,UL) << PAGE_SHIFT)
-#define PAGE_MASK	(~(PAGE_SIZE-1))
+#define PAGE_MASK	(~(PAGE_SIZE - 1))
 
 #ifdef __KERNEL__
 
@@ -85,7 +84,6 @@ extern unsigned long max_pfn;
 
 #define pfn_valid(pfn)		(((pfn) >= min_low_pfn) && ((pfn) < max_low_pfn))
 
-//#define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
 #define ARCH_PFN_OFFSET		(0UL)
 
 #endif /* __ASSEMBLY__ */

@@ -23,6 +23,18 @@ void __noreturn cpu_idle(void)
 	}
 }
 
+void start_thread(struct pt_regs * regs, unsigned long pc, 
+	unsigned long sp)
+{
+	unsigned long status;
+
+	/* Remove kernel privileges */
+	status = regs->status & ~(SR_PS);
+
+	regs->epc = pc;
+	regs->sp = sp;
+}
+
 void exit_thread(void)
 {
 }
@@ -71,7 +83,8 @@ long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 	kregs.ra = (unsigned long)kernel_thread_helper;
 	kregs.status = (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_S | SR_PS);
 
-	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &kregs, 0, NULL, NULL);
+	return do_fork(flags | CLONE_VM | CLONE_UNTRACED,
+		0, &kregs, 0, NULL, NULL);
 }
 
 unsigned long thread_saved_pc(struct task_struct *tsk)
@@ -87,15 +100,15 @@ int kernel_execve(const char *filename,
 	register unsigned long __a2 __asm__ ("a2");
 	register int __res __asm__ ("v0");
 
+	__res = __NR_execve;
 	__a0 = (unsigned long)(filename);
 	__a1 = (unsigned long)(argv);
 	__a2 = (unsigned long)(envp);
 
 	__asm__ __volatile__ (
-		"li v0, %4;"
 		"syscall;"
-		: "=&r" (__res)
-		: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
+		: "+r" (__res)
+		: "r" (__a0), "r" (__a1), "r" (__a2)
 		: "memory");
 	return __res;
 }

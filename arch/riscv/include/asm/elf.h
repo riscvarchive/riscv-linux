@@ -95,7 +95,7 @@ typedef elf_greg_t elf_gregset_t[ELF_NGREG];
 typedef unsigned long elf_fpregset_t;
 
 /* This should be moved to include/linux/elf.h */
-#define EM_RISCV	0x8472
+#define EM_RISCV	0xF3
 
 /*
  * These are used to set parameters in the core dumps.

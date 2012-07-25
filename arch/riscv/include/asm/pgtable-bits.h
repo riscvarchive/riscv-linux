@@ -28,6 +28,9 @@
 #define _PAGE_UNUSED2   (1 << 11)
 #define _PAGE_UNUSED3   (1 << 12)
 
+#define _PAGE_PRESENT   _PAGE_UNUSED1
+#define _PAGE_FILE      _PAGE_D /* when !present: non-linear file mapping */
+
 /* Set of bits to retain in pte_modify() */
 #define _PAGE_CHG_MASK  (~(_PAGE_SR | _PAGE_SW | _PAGE_SE | \
                            _PAGE_UR | _PAGE_UW | _PAGE_UE))

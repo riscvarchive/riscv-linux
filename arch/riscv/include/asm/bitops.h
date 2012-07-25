@@ -8,6 +8,7 @@
 #ifdef __KERNEL__
 
 #include <linux/compiler.h>
+#include <linux/irqflags.h>
 #include <asm/barrier.h>
 #include <asm/bitsperlong.h>
 
@@ -91,48 +92,6 @@ static __always_inline int ffs(int x)
 #include <asm-generic/bitops/hweight.h>
 
 /**
- * test_and_set_bit_lock - Set a bit and return its old value, for lock
- * @nr: Bit to set
- * @addr: Address to count from
- *
- * This operation is atomic and provides acquire barrier semantics.
- * It can be used to implement bit locks.
- */
-static inline int test_and_set_bit_lock(
-	unsigned long nr, volatile unsigned long *addr)
-{
-	return 0;
-}
-
-/**
- * clear_bit_unlock - Clear a bit in memory, for unlock
- * @nr: the bit to set
- * @addr: the address to start counting from
- *
- * This operation is atomic and provides release barrier semantics.
- */
-static inline void clear_bit_unlock(
-	unsigned long nr, volatile unsigned long *addr)
-{
-}
-
-/**
- * __clear_bit_unlock - Clear a bit in memory, for unlock
- * @nr: the bit to set
- * @addr: the address to start counting from
- *
- * This operation is like clear_bit_unlock, however it is not atomic.
- * It does provide release barrier semantics so it can be used to unlock
- * a bit lock, however it would only be used if no other CPU can modify
- * any bits in the memory until the lock is released (a good example is
- * if the bit lock itself protects access to the other bits in the word).
- */
-static inline void __clear_bit_unlock(
-	unsigned long nr, volatile unsigned long *addr)
-{
-}
-
-/**
  * test_and_set_bit - Set a bit and return its old value
  * @nr: Bit to set
  * @addr: Address to count from
@@ -152,7 +111,7 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
 
 	__asm__ __volatile__ (
 		"amoor.d %0, %2, 0(%1)"
-		: "=&r" (res)
+		: "=r" (res)
 		: "r" (p), "r" (mask)
 		: "memory");
 
@@ -179,13 +138,14 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 
 	__asm__ __volatile__ (
 		"amoand.d %0, %2, 0(%1)"
-		: "=&r" (res)
+		: "=r" (res)
 		: "r" (p), "r" (~mask)
 		: "memory");
 
 	return ((res & mask) != 0);
 }
 
+#ifndef CONFIG_SMP
 /**
  * test_and_change_bit - Change a bit and return its old value
  * @nr: Bit to change
@@ -196,8 +156,24 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
  */
 static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 {
-	return 0;
+	unsigned long res;
+	unsigned long mask;
+	volatile unsigned long *p;
+	unsigned long flags;
+
+	mask = LONG_MASK(nr);
+	p = addr + LONG_WORD(nr);
+
+	local_save_flags(flags);
+	res = *p;
+	*p = (res ^ mask);
+	local_irq_restore(flags);
+
+	return ((res & mask) != 0);
 }
+#else
+#error "SMP not supported by current test_and_change_bit implementation"
+#endif /* !CONFIG_SMP */
 
 /**
  * set_bit - Atomically set a bit in memory
@@ -246,6 +222,51 @@ static inline void clear_bit(int nr, volatile unsigned long *addr)
  */
 static inline void change_bit(int nr, volatile unsigned long *addr)
 {
+	(void)test_and_change_bit(nr, addr);
+}
+
+/**
+ * test_and_set_bit_lock - Set a bit and return its old value, for lock
+ * @nr: Bit to set
+ * @addr: Address to count from
+ *
+ * This operation is atomic and provides acquire barrier semantics.
+ * It can be used to implement bit locks.
+ */
+static inline int test_and_set_bit_lock(
+	unsigned long nr, volatile unsigned long *addr)
+{
+	return test_and_set_bit(nr, addr);
+}
+
+/**
+ * clear_bit_unlock - Clear a bit in memory, for unlock
+ * @nr: the bit to set
+ * @addr: the address to start counting from
+ *
+ * This operation is atomic and provides release barrier semantics.
+ */
+static inline void clear_bit_unlock(
+	unsigned long nr, volatile unsigned long *addr)
+{
+	clear_bit(nr, addr);
+}
+
+/**
+ * __clear_bit_unlock - Clear a bit in memory, for unlock
+ * @nr: the bit to set
+ * @addr: the address to start counting from
+ *
+ * This operation is like clear_bit_unlock, however it is not atomic.
+ * It does provide release barrier semantics so it can be used to unlock
+ * a bit lock, however it would only be used if no other CPU can modify
+ * any bits in the memory until the lock is released (a good example is
+ * if the bit lock itself protects access to the other bits in the word).
+ */
+static inline void __clear_bit_unlock(
+	unsigned long nr, volatile unsigned long *addr)
+{
+	clear_bit(nr, addr);
 }
 
 #undef LONG_MASK

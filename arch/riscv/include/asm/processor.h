@@ -33,7 +33,8 @@ extern unsigned long get_wchan(struct task_struct *p);
  * User space process size: 2GB. This is hardcoded into a few places,
  * so don't change it unless you know what you are doing.
  */
-#define TASK_SIZE	0x7fff8000UL
+/* Highest virtual address below the sign-extension hole */
+#define TASK_SIZE	(1UL << (PGDIR_SHIFT + 9))
 
 /*
  * This decides where the kernel will search for a free chunk of vm
