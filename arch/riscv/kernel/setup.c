@@ -7,9 +7,10 @@
 #include <asm/sections.h>
 #include <asm/pgtable.h>
 
-#define MEMORY_START 0
-
 static char __initdata command_line[COMMAND_LINE_SIZE];
+#ifdef CONFIG_CMDLINE_BOOL
+static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
+#endif /* CONFIG_CMDLINE_BOOL */
 
 #ifdef CONFIG_BLK_DEV_INITRD
 static void __init setup_initrd(void)
@@ -69,11 +70,25 @@ static void __init setup_bootmem(void)
 
 void __init setup_arch(char **cmdline_p)
 {
+#ifdef CONFIG_CMDLINE_BOOL
+#ifdef CONFIG_CMDLINE_OVERRIDE
+	strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
+#else
+	if (builtin_cmdline[0] != '\0') {
+		/* Append bootloader command line to built-in */
+		strlcat(builtin_cmdline, " ", COMMAND_LINE_SIZE);
+		strlcat(builtin_cmdline, boot_command_line, COMMAND_LINE_SIZE);
+		strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
+	}
+#endif /* CONFIG_CMDLINE_OVERRIDE */
+#endif /* CONFIG_CMDLINE_BOOL */
 	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
 	*cmdline_p = command_line;
+
 #ifdef CONFIG_EARLY_PRINTK
 	setup_early_printk();
 #endif /* CONFIG_EARLY_PRINTK */
+
 	setup_bootmem();
 	paging_init();
 }
