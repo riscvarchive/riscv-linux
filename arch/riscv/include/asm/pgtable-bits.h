@@ -1,6 +1,9 @@
 #ifndef _ASM_RISCV_PGTABLE_BITS_H
 #define _ASM_RISCV_PGTABLE_BITS_H
 
+#define PTE_PFN_SHIFT   (PAGE_SHIFT)
+/* Extracts the PFN from a pgd/pud/pmd/pte */
+#define PTE_PFN_MASK    (PAGE_MASK)
 /*
  * RV32S page table entry:
  * | 32  23 | 22  13 | 12  10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |

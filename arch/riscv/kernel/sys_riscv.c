@@ -3,14 +3,14 @@
 #include <linux/slab.h>
 #include <linux/linkage.h>
 
-asmlinkage long sys_clone(unsigned long clone_flags,
+asmlinkage long __sys_clone(unsigned long clone_flags,
 	unsigned long newsp, void __user *parent_tid,
 	void __user *child_tid, struct pt_regs *regs)
 {
 	return 0;
 }
 
-asmlinkage long sys_execve(const char __user *name,
+asmlinkage long __sys_execve(const char __user *name,
 	const char __user * const __user *argv,
 	const char __user * const __user *envp, struct pt_regs *regs)
 {

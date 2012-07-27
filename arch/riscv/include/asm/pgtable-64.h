@@ -1,16 +1,17 @@
 #ifndef _ASM_RISCV_PGTABLE_64_H
 #define _ASM_RISCV_PGTABLE_64_H
 
-/* Size of region mapped by a page global directory */
 #define PGDIR_SHIFT     33
+/* Size of region mapped by a page global directory */
 #define PGDIR_SIZE      (1UL << PGDIR_SHIFT)
 #define PGDIR_MASK      (~(PGDIR_SIZE - 1))
 
-/* Size of region mapped by a page middle directory */
 #define PMD_SHIFT       23
+/* Size of region mapped by a page middle directory */
 #define PMD_SIZE        (1UL << PMD_SHIFT)
 #define PMD_MASK        (~(PMD_SIZE - 1))
 
+/* Page Middle Directory entry */
 typedef struct {
 	unsigned long pmd;
 } pmd_t;
@@ -19,10 +20,6 @@ typedef struct {
 #define __pmd(x)        ((pmd_t) { (x) })
 
 #define PTRS_PER_PMD    (PAGE_SIZE / sizeof(pmd_t))
-
-/* Log base 2 of the number of pages required
-   to hold a page middle directory */
-#define PMD_ORDER       0
 
 static inline int pud_present(pud_t pud)
 {
@@ -46,7 +43,7 @@ static inline void pud_clear(pud_t *pudp)
 
 static inline unsigned long pud_page_vaddr(pud_t pud)
 {
-	return (unsigned long)(__va(pud_val(pud) & PAGE_MASK));
+	return (unsigned long)__va(pud_val(pud) & PTE_PFN_MASK);
 }
 
 #define pmd_index(addr) (((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))

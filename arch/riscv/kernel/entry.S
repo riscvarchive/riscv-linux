@@ -75,6 +75,8 @@ _save_context:
 	ld x1, -0x08(sp)
 	mtpcr x1, PCR_EPC
 	ld x1, -0x18(sp)
+	/* eret requires SR_ET to be clear */
+	andi x1, x1, ~(SR_ET)
 	mtpcr x1, PCR_STATUS
 
 	ld x1,  -0x118(sp)
@@ -144,13 +146,21 @@ handle_fault_generic:
 	jal report_exception
 	j handle_exception_tail
 
+handle_page_fault:
+	mfpcr a0, PCR_CAUSE
+	mfpcr a1, PCR_EPC
+	mfpcr a2, PCR_BADVADDR
+	jal do_page_fault
+	j handle_exception_tail
+
 handle_syscall:
 	la t0, sys_call_table
+	/* Syscall number held in v0 */
 	slli v0, v0, 3
 	add t0, t0, v0
 	ld t0, 0(t0)
 	jalr t0
-
+handle_syscall_tail:
 	/* Advance EPC to avoid executing the original
 	   syscall instruction on eret */
 	ld t0, 0x118(sp)
@@ -161,14 +171,41 @@ handle_syscall:
 handle_exception_tail:
 	mfpcr t0, PCR_STATUS
 	andi t0, t0, SR_PS
-	beqz t0, resume_userspace
-	j restore_and_return
-resume_userspace:
+	bnez t0, restore_and_return
+	/* Resume userspace */
 	jal schedule
 restore_and_return:
 	RESTORE_ALL
 	eret
 	.end handle_exception
+
+/* 
+ * Wrapper routines are necessary to accommodate system calls
+ * that require a pt_regs pointer, provided as an additional
+ * argument at the position specified by \index.
+ * The original arguments are passed through unmodified.
+ * 
+ * The address of the pt_regs struct on the kernel mode stack
+ * is assumed to be the current value of sp.
+ *
+ * Note: These routines are intended to be called exclusively
+ * by the syscall trap handler.
+ */
+	.macro PTREGS_SYSCALL func index
+	.global \func
+	.ent \func
+\func:
+	move a\index, sp /* pt_regs pointer */
+	jal __\func
+	/* Hard-code return destination to avoid saving ra */
+	j handle_syscall_tail
+	.end \func
+	.endm
+
+	PTREGS_SYSCALL sys_sigaltstack, 2
+	PTREGS_SYSCALL sys_rt_sigreturn, 0
+	PTREGS_SYSCALL sys_clone, 4
+	PTREGS_SYSCALL sys_execve, 3
 
 
 	.global ret_from_fork
@@ -242,10 +279,11 @@ switch_to:
 
 
 	.section ".rodata"
+	/* Exception vector table */
 	.global excp_vect_tab
 excp_vect_tab:
 	.quad handle_fault_generic
-	.quad handle_fault_generic
+	.quad handle_page_fault
 	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic
@@ -254,7 +292,8 @@ excp_vect_tab:
 	.quad handle_fault_generic
 	.quad handle_fault_generic
 	.quad handle_fault_generic
-	.quad handle_fault_generic
-	.quad handle_fault_generic
+	.quad handle_page_fault
+	.quad handle_page_fault
 	.quad handle_fault_generic
 excp_vect_tab_end:
+

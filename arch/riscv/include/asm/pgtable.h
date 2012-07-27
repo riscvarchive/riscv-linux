@@ -24,13 +24,6 @@
 /* Number of entries in the page table */
 #define PTRS_PER_PTE    (PAGE_SIZE / sizeof(pte_t))
 
-/* Log base 2 of the number of pages required
-   to hold a page global directory */
-#define PGD_ORDER       0
-/* Log base 2 of the number of pages required
-   to hold a page table */
-#define PTE_ORDER       0
-
 /* Number of PGD entries that a user-mode program can use */
 #define USER_PTRS_PER_PGD   (TASK_SIZE / PGDIR_SIZE)
 #define FIRST_USER_ADDRESS  0
@@ -75,34 +68,36 @@ static inline pgd_t *pgd_offset(const struct mm_struct *mm, unsigned long addr)
 /* Locate an entry in the kernel page global directory */
 #define pgd_offset_k(addr)      pgd_offset(&init_mm, (addr))
 
-/*
- * Conversion functions: convert a page and protection to a page entry,
- * and a page entry and page directory to the page they refer to.
- */
-#define pmd_phys(pmd)           __pa((void *)pmd_val(pmd))
-#define pmd_page(pmd)           pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT)
-#define pmd_page_vaddr(pmd)     pmd_val(pmd)
+extern struct page *mem_map;
 
-/* Retrieve the page frame number (PFN) of a page table entry */
+static inline struct page *pmd_page(pmd_t pmd)
+{
+	return pfn_to_page(pmd_val(pmd) >> PTE_PFN_SHIFT);
+}
+
+static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+{
+	return (unsigned long)__va(pmd_val(pmd) & PTE_PFN_MASK);
+}
+
+/* Yields the page frame number (PFN) of a page table entry */
 static inline unsigned long pte_pfn(pte_t pte)
 {
-	return pte_val(pte) >> PAGE_SHIFT;
+	return (pte_val(pte) >> PTE_PFN_SHIFT);
 }
 
-extern struct page *mem_map;
 #define pte_page(x)     pfn_to_page(pte_pfn(x))
 
-/* Construct a page table entry */
+/* Constructs a page table entry */
 static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
 {
-	return __pte((pfn << PAGE_SHIFT) | pgprot_val(prot));
+	return __pte((pfn << PTE_PFN_SHIFT) | pgprot_val(prot));
 }
 
-/*
- * Conversion functions: convert a page and protection to a page entry,
- * and a page entry and page directory to the page they refer to.
- */
-#define mk_pte(page, pgprot)    pfn_pte(page_to_pfn(page), (pgprot))
+static inline pte_t mk_pte(struct page *page, pgprot_t prot)
+{
+	return pfn_pte(page_to_pfn(page), prot);
+}
 
 #define pte_index(addr) (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)) 
 #define pte_offset_map(dir, addr) \
@@ -110,7 +105,7 @@ static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
 
 static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long addr)
 {
-	return (pte_t *)(pmd_page_vaddr(*pmd) + pte_index(addr));
+	return (pte_t *)pmd_page_vaddr(*pmd) + pte_index(addr);
 }
 
 /*
@@ -119,9 +114,9 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long addr)
  * Format of swap PTE:
  */
 #define __swp_type(x)               ((x).val & 0x1f)
-#define __swp_offset(x)             ((x).val >> PAGE_SHIFT)
+#define __swp_offset(x)             ((x).val >> PTE_PFN_SHIFT)
 #define __swp_entry(type, offset)   \
-	((swp_entry_t) { ((type) & 0x1f) | ((offset) << PAGE_SHIFT) })
+	((swp_entry_t) { ((type) & 0x1f) | ((offset) << PTE_PFN_SHIFT) })
 #define __pte_to_swp_entry(pte)     ((swp_entry_t) { pte_val(pte) })
 #define __swp_entry_to_pte(x)       ((pte_t) { (x).val })
 
@@ -131,19 +126,19 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long addr)
  * Format of file PTE:
  */
 #ifdef CONFIG_64BIT
-#define PTE_FILE_MAX_BITS       (64 - PAGE_SHIFT)
+#define PTE_FILE_MAX_BITS       (64 - PTE_PFN_SHIFT)
 #else
-#define PTE_FILE_MAX_BITS       (32 - PAGE_SHIFT)
+#define PTE_FILE_MAX_BITS       (32 - PTE_PFN_SHIFT)
 #endif /* CONFIG_64BIT */
 
 static inline pte_t pgoff_to_pte(unsigned long off)
 {
-	return __pte((off << PAGE_SHIFT) | _PAGE_FILE);
+	return __pte((off << PTE_PFN_SHIFT) | _PAGE_FILE);
 }
 
 static inline unsigned long pte_to_pgoff(pte_t pte)
 {
-	return (pte_val(pte) >> PAGE_SHIFT);
+	return (pte_val(pte) >> PTE_PFN_SHIFT);
 }
 
 /*
@@ -257,33 +252,39 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 #define pgd_ERROR(e) \
 	printk("%s:%d: bad pgd %016lx.\n", __FILE__, __LINE__, pgd_val(e))
 
-#define _PAGE_STD (_PAGE_R | _PAGE_E | _PAGE_PRESENT)
+#define _PAGE_BASE      (_PAGE_R | _PAGE_E | _PAGE_PRESENT)
+#define _PAGE_RD        (_PAGE_SR | _PAGE_UR)
+#define _PAGE_WR        (_PAGE_SW | _PAGE_UW)
+#define _PAGE_EX        (_PAGE_SE | _PAGE_UE)
 
-#define PAGE_KERNEL     __pgprot(_PAGE_STD | _PAGE_SR | _PAGE_SW | _PAGE_SE)
+#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SE)
 #define PAGE_NONE       __pgprot(0)
-#define PAGE_COPY       __pgprot(_PAGE_STD | _PAGE_UR | _PAGE_UW | _PAGE_UE)
-#define PAGE_SHARED     __pgprot(_PAGE_STD | _PAGE_UR | _PAGE_UW | _PAGE_UE)
-#define PAGE_READONLY   __pgprot(_PAGE_STD | _PAGE_UR            | _PAGE_UE)
+
+#define PAGE_R         __pgprot(_PAGE_BASE | _PAGE_RD)
+#define PAGE_W         __pgprot(_PAGE_BASE | _PAGE_WR)
+#define PAGE_RW        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR)
+#define PAGE_RX        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_EX)
+#define PAGE_RWX       __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR | _PAGE_EX)
 
 /* Private */
 #define __P000	PAGE_NONE
-#define __P001	PAGE_READONLY
-#define __P010	PAGE_COPY
-#define __P011	PAGE_COPY
-#define __P100	PAGE_READONLY
-#define __P101	PAGE_READONLY
-#define __P110	PAGE_COPY
-#define __P111	PAGE_COPY
+#define __P001	PAGE_R
+#define __P010	PAGE_W
+#define __P011	PAGE_RW
+#define __P100	PAGE_RX
+#define __P101	PAGE_RX
+#define __P110	PAGE_RWX
+#define __P111	PAGE_RWX
 
 /* Shared */
 #define __S000	PAGE_NONE
-#define __S001	PAGE_READONLY
-#define __S010	PAGE_SHARED
-#define __S011	PAGE_SHARED
-#define __S100	PAGE_READONLY
-#define __S101	PAGE_READONLY
-#define __S110	PAGE_SHARED
-#define __S111	PAGE_SHARED
+#define __S001	PAGE_R
+#define __S010	PAGE_W
+#define __S011	PAGE_RW
+#define __S100	PAGE_RX
+#define __S101	PAGE_RX
+#define __S110	PAGE_RWX
+#define __S111	PAGE_RWX
 
 extern unsigned long empty_zero_page;
 extern unsigned long zero_page_mask;

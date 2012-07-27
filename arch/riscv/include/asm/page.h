@@ -46,12 +46,23 @@
 			memcpy((vto), (vfrom), PAGE_SIZE)
 
 /*
- * These are used to make use of C type-checking
+ * Use struct definitions to apply C type checking
  */
 
-typedef struct { unsigned long pte; } pte_t;		/* page table entry */
-typedef struct { unsigned long pgd; } pgd_t;		/* PGD table entry */
-typedef struct { unsigned long pgprot; } pgprot_t;
+/* Page Global Directory entry */
+typedef struct {
+	unsigned long pgd;
+} pgd_t;
+
+/* Page Table entry */
+typedef struct {
+	unsigned long pte;
+} pte_t;
+
+typedef struct {
+	unsigned long pgprot;
+} pgprot_t;
+
 typedef struct page *pgtable_t;
 
 #define pte_val(x)	((x).pte)

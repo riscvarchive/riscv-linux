@@ -13,8 +13,7 @@ static inline void pmd_populate_kernel(struct mm_struct *mm,
 static inline void pmd_populate(struct mm_struct *mm,
 	pmd_t *pmd, pgtable_t pte)
 {
-	*pmd = __pmd((unsigned long)page_address(pte)
-		| _PAGE_PRESENT | _PAGE_T);
+	*pmd = __pmd(__pa(page_address(pte)) | _PAGE_PRESENT | _PAGE_T);
 }
 
 #ifndef __PAGETABLE_PMD_FOLDED
@@ -37,7 +36,6 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 		memcpy(pgd + USER_PTRS_PER_PGD,
 			swapper_pg_dir + USER_PTRS_PER_PGD,
 			(PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-
 	}
 	return pgd;
 }
@@ -59,6 +57,8 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 {
 	free_page((unsigned long)pmd);
 }
+
+#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
 
 #endif /* __PAGETABLE_PMD_FOLDED */
 
@@ -92,13 +92,9 @@ static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
 
 #define __pte_free_tlb(tlb, pte, buf)   \
 do {                                    \
-	pgtable_page_dtor(pte);             \
-	tlb_remove_page((tlb), pte);        \
+	pgtable_page_dtor(pte);         \
+	tlb_remove_page((tlb), pte);    \
 } while (0)
-
-#ifndef __PAGETABLE_PMD_FOLDED
-#define __pmd_free_tlb(tlb, pmd, addr)  pmd_free((tlb)->mm, pmd)
-#endif /* __PAGETABLE_PMD_FOLDED */
 
 static inline void check_pgt_cache(void)
 {

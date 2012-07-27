@@ -23,15 +23,13 @@ void __noreturn cpu_idle(void)
 	}
 }
 
-void start_thread(struct pt_regs * regs, unsigned long pc, 
+void start_thread(struct pt_regs *regs, unsigned long pc, 
 	unsigned long sp)
 {
-	unsigned long status;
-
-	/* Remove kernel privileges */
-	status = regs->status & ~(SR_PS);
-
-	regs->epc = pc;
+	/* Remove supervisor privileges */
+	regs->status = mfpcr(PCR_STATUS) & (~SR_PS);
+	/* Compensate for advancing of EPC in syscall handler */
+	regs->epc = pc - 0x4;
 	regs->sp = sp;
 }
 
@@ -92,6 +90,10 @@ unsigned long thread_saved_pc(struct task_struct *tsk)
 	return tsk->thread.pc;
 }
 
+/*
+ * Invoke the system call from the kernel instead of calling
+ * sys_execve() directly so that pt_regs is correctly populated.
+ */
 int kernel_execve(const char *filename,
 	char *const argv[], char *const envp[])
 {
