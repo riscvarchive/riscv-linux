@@ -7,8 +7,9 @@
 
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
+#include <asm/pgtable.h>
 
-unsigned long empty_zero_page;
+unsigned long empty_zero_page[PAGE_SIZE];
 
 #ifdef CONFIG_64BIT
 static void __init pagetable_init(void)
@@ -67,8 +68,14 @@ static void __init zone_sizes_init(void)
 }
 #endif /* CONFIG_NUMA */
 
+void setup_zero_page(void)
+{
+	memset((void *)empty_zero_page, 0, PAGE_SIZE);
+}
+
 void __init paging_init(void)
 {
+	setup_zero_page();
 	pagetable_init();
 	flush_tlb_all();
 	zone_sizes_init();

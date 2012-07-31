@@ -286,12 +286,8 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 #define __S110	PAGE_RWX
 #define __S111	PAGE_RWX
 
-extern unsigned long empty_zero_page;
-extern unsigned long zero_page_mask;
-
-#define ZERO_PAGE(vaddr) \
-	(virt_to_page((void *)(empty_zero_page + \
-	(((unsigned long)(vaddr)) & zero_page_mask))))
+extern unsigned long empty_zero_page[PAGE_SIZE];
+#define ZERO_PAGE(vaddr) (virt_to_page(empty_zero_page))
 
 
 /* Commit new configuration to MMU hardware */

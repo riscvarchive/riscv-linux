@@ -33,6 +33,7 @@ generic-y += linkage.h
 generic-y += local.h
 generic-y += mman.h
 generic-y += module.h
+generic-y += msgbuf.h
 generic-y += mutex.h
 generic-y += param.h
 generic-y += percpu.h

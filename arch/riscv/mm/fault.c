@@ -26,6 +26,8 @@ void do_page_fault(unsigned long cause, unsigned long epc,
 	addr = (cause == EXC_INST_ACCESS) ? epc : badvaddr;
 	tsk = current;
 	mm = tsk->mm;
+
+	down_read(&mm->mmap_sem);
 	vma = find_vma(mm, addr);
 
 	/* Check for fault in kernel space */
@@ -52,4 +54,6 @@ void do_page_fault(unsigned long cause, unsigned long epc,
 		panic("inescapable page fault at 0x%p, pc 0x%p\n",
 			(void *)addr, (void *)epc);	
 	}
+
+	up_read(&mm->mmap_sem);
 }
