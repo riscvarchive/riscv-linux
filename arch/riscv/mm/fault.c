@@ -37,7 +37,7 @@ void do_page_fault(unsigned long cause, unsigned long epc,
 	}
 
 	if (unlikely(!vma)) {
-		panic("bad vm area");
+		panic("bad vm area, address was 0x%0lx, epc was 0x%0lx", addr, epc);
 	}
 	if (write && !(vma->vm_flags & VM_WRITE)) {
 		panic("write but vm not writable");

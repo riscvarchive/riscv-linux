@@ -62,3 +62,6 @@ generic-y += types.h
 generic-y += uaccess.h
 generic-y += unaligned.h
 generic-y += vmlinux.lds.h
+
+header-y += pcr.h
+header-y += user.h

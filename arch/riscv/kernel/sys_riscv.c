@@ -32,3 +32,14 @@ asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
 {
 	return 0;
 }
+
+asmlinkage long sys_fork(struct pt_regs *regs)
+{
+	return do_fork(SIGCHLD, regs->sp, regs, 0, NULL, NULL);
+}
+
+asmlinkage long sys_vfork(struct pt_regs *regs)
+{
+	return do_fork(CLONE_VFORK | CLONE_VM | SIGCHLD,
+		regs->sp, regs, 0, NULL, NULL);
+}

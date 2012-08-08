@@ -1,5 +1,6 @@
 #include <linux/interrupt.h>
 #include <linux/ftrace.h>
+#include <linux/seq_file.h>
 
 #include <asm/ptrace.h>
 
@@ -44,4 +45,10 @@ void __init init_IRQ(void)
 	{
 		irq_set_chip_and_handler(irq, &riscv_irq_chip, handle_level_irq);
 	}
+}
+
+int show_interrupts(struct seq_file *p, void *v)
+{
+  seq_printf(p, "It's a stickup! No interrupts for you.\n");
+  return 0;
 }

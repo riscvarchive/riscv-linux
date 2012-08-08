@@ -31,6 +31,21 @@
 #define VMALLOC_START   (PAGE_OFFSET)
 #define VMALLOC_END     (PAGE_OFFSET + (2048 << PAGE_SHIFT))
 
+/* Page protection bits */
+#define _PAGE_BASE      (_PAGE_R | _PAGE_E | _PAGE_PRESENT)
+#define _PAGE_RD        (_PAGE_SR | _PAGE_UR)
+#define _PAGE_WR        (_PAGE_SW | _PAGE_UW)
+#define _PAGE_EX        (_PAGE_SE | _PAGE_UE)
+
+#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SE)
+#define PAGE_NONE       __pgprot(0)
+
+#define PAGE_R         __pgprot(_PAGE_BASE | _PAGE_RD)
+#define PAGE_W         __pgprot(_PAGE_BASE | _PAGE_WR)
+#define PAGE_RW        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR)
+#define PAGE_RX        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_EX)
+#define PAGE_RWX       __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR | _PAGE_EX)
+
 static inline void pgtable_cache_init(void)
 {
 	/* No page table caches to initialize */
@@ -177,7 +192,7 @@ static inline int pte_none(pte_t pte)
 
 static inline int pte_write(pte_t pte)
 {
-	return pte_val(pte) & _PAGE_UW;
+	return pte_val(pte) & _PAGE_WR;
 }
 
 /* static inline int pte_exec(pte_t pte) */
@@ -201,14 +216,14 @@ static inline int pte_young(pte_t pte)
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-	return __pte(pte_val(pte) & ~(_PAGE_UR));
+	return __pte(pte_val(pte) & ~(_PAGE_WR));
 }
 
 /* static inline pte_t pte_mkread(pte_t pte) */
 
 static inline pte_t pte_mkwrite(pte_t pte)
 {
-	return __pte(pte_val(pte) | _PAGE_UR);
+	return __pte(pte_val(pte) | _PAGE_WR);
 }
 
 /* static inline pte_t pte_mkexec(pte_t pte) */
@@ -252,20 +267,6 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 #define pgd_ERROR(e) \
 	printk("%s:%d: bad pgd %016lx.\n", __FILE__, __LINE__, pgd_val(e))
 
-#define _PAGE_BASE      (_PAGE_R | _PAGE_E | _PAGE_PRESENT)
-#define _PAGE_RD        (_PAGE_SR | _PAGE_UR)
-#define _PAGE_WR        (_PAGE_SW | _PAGE_UW)
-#define _PAGE_EX        (_PAGE_SE | _PAGE_UE)
-
-#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SE)
-#define PAGE_NONE       __pgprot(0)
-
-#define PAGE_R         __pgprot(_PAGE_BASE | _PAGE_RD)
-#define PAGE_W         __pgprot(_PAGE_BASE | _PAGE_WR)
-#define PAGE_RW        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR)
-#define PAGE_RX        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_EX)
-#define PAGE_RWX       __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR | _PAGE_EX)
-
 /* Private */
 #define __P000	PAGE_NONE
 #define __P001	PAGE_R
@@ -286,7 +287,7 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 #define __S110	PAGE_RWX
 #define __S111	PAGE_RWX
 
-extern unsigned long empty_zero_page[PAGE_SIZE];
+extern unsigned long empty_zero_page[PTRS_PER_PTE];
 #define ZERO_PAGE(vaddr) (virt_to_page(empty_zero_page))
 
 

@@ -8,8 +8,9 @@
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
 #include <asm/pgtable.h>
+#include <asm/io.h>
 
-unsigned long empty_zero_page[PAGE_SIZE];
+unsigned long empty_zero_page[PTRS_PER_PTE];
 
 #ifdef CONFIG_64BIT
 static void __init pagetable_init(void)
@@ -144,8 +145,30 @@ void __init mem_init(void)
 		(unsigned long)(&__init_end));
 }
 
+static void free_init_pages(const char *what, unsigned long begin, unsigned long end)
+{
+	unsigned long pfn;
+
+	for (pfn = PFN_UP(begin); pfn < PFN_DOWN(end); pfn++) {
+		struct page *page = pfn_to_page(pfn);
+		void *addr = phys_to_virt(PFN_PHYS(pfn));
+
+		ClearPageReserved(page);
+		init_page_count(page);
+		memset(addr, POISON_FREE_INITMEM, PAGE_SIZE);
+		__free_page(page);
+		totalram_pages++;
+	}
+	printk(KERN_INFO "Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
+}
+
 void free_initmem(void)
 {
+/*
+	free_init_pages("unused kernel memory",
+	__pa(&__init_begin),
+	__pa(&__init_end));
+*/
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD

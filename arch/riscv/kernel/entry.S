@@ -1,6 +1,7 @@
 #include <linux/init.h>
 
 #include <asm/pcr.h>
+#include <asm/thread_info.h>
 
 	.altmacro
 	.macro SAVE_ALL
@@ -161,11 +162,15 @@ handle_syscall:
 	ld t0, 0(t0)
 	jalr t0
 handle_syscall_tail:
+	/* Set user's v0 to kernel's v0, and set user's a3 to 0 */
+	sd v0, 0x010(sp)
+	slt t0, v0, zero
+	sd t0, 0x038(sp)
 	/* Advance EPC to avoid executing the original
 	   syscall instruction on eret */
 	ld t0, 0x118(sp)
 	addi t0, t0, 0x4
-	sw t0, 0x118(sp)
+	sd t0, 0x118(sp)
 #	j handle_exception_tail
 
 handle_exception_tail:
@@ -173,7 +178,14 @@ handle_exception_tail:
 	andi t0, t0, SR_PS
 	bnez t0, restore_and_return
 	/* Resume userspace */
+resume_userspace:
+	mfpcr t0, PCR_K0 /* get current */
+	ld t0, 0x10(t0)  /* current.thread_info->flags */
+	andi t0, t0, (_TIF_NEED_RESCHED)
+	beqz t0, restore_and_return
 	jal schedule
+	j resume_userspace
+
 restore_and_return:
 	RESTORE_ALL
 	eret
@@ -212,7 +224,11 @@ restore_and_return:
 	.ent ret_from_fork
 ret_from_fork:
 	jal schedule_tail
-	/* Change back to user mode? */
+	/* Force into user mode */
+	ld t0, 0x108(sp)
+	li t1, ~(SR_PS)
+	and t0, t1, t0
+	sd t0, 0x108(sp)
 	RESTORE_ALL
 	ret
 	.end ret_from_fork
