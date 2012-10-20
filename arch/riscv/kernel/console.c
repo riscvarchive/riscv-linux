@@ -23,6 +23,7 @@ static void htif_write(const char *buf, unsigned int count)
 	pkt_pa = (unsigned long)(__pa(packet));
 	mtpcr(PCR_TOHOST, pkt_pa);
 	while (mfpcr(PCR_FROMHOST) == 0);
+	mtpcr(PCR_FROMHOST, 0);
 }
 
 
