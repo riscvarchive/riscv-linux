@@ -289,7 +289,7 @@ switch_to:
 1: 
 	move v0, a0
 	RESTORE_SWITCH_CONTEXT /* Restore ra, s[0-9], and a2 */
-	sd v0, 0(a2)        /* *last = prev */
+	move a2, v0            /* last = prev */
 	ret
 	.end switch_to
 
