@@ -54,6 +54,7 @@ generic-y += stat.h
 generic-y += statfs.h
 generic-y += string.h
 generic-y += swab.h
+generic-y += switch_to.h
 generic-y += syscalls.h
 generic-y += termbits.h
 generic-y += termios.h
@@ -63,5 +64,6 @@ generic-y += uaccess.h
 generic-y += unaligned.h
 generic-y += vmlinux.lds.h
 
+header-y += asm-offsets.h
 header-y += pcr.h
 header-y += user.h

@@ -9,10 +9,6 @@
 
 __INIT
 ENTRY(_start)
-	.align 4
-	.global _start
-	.ent _start
-_start:
 
 	mfpcr x1, PCR_STATUS
 	li x2, (SR_S64 | SR_U64)
@@ -23,8 +19,8 @@ _start:
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
-	/* Initialize current thread_info pointer */
-	la x1, init_thread_union
+	/* Initialize current thread_struct pointer */
+	la x1, init_task
 	mtpcr x1, PCR_K0
 
 	lui x29, (PAGE_OFFSET >> 12) & 0xfffff
@@ -54,7 +50,8 @@ _start:
 	la x1, start_kernel
 	jr x1
 
-	.end _start
+END(_start)
+
 
 #define PGDIR_SHIFT 33
 #define PMDIR_SHIFT 23
@@ -70,16 +67,18 @@ _start:
 	.data
 	.balign PAGE_SIZE
 ENTRY(swapper_pg_dir)
-	.quad (ident_pm_dir - PAGE_OFFSET) + PTE_SUPV | _PAGE_T
+	.quad __pa(ident_pm_dir) + PTE_SUPV | _PAGE_T
 	.org swapper_pg_dir + PGE_OFF(PAGE_OFFSET), 0x00
-	.quad (kern_pm_dir - PAGE_OFFSET) + PTE_SUPV | _PAGE_T
+	.quad __pa(kern_pm_dir) + PTE_SUPV | _PAGE_T
 	.fill (swapper_pg_dir + PAGE_SIZE) - ., 1, 0x00
+END(swapper_pg_dir)
 
 	/* Provisional PMD for initial identity mapping */
 	.balign PAGE_SIZE
 ENTRY(ident_pm_dir)
 	.quad PTE_SUPV | _PAGE_E
 	.fill (ident_pm_dir + PAGE_SIZE) - ., 1, 0x00
+END(ident_pm_dir)
 
 	/* Provisional PMD for initial kernel mapping */
 	.balign PAGE_SIZE
@@ -87,4 +86,5 @@ ENTRY(kern_pm_dir)
 	.org kern_pm_dir + PME_OFF(PAGE_OFFSET), 0x00
 	.quad PTE_SUPV | _PAGE_E
 	.fill (kern_pm_dir + PAGE_SIZE) - ., 1, 0x00
+END(kern_pm_dir)
 

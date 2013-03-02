@@ -65,16 +65,14 @@ void set_thread_pointer(struct fauxp *auxp, struct pt_regs *regs)
 
 unsigned long get_wchan(struct task_struct *task)
 {
-  unsigned long pc;
+	unsigned long pc;
 
-  if (!task || task == current || task->state == TASK_RUNNING)
-    return 0;
-  if (!task_stack_page(task))
-    return 0;
-
-  pc = task->thread.pc;
-
-  return pc;
+	if (!task || task == current || task->state == TASK_RUNNING)
+		return 0;
+	if (!task_stack_page(task))
+		return 0;
+	pc = task->thread.pc;
+	return pc;
 }
 
 void start_thread(struct pt_regs *regs, unsigned long pc, 
@@ -118,12 +116,10 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 
 	childregs->sp = (user_mode(regs) ? usp : (unsigned long)childregs);
 	childregs->v[0] = 0; /* Set return value for child: v0 */
-	childregs->tp = (unsigned long)task_stack_page(p);
 
-	p->thread.status = regs->status & (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_PS | SR_S);
-	p->thread.sp = (unsigned long)childregs; /* ksp */
 	p->thread.pc = (unsigned long)ret_from_fork; /* pc */
-	p->thread.tp = (unsigned long)task_stack_page(p);
+	p->thread.sp = (unsigned long)childregs; /* kernel sp */
+	p->thread.status = regs->status & (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_PS | SR_S);
 
 	return 0;
 }

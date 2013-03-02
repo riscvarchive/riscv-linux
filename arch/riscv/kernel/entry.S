@@ -1,7 +1,9 @@
 #include <linux/init.h>
+#include <linux/linkage.h>
 
 #include <asm/pcr.h>
 #include <asm/thread_info.h>
+#include <asm/asm-offsets.h>
 
 	.altmacro
 	.macro SAVE_ALL
@@ -18,104 +20,100 @@
 	/* Switch to kernel mode stack; load stack
 	   pointer from current->thread.sp */
 	mfpcr sp, PCR_K0
-	ld sp, 0(sp)
-	ld sp, 728(sp)
+	ld sp, THREAD_SP(sp)
 	j _save_context
 
 _restore_kernel_sp:
 	mfpcr sp, PCR_K1
 _save_context:
-	addi sp, sp, -0x120
-	sd x0,  0x000(sp)
-	sd x1,  0x008(sp)
-	sd x2,  0x010(sp)
-	sd x3,  0x018(sp)
-	sd x4,  0x020(sp)
-	sd x5,  0x028(sp)
-	sd x6,  0x030(sp)
-	sd x7,  0x038(sp)
-	sd x8,  0x040(sp)
-	sd x9,  0x048(sp)
-	sd x10, 0x050(sp)
-	sd x11, 0x058(sp)
-	sd x12, 0x060(sp)
-	sd x13, 0x068(sp)
-	sd x14, 0x070(sp)
-	sd x15, 0x078(sp)
-	sd x16, 0x080(sp)
-	sd x17, 0x088(sp)
-	sd x18, 0x090(sp)
-	sd x19, 0x098(sp)
-	sd x20, 0x0a0(sp)
-	sd x21, 0x0a8(sp)
-	sd x22, 0x0b0(sp)
-	sd x23, 0x0b8(sp)
-	sd x24, 0x0c0(sp)
-	sd x25, 0x0c8(sp)
-	sd x26, 0x0d0(sp)
-	sd x27, 0x0d8(sp)
-	sd x28, 0x0e0(sp)
-	sd x29, 0x0e8(sp)
+	addi sp, sp, -(PT_SIZE)
+	sd x0,  PT_ZERO(sp)
+	sd x1,  PT_RA(sp)
+	sd x2,  PT_V0(sp)
+	sd x3,  PT_V1(sp)
+	sd x4,  PT_A0(sp)
+	sd x5,  PT_A1(sp)
+	sd x6,  PT_A2(sp)
+	sd x7,  PT_A3(sp)
+	sd x8,  PT_A4(sp)
+	sd x9,  PT_A5(sp)
+	sd x10, PT_A6(sp)
+	sd x11, PT_A7(sp)
+	sd x12, PT_T0(sp)
+	sd x13, PT_T1(sp)
+	sd x14, PT_T2(sp)
+	sd x15, PT_T3(sp)
+	sd x16, PT_T4(sp)
+	sd x17, PT_T5(sp)
+	sd x18, PT_T6(sp)
+	sd x19, PT_T7(sp)
+	sd x20, PT_S0(sp)
+	sd x21, PT_S1(sp)
+	sd x22, PT_S2(sp)
+	sd x23, PT_S3(sp)
+	sd x24, PT_S4(sp)
+	sd x25, PT_S5(sp)
+	sd x26, PT_S6(sp)
+	sd x27, PT_S7(sp)
+	sd x28, PT_GP(sp)
+	sd x29, PT_FP(sp)
 	mfpcr x1, PCR_K1
-	sd x1,  0x0f0(sp)
-	sd x31, 0x0f8(sp)
+	sd x1,  PT_SP(sp)
+	sd x31, PT_TP(sp)
 	mfpcr x1, PCR_STATUS
-	sd x1,  0x108(sp)
+	sd x1,  PT_STATUS(sp)
 	mfpcr x1, PCR_EPC
-	sd x1,  0x118(sp)
+	sd x1,  PT_EPC(sp)
 	.endm
 
 	.macro RESTORE_ALL
 	/* Save kernel stack pointer 
 	   into current->thread.sp */
+	addi sp, sp, PT_SIZE
 	mfpcr v0, PCR_K0
-	ld v0, 0(v0)
-	addi sp, sp, 0x120
-	sd sp, 728(v0)
+	sd sp, THREAD_SP(v0)
 
-	ld x1, -0x08(sp)
+	ld x1, (PT_EPC - PT_SIZE)(sp)
 	mtpcr x1, PCR_EPC
-	ld x1, -0x18(sp)
+	ld x1, (PT_STATUS - PT_SIZE)(sp)
 	/* eret requires SR_ET to be clear */
 	andi x1, x1, ~(SR_ET)
 	mtpcr x1, PCR_STATUS
 
-	ld x1,  -0x118(sp)
-	ld x2,  -0x110(sp)
-	ld x3,  -0x108(sp)
-	ld x4,  -0x100(sp)
-	ld x5,  -0x0f8(sp)
-	ld x6,  -0x0f0(sp)
-	ld x7,  -0x0e8(sp)
-	ld x8,  -0x0e0(sp)
-	ld x9,  -0x0d8(sp)
-	ld x10, -0x0d0(sp)
-	ld x11, -0x0c8(sp)
-	ld x12, -0x0c0(sp)
-	ld x13, -0x0b8(sp)
-	ld x14, -0x0b0(sp)
-	ld x15, -0x0a8(sp)
-	ld x16, -0x0a0(sp)
-	ld x17, -0x098(sp)
-	ld x18, -0x090(sp)
-	ld x19, -0x088(sp)
-	ld x20, -0x080(sp)
-	ld x21, -0x078(sp)
-	ld x22, -0x070(sp)
-	ld x23, -0x068(sp)
-	ld x24, -0x060(sp)
-	ld x25, -0x058(sp)
-	ld x26, -0x050(sp)
-	ld x27, -0x048(sp)
-	ld x28, -0x040(sp)
-	ld x29, -0x038(sp)
-	ld x31, -0x028(sp)
-	ld x30, -0x030(sp)
+	ld x1,  (PT_RA - PT_SIZE)(sp)
+	ld x2,  (PT_V0 - PT_SIZE)(sp)
+	ld x3,  (PT_V1 - PT_SIZE)(sp)
+	ld x4,  (PT_A0 - PT_SIZE)(sp)
+	ld x5,  (PT_A1 - PT_SIZE)(sp)
+	ld x6,  (PT_A2 - PT_SIZE)(sp)
+	ld x7,  (PT_A3 - PT_SIZE)(sp)
+	ld x8,  (PT_A4 - PT_SIZE)(sp)
+	ld x9,  (PT_A5 - PT_SIZE)(sp)
+	ld x10, (PT_A6 - PT_SIZE)(sp)
+	ld x11, (PT_A7 - PT_SIZE)(sp)
+	ld x12, (PT_T0 - PT_SIZE)(sp)
+	ld x13, (PT_T1 - PT_SIZE)(sp)
+	ld x14, (PT_T2 - PT_SIZE)(sp)
+	ld x15, (PT_T3 - PT_SIZE)(sp)
+	ld x16, (PT_T4 - PT_SIZE)(sp)
+	ld x17, (PT_T5 - PT_SIZE)(sp)
+	ld x18, (PT_T6 - PT_SIZE)(sp)
+	ld x19, (PT_T7 - PT_SIZE)(sp)
+	ld x20, (PT_S0 - PT_SIZE)(sp)
+	ld x21, (PT_S1 - PT_SIZE)(sp)
+	ld x22, (PT_S2 - PT_SIZE)(sp)
+	ld x23, (PT_S3 - PT_SIZE)(sp)
+	ld x24, (PT_S4 - PT_SIZE)(sp)
+	ld x25, (PT_S5 - PT_SIZE)(sp)
+	ld x26, (PT_S6 - PT_SIZE)(sp)
+	ld x27, (PT_S7 - PT_SIZE)(sp)
+	ld x28, (PT_GP - PT_SIZE)(sp)
+	ld x29, (PT_FP - PT_SIZE)(sp)
+	ld x31, (PT_TP - PT_SIZE)(sp)
+	ld x30, (PT_SP - PT_SIZE)(sp)
 	.endm
 
-	.global handle_exception
-	.ent handle_exception
-handle_exception:
+ENTRY(handle_exception)
 	SAVE_ALL
 	mfpcr t0, PCR_CAUSE
 	/* MSB of cause differentiates between
@@ -162,15 +160,17 @@ handle_syscall:
 	ld t0, 0(t0)
 	jalr t0
 handle_syscall_tail:
-	/* Set user's v0 to kernel's v0, and set user's a3 to 0 */
-	sd v0, 0x010(sp)
+	/* Set user v0 to kernel v0 */
+	sd v0, PT_V0(sp)
+	/* Set user a3 to 0/1 for success/error
+	   (per MIPS ABI convention) */
 	slt t0, v0, zero
-	sd t0, 0x038(sp)
+	sd t0, PT_A3(sp)
 	/* Advance EPC to avoid executing the original
 	   syscall instruction on eret */
-	ld t0, 0x118(sp)
+	ld t0, PT_EPC(sp)
 	addi t0, t0, 0x4
-	sd t0, 0x118(sp)
+	sd t0, PT_EPC(sp)
 #	j handle_exception_tail
 
 handle_exception_tail:
@@ -179,8 +179,9 @@ handle_exception_tail:
 	bnez t0, restore_and_return
 	/* Resume userspace */
 resume_userspace:
-	mfpcr t0, PCR_K0 /* get current */
-	ld t0, 0x10(t0)  /* current.thread_info->flags */
+	mfpcr t0, PCR_K0
+	ld t0, TASK_THREAD_INFO(t0)
+	ld t0, TI_FLAGS(t0)  /* current_thread_info->flags */
 	andi t0, t0, (_TIF_NEED_RESCHED)
 	beqz t0, restore_and_return
 	jal schedule
@@ -189,7 +190,7 @@ resume_userspace:
 restore_and_return:
 	RESTORE_ALL
 	eret
-	.end handle_exception
+END(handle_exception)
 
 /* 
  * Wrapper routines are necessary to accommodate system calls
@@ -220,23 +221,21 @@ restore_and_return:
 	PTREGS_SYSCALL sys_execve, 3
 
 
-	.global ret_from_fork
-	.ent ret_from_fork
-ret_from_fork:
+ENTRY(ret_from_fork)
 	jal schedule_tail
 	/* Force into user mode */
-	ld t0, 0x108(sp)
+	ld t0, PT_STATUS(sp)
 	li t1, ~(SR_PS)
 	and t0, t1, t0
-	sd t0, 0x108(sp)
+	sd t0, PT_STATUS(sp)
 	RESTORE_ALL
 	ret
-	.end ret_from_fork
+END(ret_from_fork)
 
 
-	/* Callee-save registers and a2 only */
+	/* Callee-save registers only */
 	.macro SAVE_SWITCH_CONTEXT
-	addi sp, sp, -0x60
+	addi sp, sp, -0x58
 	sd ra, 0x00(sp)
 	sd s0, 0x08(sp)
 	sd s1, 0x10(sp)
@@ -248,7 +247,6 @@ ret_from_fork:
 	sd s7, 0x40(sp)
 	sd s8, 0x48(sp)
 	sd s9, 0x50(sp)
-	sd a2, 0x58(sp)
 	.endm
 
 	.macro RESTORE_SWITCH_CONTEXT
@@ -263,41 +261,35 @@ ret_from_fork:
 	ld s7, 0x40(sp)
 	ld s8, 0x48(sp)
 	ld s9, 0x50(sp)
-	ld a2, 0x58(sp)
-	addi sp, sp, 0x60
+	addi sp, sp, 0x58
 	.endm
 
-
-/* 
- * void switch_to(struct task_struct *prev,
- *     struct task_struct *next, struct task_struct *last);
+/*
+ * Register context switch
+ * The callee-saved registers must be saved and restored.
+ * 
+ *   a0: previous task_struct (must be preserved across the switch)
+ *   a1: next task_struct
  */
-	.global switch_to
-	.ent switch_to
-switch_to:
-	SAVE_SWITCH_CONTEXT /* Save ra, s[0-9], and a2 */
-	la ra, 1f           /* Create return addr when we come back to prev */
-	mfpcr v0, PCR_K0    /* Previous thread_info struct pointer */
-	sd sp, 728(a0)      /* prev->thread.sp = sp */
-	sd ra, 744(a0)      /* prev->thread.pc = 1f */ 
-	sd v0, 752(a0)      /* prev->thread.tp = tp */
-	ld sp, 728(a1)      /* sp = next->thread.sp */
-	ld ra, 744(a1)      /* ra = next->thread.pc */
-	ld v0, 752(a1)      /* tp = next->thread.tp */
-	mtpcr v0, PCR_K0    /* Next thread_info struct pointer */
+ENTRY(__switch_to)
+	SAVE_SWITCH_CONTEXT
+	la ra, 1f             /* Return address when resuming prev */
+	sd sp, THREAD_SP(a0)  /* prev->thread.sp = sp */
+	sd ra, THREAD_PC(a0)  /* prev->thread.pc = 1f */ 
+	ld sp, THREAD_SP(a1)  /* sp = next->thread.sp */
+	ld ra, THREAD_PC(a1)  /* ra = next->thread.pc */
+	mtpcr a1, PCR_K0      /* Next current pointer */
 	ret
 1: 
-	move v0, a0
-	RESTORE_SWITCH_CONTEXT /* Restore ra, s[0-9], and a2 */
-	move a2, v0            /* last = prev */
+	RESTORE_SWITCH_CONTEXT
+	move v0, a0  /* Preserve reference */
 	ret
-	.end switch_to
+END(__switch_to)
 
 
 	.section ".rodata"
 	/* Exception vector table */
-	.global excp_vect_tab
-excp_vect_tab:
+ENTRY(excp_vect_tab)
 	.quad handle_fault_generic
 	.quad handle_page_fault
 	.quad handle_fault_generic
@@ -312,4 +304,5 @@ excp_vect_tab:
 	.quad handle_page_fault
 	.quad handle_fault_generic
 excp_vect_tab_end:
+END(excp_vect_tab)
 

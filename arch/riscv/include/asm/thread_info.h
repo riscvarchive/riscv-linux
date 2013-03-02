@@ -65,10 +65,16 @@ struct thread_info {
 #define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
 
-/* Pointer to the thread_info struct of the current process */
+register unsigned long current_stack_pointer __asm__("sp");
+
+/*
+ * Pointer to the thread_info struct of the current process
+ * Assumes that the kernel mode stack (thread_union) is THREAD_SIZE-aligned
+ */
 static inline struct thread_info *current_thread_info(void)
 {
-	return (struct thread_info *)(mfpcr(PCR_K0));
+	return (struct thread_info *)
+		(current_stack_pointer & ~(THREAD_SIZE - 1));
 }
 
 #define alloc_thread_info_node(tsk, node) kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)

@@ -10,7 +10,7 @@ struct task_struct;
 struct pt_regs;
 
 /*
- * System setup and hardware flags..
+ * System setup and hardware flags.
  */
 extern void (*cpu_wait)(void);
 
@@ -49,10 +49,9 @@ extern unsigned long get_wchan(struct task_struct *p);
 
 /* CPU-specific state of a task */
 struct thread_struct {
-	unsigned long sp;
-	unsigned long status;
+	unsigned long sp;	/* Kernel mode stack */
 	unsigned long pc;
-	unsigned long tp;
+	unsigned long status;
 };
 
 #define INIT_THREAD {		\
