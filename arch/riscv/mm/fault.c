@@ -19,7 +19,7 @@ void do_page_fault(unsigned long cause, unsigned long epc,
 	unsigned long addr, fault;
 	unsigned int write, flags;
 
-	write = (epc == EXC_STORE_ACCESS);
+	write = (cause == EXC_STORE_ACCESS);
 	flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE
 		| (write ? FAULT_FLAG_WRITE : 0);
 
@@ -47,13 +47,28 @@ void do_page_fault(unsigned long cause, unsigned long epc,
 	if (likely(vma->vm_start <= addr)) {
 		fault = handle_mm_fault(mm, vma, addr, flags);
 		printk(KERN_DEBUG "handle_mm_fault: returned 0x%lx"
-			" for address 0x%p\n", fault, (void *)addr);
+			" for address 0x%p, pc 0x%p\n", fault, (void *)addr, (void *)epc);
+		goto good_area;
+	}
+	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN))) {
+		goto bad_area;
+	}
+
+	fault = expand_stack(vma, addr);
+	if (fault) {
+		printk(KERN_DEBUG "expand_stack: returned %lx\n", fault);
+		goto bad_area;
 	}
 
 	if (fault & (VM_FAULT_RETRY | VM_FAULT_ERROR)) {
-		panic("inescapable page fault at 0x%p, pc 0x%p\n",
-			(void *)addr, (void *)epc);	
+		goto bad_area;
 	}
+	goto good_area;
 
+bad_area:
+	panic("inescapable page fault at 0x%p, pc 0x%p\n",
+		(void *)addr, (void *)epc);	
+
+good_area:
 	up_read(&mm->mmap_sem);
 }

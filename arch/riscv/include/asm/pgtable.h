@@ -253,9 +253,14 @@ static inline int pte_special(pte_t pte)
 	return 0;
 }
 
+/* 
+ * pte_mkspecial instead does a write protect. We only expect 
+ * do_anonymous_page to use this function to mark the empty_zero_page as
+ * non-writable.
+ */
 static inline pte_t pte_mkspecial(pte_t pte)
 {
-	return pte;
+	return __pte(pte_val(pte) & ~(_PAGE_WR));
 }
 
 /* Modify page protection bits */

@@ -61,10 +61,18 @@ END(_start)
 #define PGE_OFF(va) ((((va) >> PGDIR_SHIFT) & VPN_MASK) << 3)
 #define PME_OFF(va) ((((va) >> PMDIR_SHIFT) & VPN_MASK) << 3)
 
+	.data
+	/*
+	 * Empty zero page
+	 */
+	.balign PAGE_SIZE
+ENTRY(empty_zero_page)
+	.fill (empty_zero_page + PAGE_SIZE) - ., 1, 0x00
+END(empty_zero_page)
+
 	/*
 	 * Provisional page tables
 	 */
-	.data
 	.balign PAGE_SIZE
 ENTRY(swapper_pg_dir)
 	.quad __pa(ident_pm_dir) + PTE_SUPV | _PAGE_T
@@ -77,6 +85,7 @@ END(swapper_pg_dir)
 	.balign PAGE_SIZE
 ENTRY(ident_pm_dir)
 	.quad PTE_SUPV | _PAGE_E
+	.quad (1 << PMDIR_SHIFT) + PTE_SUPV | _PAGE_E
 	.fill (ident_pm_dir + PAGE_SIZE) - ., 1, 0x00
 END(ident_pm_dir)
 
@@ -85,6 +94,7 @@ END(ident_pm_dir)
 ENTRY(kern_pm_dir)
 	.org kern_pm_dir + PME_OFF(PAGE_OFFSET), 0x00
 	.quad PTE_SUPV | _PAGE_E
+	.quad (1 << PMDIR_SHIFT) + PTE_SUPV | _PAGE_E
 	.fill (kern_pm_dir + PAGE_SIZE) - ., 1, 0x00
 END(kern_pm_dir)
 

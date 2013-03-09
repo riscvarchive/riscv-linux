@@ -90,7 +90,7 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	
 	argc = *(unsigned long *)sp;
 	envp = (unsigned long *)sp + (argc + 2);
-	for (auxp = envp; *auxp != NULL; auxp++);
+	for (auxp = envp; *auxp != 0; auxp++);
 	set_thread_pointer((struct fauxp *)(auxp + 1), regs);
 }
 
@@ -120,6 +120,11 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	p->thread.pc = (unsigned long)ret_from_fork; /* pc */
 	p->thread.sp = (unsigned long)childregs; /* kernel sp */
 	p->thread.status = regs->status & (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_PS | SR_S);
+
+	if (clone_flags & CLONE_SETTLS) {
+		/* If you remove the printk, the kernel stops altogether. Why? */
+		printk(KERN_DEBUG "They want us to set TLS\n");
+	}
 
 	return 0;
 }

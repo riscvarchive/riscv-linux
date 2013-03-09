@@ -10,8 +10,6 @@
 #include <asm/pgtable.h>
 #include <asm/io.h>
 
-unsigned long empty_zero_page[PTRS_PER_PTE];
-
 #ifdef CONFIG_64BIT
 static void __init pagetable_init(void)
 {
