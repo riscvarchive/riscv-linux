@@ -34,7 +34,7 @@ void report_exception(unsigned long cause, unsigned long epc,
 void __init trap_init(void)
 {
 	/* This clears the IPI exception that started the processor */
-	mtpcr("cr9", 0);
+	mtpcr(PCR_CLR_IPI, 0);
 
 	mtpcr(PCR_EVEC, &handle_exception);
 }

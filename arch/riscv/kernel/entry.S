@@ -116,6 +116,7 @@ _save_context:
 ENTRY(handle_exception)
 	SAVE_ALL
 	mfpcr t0, PCR_CAUSE
+	la ra, handle_exception_tail
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
 	bge t0, x0, 1f
@@ -124,8 +125,7 @@ ENTRY(handle_exception)
 	slli a0, t0, 1
 	srli a0, a0, 1
 	move a1, sp
-	jal do_IRQ
-	j handle_exception_tail
+	j do_IRQ
 1:
 	/* Handle other exceptions */
 	la t1, excp_vect_tab
@@ -135,43 +135,38 @@ ENTRY(handle_exception)
 	/* Check if exception code lies within bounds */
 	bgeu t1, t2, handle_fault_generic
 	ld t1, 0(t1)
-	jalr t1
-	j handle_exception_tail
+	jr t1
 
 handle_fault_generic:
 	mfpcr a0, PCR_CAUSE
 	mfpcr a1, PCR_EPC
 	mfpcr a2, PCR_BADVADDR
-	jal report_exception
-	j handle_exception_tail
+	j report_exception
 
 handle_page_fault:
 	mfpcr a0, PCR_CAUSE
 	mfpcr a1, PCR_EPC
 	mfpcr a2, PCR_BADVADDR
-	jal do_page_fault
-	j handle_exception_tail
+	j do_page_fault
 
 handle_syscall:
+	/* Advance EPC to avoid executing the original
+	   syscall instruction on eret */
+	ld t0, PT_EPC(sp)
+	addi t0, t0, 0x4
+	sd t0, PT_EPC(sp)
 	la t0, sys_call_table
 	/* Syscall number held in v0 */
 	slli v0, v0, 3
 	add t0, t0, v0
 	ld t0, 0(t0)
 	jalr t0
-handle_syscall_tail:
 	/* Set user v0 to kernel v0 */
 	sd v0, PT_V0(sp)
 	/* Set user a3 to 0/1 for success/error
 	   (per MIPS ABI convention) */
 	slt t0, v0, zero
 	sd t0, PT_A3(sp)
-	/* Advance EPC to avoid executing the original
-	   syscall instruction on eret */
-	ld t0, PT_EPC(sp)
-	addi t0, t0, 0x4
-	sd t0, PT_EPC(sp)
-#	j handle_exception_tail
 
 handle_exception_tail:
 	mfpcr t0, PCR_STATUS
@@ -187,9 +182,13 @@ resume_userspace:
 	jal schedule
 	j resume_userspace
 
+ENTRY(ret_from_fork)
+	jal schedule_tail
 restore_and_return:
 	RESTORE_ALL
 	eret
+END(ret_from_fork)
+
 END(handle_exception)
 
 /* 
@@ -205,33 +204,16 @@ END(handle_exception)
  * by the syscall trap handler.
  */
 	.macro PTREGS_SYSCALL func index
-	.global \func
-	.ent \func
-\func:
+ENTRY(\func)
 	move a\index, sp /* pt_regs pointer */
-	jal __\func
-	/* Hard-code return destination to avoid saving ra */
-	j handle_syscall_tail
-	.end \func
+	j __\func
+END(\func)
 	.endm
 
 	PTREGS_SYSCALL sys_sigaltstack, 2
 	PTREGS_SYSCALL sys_rt_sigreturn, 0
-	PTREGS_SYSCALL sys_clone, 4
+	PTREGS_SYSCALL sys_clone, 5
 	PTREGS_SYSCALL sys_execve, 3
-
-
-ENTRY(ret_from_fork)
-	jal schedule_tail
-	/* Force into user mode */
-	ld t0, PT_STATUS(sp)
-	li t1, ~(SR_PS)
-	and t0, t1, t0
-	sd t0, PT_STATUS(sp)
-	RESTORE_ALL
-	ret
-END(ret_from_fork)
-
 
 	/* Callee-save registers only */
 	.macro SAVE_SWITCH_CONTEXT

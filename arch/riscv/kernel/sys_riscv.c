@@ -3,11 +3,14 @@
 #include <linux/slab.h>
 #include <linux/linkage.h>
 
-asmlinkage long __sys_clone(unsigned long clone_flags,
-	unsigned long newsp, void __user *parent_tid,
+asmlinkage long __sys_clone(unsigned long clone_flags, unsigned long newsp,
+	void __user *parent_tid, void __user *tls,
 	void __user *child_tid, struct pt_regs *regs)
 {
-	return 0;
+	/* The "tls" argument is passed by glibc wrappers but remains unused */
+	if (!newsp)
+		newsp = regs->sp;
+	return do_fork(clone_flags, newsp, regs, 0, parent_tid, child_tid);
 }
 
 asmlinkage long __sys_execve(const char __user *name,
@@ -30,7 +33,9 @@ asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
 	unsigned long prot, unsigned long flags,
 	unsigned long fd, off_t offset)
 {
-	return 0;
+	if (unlikely(offset & (~PAGE_MASK)))
+		return -EINVAL;
+	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
 }
 
 asmlinkage long sys_fork(struct pt_regs *regs)

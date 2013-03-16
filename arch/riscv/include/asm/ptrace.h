@@ -20,7 +20,7 @@ typedef struct pt_regs {
 	unsigned long epc;
 } pt_regs;
 
-#define user_mode(regs) (((regs)->status & SR_S) == 0)
+#define user_mode(regs) (((regs)->status & SR_PS) == 0)
 
 #ifndef __ASSEMBLY__
 

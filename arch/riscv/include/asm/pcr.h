@@ -35,6 +35,7 @@
 #define PCR_COMPARE	cr5
 #define PCR_CAUSE	cr6
 #define PCR_PTBR	cr7
+#define PCR_CLR_IPI	cr9
 #define PCR_K0		cr12
 #define PCR_K1		cr13
 #define PCR_TOHOST	cr30
@@ -42,34 +43,58 @@
 
 #else /* __ASSEMBLY__ */
 
-#define PCR_STATUS 	"cr0"
-#define PCR_EPC		"cr1"
-#define PCR_BADVADDR	"cr2"
-#define PCR_EVEC	"cr3"
-#define PCR_COUNT	"cr4"
-#define PCR_COMPARE	"cr5"
-#define PCR_CAUSE	"cr6"
-#define PCR_PTBR	"cr7"
-#define PCR_K0		"cr12"
-#define PCR_K1		"cr13"
-#define PCR_TOHOST	"cr30"
-#define PCR_FROMHOST	"cr31"
+#define PCR_STATUS 	0
+#define PCR_EPC		1
+#define PCR_BADVADDR	2
+#define PCR_EVEC	3
+#define PCR_COUNT	4
+#define PCR_COMPARE	5
+#define PCR_CAUSE	6
+#define PCR_PTBR	7
+#define PCR_CLR_IPI	9
+#define PCR_K0		12
+#define PCR_K1		13
+#define PCR_TOHOST	30
+#define PCR_FROMHOST	31
 
-#define mtpcr(pcr,val)			\
-do {                                    \
-	__asm__ __volatile__ (          \
-		"mtpcr %0, " pcr "\n"   \
-		:                       \
-		: "r" (val));           \
-} while (0)
+#define mtpcr(pcr,val)				\
+({						\
+	register unsigned long __tmp;		\
+	__asm__ __volatile__ (			\
+		"mtpcr %0, %1, cr%2"		\
+		: "=r" (__tmp)			\
+		: "r" (val), "i" (pcr));	\
+	__tmp;					\
+})
 
-#define mfpcr(pcr)                      \
-({                                      \
-	register unsigned long __val;   \
-	__asm__ __volatile__ (          \
-		"mfpcr %0, " pcr "\n"   \
-		: "=r" (__val));        \
-	__val;                          \
+#define mfpcr(pcr)				\
+({						\
+	register unsigned long __val;		\
+	__asm__ __volatile__ (			\
+		"mfpcr %0, cr%1"		\
+		: "=r" (__val)			\
+		:  "i" (pcr));			\
+	__val;					\
+})
+
+#define setpcr(pcr,val)				\
+({						\
+	register unsigned long __tmp;		\
+	__asm__ __volatile__ (			\
+		"setpcr %0, cr%2, %1"		\
+		: "=r" (__tmp)			\
+		: "i" (val), "i" (pcr));	\
+	__tmp;					\
+})
+
+#define clearpcr(pcr,val)			\
+({						\
+	register unsigned long __tmp;		\
+	__asm__ __volatile__ (			\
+		"clearpcr %0, cr%2, %1"		\
+		: "=r" (__tmp)			\
+		: "i" (val), "i" (pcr));	\
+	__tmp;					\
 })
 
 #endif /* __ASSEMBLY__ */
