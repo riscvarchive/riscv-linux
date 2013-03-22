@@ -46,8 +46,8 @@ void do_page_fault(unsigned long cause, unsigned long epc,
 	fault = 0;
 	if (likely(vma->vm_start <= addr)) {
 		fault = handle_mm_fault(mm, vma, addr, flags);
-		printk(KERN_DEBUG "handle_mm_fault: returned 0x%lx"
-			" for address 0x%p, pc 0x%p\n", fault, (void *)addr, (void *)epc);
+//		printk(KERN_DEBUG "handle_mm_fault: returned 0x%lx"
+//			" for address 0x%p, pc 0x%p\n", fault, (void *)addr, (void *)epc);
 		goto good_area;
 	}
 	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN))) {

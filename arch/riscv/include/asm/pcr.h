@@ -38,6 +38,8 @@
 #define PCR_CLR_IPI	cr9
 #define PCR_K0		cr12
 #define PCR_K1		cr13
+#define PCR_TOSIM	cr27
+#define PCR_FROMSIM	cr28
 #define PCR_TOHOST	cr30
 #define PCR_FROMHOST	cr31
 
@@ -54,6 +56,8 @@
 #define PCR_CLR_IPI	9
 #define PCR_K0		12
 #define PCR_K1		13
+#define PCR_TOSIM	27
+#define PCR_FROMSIM	28
 #define PCR_TOHOST	30
 #define PCR_FROMHOST	31
 
