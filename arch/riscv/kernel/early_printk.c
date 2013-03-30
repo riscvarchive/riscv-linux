@@ -1,6 +1,3 @@
-/*
- * Borrowing extensively from MIPS.
- */
 #include <linux/console.h>
 #include <linux/init.h>
 
@@ -8,23 +5,23 @@
 #include <asm/page.h>
 #include <asm/pcr.h>
 
-#define FESVR_SYSCALL_WRITE 4
-#define FESVR_STDOUT        1
+static inline void __init early_htif_put_char(unsigned char ch)
+{
+	unsigned long packet;
+	packet = (HTIF_DEVICE_CONSOLE | HTIF_COMMAND_WRITE | ch);
+	while (mtpcr(PCR_TOHOST, packet));
+}
 
 static void __init early_console_write(struct console *con,
 		const char *s, unsigned int n)
 {
-	volatile unsigned long packet[4]; 
-	unsigned long pkt_pa;
-
-	packet[0] = FESVR_SYSCALL_WRITE;
-	packet[1] = FESVR_STDOUT;
-	packet[2] = (unsigned long)(__pa(s));
-	packet[3] = n;
-
-	pkt_pa = (unsigned long)(__pa(packet));
-	mtpcr(PCR_TOHOST, pkt_pa);
-	while (mfpcr(PCR_FROMHOST) == 0);
+	for (; n > 0; n--) {
+		unsigned char ch;
+		ch = *s++;
+		if (ch == '\n')
+			early_htif_put_char('\r');
+		early_htif_put_char(ch);
+	}
 }
 
 static struct console early_console __initdata = {

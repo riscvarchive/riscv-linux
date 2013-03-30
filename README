@@ -1,18 +1,16 @@
 This is a port of Linux kernel for the RISC-V architecture.
-Development is currently based on the 3.4 stable branch.
+Development is currently based on the 3.4 long-term support branch.
 
 Building this kernel
 ====================
 Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
-	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.4
-	$ wget -q -O - http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.4.tar.bz2 | tar -xjv
+	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.38
+	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.38.tar.bz2 | tar -xj
 
-Apply patch to scripts/mod/modpost.c to avoid segfaulting on little-endian
-64-bit kernel builds 
-(<http://www.linux-mips.org/archives/linux-mips/2006-04/msg00130.html>):
+Apply patch to scripts/mod/modpost.c to avoid segfaulting on little-endian 64-bit kernel builds [1]:
 
-	$ cd linux-3.4.4
+	$ cd linux-3.4.38
 	$ patch -p1 < modpost.patch
 
 Generate default kernel configuration:
@@ -25,11 +23,11 @@ Edit configuration via an ncurses interface:
 
 Build static kernel image:
 
-	$ gmake ARCH=riscv vmlinux
+	$ gmake ARCH=riscv -j vmlinux
 
 Run the kernel image:
 
-	$ fesvr -nopk vmlinux
+	$ riscv-isa-run vmlinux
 
 
 Building riscv-gcc and glibc against this kernel
@@ -37,7 +35,7 @@ Building riscv-gcc and glibc against this kernel
 Export headers to riscv-gcc installation directory:
 
 	$ gmake ARCH=riscv headers_check
-	$ gmake ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-3.4.4
+	$ gmake ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-3.4.38
 
 Apply patch to riscv-gcc/Makefile to adjust options and kernel version:
 
@@ -47,3 +45,5 @@ Build riscv-gcc with the linux target:
 	
 	$ gmake linux INSTALL_DIR=/path/to/install
 
+---
+[1] http://www.linux-mips.org/archives/linux-mips/2006-04/msg00130.html

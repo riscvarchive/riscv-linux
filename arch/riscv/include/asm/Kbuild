@@ -60,7 +60,6 @@ generic-y += termbits.h
 generic-y += termios.h
 generic-y += topology.h
 generic-y += types.h
-generic-y += uaccess.h
 generic-y += unaligned.h
 generic-y += vmlinux.lds.h
 

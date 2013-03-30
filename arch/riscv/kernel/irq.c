@@ -47,9 +47,3 @@ void __init init_IRQ(void)
 	}
 	input_irq_init();
 }
-
-int show_interrupts(struct seq_file *p, void *v)
-{
-  seq_printf(p, "It's a stickup! No interrupts for you.\n");
-  return 0;
-}

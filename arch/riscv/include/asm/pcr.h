@@ -13,6 +13,7 @@
 #define SR_S64  _AC(0x00000080,UL) /* RV64 supervisor mode */
 #define SR_VM   _AC(0x00000100,UL) /* Enable virtual memory */
 #define SR_IM   _AC(0x00FF0000,UL) /* Interrupt mask */
+#define SR_IP   _AC(0xFF000000,UL) /* Pending interrupts */
 
 #define SR_IM_SHIFT     16
 #define SR_IM_MASK(n)   ((_AC(1,UL)) << ((n) + SR_IM_SHIFT))
@@ -38,8 +39,6 @@
 #define PCR_CLR_IPI	cr9
 #define PCR_K0		cr12
 #define PCR_K1		cr13
-#define PCR_TOSIM	cr27
-#define PCR_FROMSIM	cr28
 #define PCR_TOHOST	cr30
 #define PCR_FROMHOST	cr31
 
@@ -56,8 +55,6 @@
 #define PCR_CLR_IPI	9
 #define PCR_K0		12
 #define PCR_K1		13
-#define PCR_TOSIM	27
-#define PCR_FROMSIM	28
 #define PCR_TOHOST	30
 #define PCR_FROMHOST	31
 
@@ -100,6 +97,11 @@
 		: "i" (val), "i" (pcr));	\
 	__tmp;					\
 })
+
+/* Host-Target Interface (HTIF) */
+#define HTIF_DEVICE_CONSOLE 	(1UL << 56)
+#define HTIF_COMMAND_READ	(0UL << 48)
+#define HTIF_COMMAND_WRITE	(1UL << 48)
 
 #endif /* __ASSEMBLY__ */
 

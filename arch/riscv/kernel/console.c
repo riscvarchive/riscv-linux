@@ -11,56 +11,48 @@
 #include <asm/pcr.h>
 #include <asm/irq.h>
 
-#define SIM_CALL_WRITE 4
-#define SIM_CALL_READ 3
-
-#define BUF_SIZE 64 /* Must corroborate with riscv-isa-sim */
-
 static struct tty_driver *htif_tty_driver;
 static struct tty_struct *tty_zero;
 
 static irqreturn_t htif_input_isr(int irq, void *dev_id)
 {
-	volatile char buf[64];
-	volatile unsigned long packet[4];
-	unsigned long pkt_pa, count;
+	unsigned long packet;
+	unsigned char c;
 
-	packet[0] = SIM_CALL_READ;
-	packet[1] = 0;
-	packet[2] = (unsigned long)(__pa(buf));
-	packet[3] = 0;  // will be clobbered with bytes received
+	/* mtpcr will return its old value and clear the interrupt */
+	packet = mtpcr(PCR_FROMHOST, 0);
+	if (!packet) {
+		return IRQ_NONE;
+	}
 
-	pkt_pa = (unsigned long)(__pa(packet));
-	mtpcr(PCR_TOSIM, pkt_pa);
-
-	count = packet[3];
-
-	tty_insert_flip_string(tty_zero, (char *)buf, count);
+	c = packet & 0xFF;
+	tty_insert_flip_char(tty_zero, c, TTY_NORMAL);
 	tty_flip_buffer_push(tty_zero);
+
+	/* Send next request for character */
+	packet = (HTIF_DEVICE_CONSOLE | HTIF_COMMAND_READ);
+	while (mtpcr(PCR_TOHOST, packet));
 
 	return IRQ_HANDLED;
 }
 
+static void htif_put_char(struct tty_struct *tty, unsigned char ch)
+{
+	unsigned long packet;
+
+	packet = (HTIF_DEVICE_CONSOLE | HTIF_COMMAND_WRITE | ch);
+	while (mtpcr(PCR_TOHOST, packet));
+}
+
 static void htif_write(const char *buf, unsigned int count)
 {
-	volatile unsigned long packet[4]; 
-	unsigned long pkt_pa;
-
-	packet[0] = SIM_CALL_WRITE;
-	packet[1] = 1;
-	packet[2] = (unsigned long)(__pa(buf));
-	packet[3] = count;
-
-
-#ifdef CONFIG_USE_HTIF_CONSOLE
-	pkt_pa = (unsigned long)(__pa(packet));
-	mtpcr(PCR_TOHOST, pkt_pa);
-	while (mfpcr(PCR_FROMHOST) == 0);
-	mtpcr(PCR_FROMHOST, 0);
-#else
-	pkt_pa = (unsigned long)(__pa(packet));
-	mtpcr(PCR_TOSIM, pkt_pa);
-#endif
+	for (; count > 0; count--) {
+		unsigned char ch;
+		ch = *buf++;
+		if (ch == '\n')
+			htif_put_char(tty_zero, '\r');
+		htif_put_char(tty_zero, ch);
+	}
 }
 
 
@@ -120,8 +112,12 @@ static struct console htif_console = {
 void __init input_irq_init(void)
 {
 	int ret;
+	unsigned long packet;
 
-	ret = request_irq(IRQ_KB, htif_input_isr, 0, "htif_input", NULL);
+	ret = request_irq(IRQ_HOST, htif_input_isr, 0, "htif_input", NULL);
+	/* Send next request for character */
+	packet = (HTIF_DEVICE_CONSOLE | HTIF_COMMAND_READ);
+	while (mtpcr(PCR_TOHOST, packet));
 	if (ret)
 		printk(KERN_ERR "HTIF: failed to request htif_input irq\n");
 }

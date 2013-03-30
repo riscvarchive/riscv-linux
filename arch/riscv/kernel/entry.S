@@ -67,50 +67,51 @@ _save_context:
 	.endm
 
 	.macro RESTORE_ALL
-	/* Save kernel stack pointer 
-	   into current->thread.sp */
-	addi sp, sp, PT_SIZE
-	mfpcr v0, PCR_K0
-	sd sp, THREAD_SP(v0)
-
-	ld x1, (PT_EPC - PT_SIZE)(sp)
-	mtpcr x1, PCR_EPC
-	ld x1, (PT_STATUS - PT_SIZE)(sp)
+	ld v0, PT_STATUS(sp)
 	/* eret requires SR_ET to be clear */
-	andi x1, x1, ~(SR_ET)
-	mtpcr x1, PCR_STATUS
+	andi v0, v0, ~(SR_ET)
+	mtpcr v0, PCR_STATUS
 
-	ld x1,  (PT_RA - PT_SIZE)(sp)
-	ld x2,  (PT_V0 - PT_SIZE)(sp)
-	ld x3,  (PT_V1 - PT_SIZE)(sp)
-	ld x4,  (PT_A0 - PT_SIZE)(sp)
-	ld x5,  (PT_A1 - PT_SIZE)(sp)
-	ld x6,  (PT_A2 - PT_SIZE)(sp)
-	ld x7,  (PT_A3 - PT_SIZE)(sp)
-	ld x8,  (PT_A4 - PT_SIZE)(sp)
-	ld x9,  (PT_A5 - PT_SIZE)(sp)
-	ld x10, (PT_A6 - PT_SIZE)(sp)
-	ld x11, (PT_A7 - PT_SIZE)(sp)
-	ld x12, (PT_T0 - PT_SIZE)(sp)
-	ld x13, (PT_T1 - PT_SIZE)(sp)
-	ld x14, (PT_T2 - PT_SIZE)(sp)
-	ld x15, (PT_T3 - PT_SIZE)(sp)
-	ld x16, (PT_T4 - PT_SIZE)(sp)
-	ld x17, (PT_T5 - PT_SIZE)(sp)
-	ld x18, (PT_T6 - PT_SIZE)(sp)
-	ld x19, (PT_T7 - PT_SIZE)(sp)
-	ld x20, (PT_S0 - PT_SIZE)(sp)
-	ld x21, (PT_S1 - PT_SIZE)(sp)
-	ld x22, (PT_S2 - PT_SIZE)(sp)
-	ld x23, (PT_S3 - PT_SIZE)(sp)
-	ld x24, (PT_S4 - PT_SIZE)(sp)
-	ld x25, (PT_S5 - PT_SIZE)(sp)
-	ld x26, (PT_S6 - PT_SIZE)(sp)
-	ld x27, (PT_S7 - PT_SIZE)(sp)
-	ld x28, (PT_GP - PT_SIZE)(sp)
-	ld x29, (PT_FP - PT_SIZE)(sp)
-	ld x31, (PT_TP - PT_SIZE)(sp)
-	ld x30, (PT_SP - PT_SIZE)(sp)
+	/* Save unwound kernel stack pointer
+	   into current->thread.sp */
+	addi t0, sp, PT_SIZE
+	mfpcr v0, PCR_K0
+	sd t0, THREAD_SP(v0)
+
+	ld v0, PT_EPC(sp)
+	mtpcr v0, PCR_EPC
+
+	ld x1,  PT_RA(sp)
+	ld x2,  PT_V0(sp)
+	ld x3,  PT_V1(sp)
+	ld x4,  PT_A0(sp)
+	ld x5,  PT_A1(sp)
+	ld x6,  PT_A2(sp)
+	ld x7,  PT_A3(sp)
+	ld x8,  PT_A4(sp)
+	ld x9,  PT_A5(sp)
+	ld x10, PT_A6(sp)
+	ld x11, PT_A7(sp)
+	ld x12, PT_T0(sp)
+	ld x13, PT_T1(sp)
+	ld x14, PT_T2(sp)
+	ld x15, PT_T3(sp)
+	ld x16, PT_T4(sp)
+	ld x17, PT_T5(sp)
+	ld x18, PT_T6(sp)
+	ld x19, PT_T7(sp)
+	ld x20, PT_S0(sp)
+	ld x21, PT_S1(sp)
+	ld x22, PT_S2(sp)
+	ld x23, PT_S3(sp)
+	ld x24, PT_S4(sp)
+	ld x25, PT_S5(sp)
+	ld x26, PT_S6(sp)
+	ld x27, PT_S7(sp)
+	ld x28, PT_GP(sp)
+	ld x29, PT_FP(sp)
+	ld x31, PT_TP(sp)
+	ld x30, PT_SP(sp)
 	.endm
 
 ENTRY(handle_exception)

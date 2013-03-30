@@ -35,15 +35,6 @@ config CPU_SUPPORTS_32BIT_KERNEL
 config CPU_SUPPORTS_64BIT_KERNEL
 	bool
 
-config USE_HTIF_CONSOLE
-	prompt "Use HTIF as console"
-	bool
-	default y
-	help
-	  Use the Host-Target InterFace (HTIF) connection to transmit console
-	  data instead of the magical simulator interface. Users of vanilla
-	  builds of riscv-isa-sim will want to say Y.
-
 endmenu
 
 menu "Kernel type"
@@ -183,5 +174,8 @@ config GENERIC_CLOCKEVENTS
 	def_bool y
 
 config HAVE_GENERIC_HARDIRQS
+	def_bool y
+
+config GENERIC_IRQ_SHOW
 	def_bool y
 
