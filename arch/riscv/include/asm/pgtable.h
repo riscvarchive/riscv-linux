@@ -29,7 +29,7 @@
 #define FIRST_USER_ADDRESS  0
 
 #define VMALLOC_START   (PAGE_OFFSET)
-#define VMALLOC_END     (PAGE_OFFSET + (2048 << PAGE_SHIFT))
+#define VMALLOC_END     (PAGE_OFFSET + ((1 << 13) << PAGE_SHIFT))
 
 /* Page protection bits */
 #define _PAGE_BASE      (_PAGE_R | _PAGE_E | _PAGE_PRESENT)
