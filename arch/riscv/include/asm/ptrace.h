@@ -3,17 +3,16 @@
 
 #include <asm/pcr.h>
 
+#ifndef __ASSEMBLY__
+
 typedef struct pt_regs {
 	unsigned long zero;
 	unsigned long ra;
-	unsigned long v[2];
-	unsigned long a[8];
-	unsigned long t[8];
-	unsigned long s[8];
-	unsigned long gp; /* aka s8 */
-	unsigned long fp; /* aka s9 */
+	unsigned long s[12];
 	unsigned long sp;
 	unsigned long tp;
+	unsigned long v[2];
+	unsigned long a[14];
 	unsigned long usp;
 	unsigned long status;
 	unsigned long pc; 
@@ -22,7 +21,6 @@ typedef struct pt_regs {
 
 #define user_mode(regs) (((regs)->status & SR_PS) == 0)
 
-#ifndef __ASSEMBLY__
 
 /* Helpers for working with the instruction pointer */
 #ifndef GET_IP
@@ -66,7 +64,7 @@ static inline void user_stack_pointer_set(struct pt_regs *regs,
 
 /* Helpers for working with the frame pointer */
 #ifndef GET_FP
-#define GET_FP(regs) ((regs)->fp)
+#define GET_FP(regs) ((regs)->s[0])
 #endif
 #ifndef SET_FP
 #define SET_FP(regs, val) (GET_FP(regs) = (val))

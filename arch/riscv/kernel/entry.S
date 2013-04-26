@@ -29,41 +29,42 @@ _save_context:
 	addi sp, sp, -(PT_SIZE)
 	sd x0,  PT_ZERO(sp)
 	sd x1,  PT_RA(sp)
-	sd x2,  PT_V0(sp)
-	sd x3,  PT_V1(sp)
-	sd x4,  PT_A0(sp)
-	sd x5,  PT_A1(sp)
-	sd x6,  PT_A2(sp)
-	sd x7,  PT_A3(sp)
-	sd x8,  PT_A4(sp)
-	sd x9,  PT_A5(sp)
-	sd x10, PT_A6(sp)
-	sd x11, PT_A7(sp)
-	sd x12, PT_T0(sp)
-	sd x13, PT_T1(sp)
-	sd x14, PT_T2(sp)
-	sd x15, PT_T3(sp)
-	sd x16, PT_T4(sp)
-	sd x17, PT_T5(sp)
-	sd x18, PT_T6(sp)
-	sd x19, PT_T7(sp)
-	sd x20, PT_S0(sp)
-	sd x21, PT_S1(sp)
-	sd x22, PT_S2(sp)
-	sd x23, PT_S3(sp)
-	sd x24, PT_S4(sp)
-	sd x25, PT_S5(sp)
-	sd x26, PT_S6(sp)
-	sd x27, PT_S7(sp)
-	sd x28, PT_GP(sp)
-	sd x29, PT_FP(sp)
-	mfpcr x1, PCR_K1
-	sd x1,  PT_SP(sp)
-	sd x31, PT_TP(sp)
-	mfpcr x1, PCR_STATUS
-	sd x1,  PT_STATUS(sp)
-	mfpcr x1, PCR_EPC
-	sd x1,  PT_EPC(sp)
+	sd x2,  PT_S0(sp)
+	sd x3,  PT_S1(sp)
+	sd x4,  PT_S2(sp)
+	sd x5,  PT_S3(sp)
+	sd x6,  PT_S4(sp)
+	sd x7,  PT_S5(sp)
+	sd x8,  PT_S6(sp)
+	sd x9,  PT_S7(sp)
+	sd x10, PT_S8(sp)
+	sd x11, PT_S9(sp)
+	sd x12, PT_S10(sp)
+	sd x13, PT_S11(sp)
+	sd x15, PT_TP(sp)
+	sd x16, PT_V0(sp)
+	sd x17, PT_V1(sp)
+	sd x18, PT_A0(sp)
+	sd x19, PT_A1(sp)
+	sd x20, PT_A2(sp)
+	sd x21, PT_A3(sp)
+	sd x22, PT_A4(sp)
+	sd x23, PT_A5(sp)
+	sd x24, PT_A6(sp)
+	sd x25, PT_A7(sp)
+	sd x26, PT_A8(sp)
+	sd x27, PT_A9(sp)
+	sd x28, PT_A10(sp)
+	sd x29, PT_A11(sp)
+	sd x30, PT_A12(sp)
+	sd x31, PT_A13(sp)
+
+	mfpcr s0, PCR_K1
+	sd s0,  PT_SP(sp)
+	mfpcr s0, PCR_STATUS
+	sd s0,  PT_STATUS(sp)
+	mfpcr s0, PCR_EPC
+	sd s0,  PT_EPC(sp)
 	.endm
 
 	.macro RESTORE_ALL
@@ -74,69 +75,70 @@ _save_context:
 
 	/* Save unwound kernel stack pointer
 	   into current->thread.sp */
-	addi t0, sp, PT_SIZE
+	addi s0, sp, PT_SIZE
 	mfpcr v0, PCR_K0
-	sd t0, THREAD_SP(v0)
+	sd s0, THREAD_SP(v0)
 
 	ld v0, PT_EPC(sp)
 	mtpcr v0, PCR_EPC
 
 	ld x1,  PT_RA(sp)
-	ld x2,  PT_V0(sp)
-	ld x3,  PT_V1(sp)
-	ld x4,  PT_A0(sp)
-	ld x5,  PT_A1(sp)
-	ld x6,  PT_A2(sp)
-	ld x7,  PT_A3(sp)
-	ld x8,  PT_A4(sp)
-	ld x9,  PT_A5(sp)
-	ld x10, PT_A6(sp)
-	ld x11, PT_A7(sp)
-	ld x12, PT_T0(sp)
-	ld x13, PT_T1(sp)
-	ld x14, PT_T2(sp)
-	ld x15, PT_T3(sp)
-	ld x16, PT_T4(sp)
-	ld x17, PT_T5(sp)
-	ld x18, PT_T6(sp)
-	ld x19, PT_T7(sp)
-	ld x20, PT_S0(sp)
-	ld x21, PT_S1(sp)
-	ld x22, PT_S2(sp)
-	ld x23, PT_S3(sp)
-	ld x24, PT_S4(sp)
-	ld x25, PT_S5(sp)
-	ld x26, PT_S6(sp)
-	ld x27, PT_S7(sp)
-	ld x28, PT_GP(sp)
-	ld x29, PT_FP(sp)
-	ld x31, PT_TP(sp)
-	ld x30, PT_SP(sp)
+	ld x2,  PT_S0(sp)
+	ld x3,  PT_S1(sp)
+	ld x4,  PT_S2(sp)
+	ld x5,  PT_S3(sp)
+	ld x6,  PT_S4(sp)
+	ld x7,  PT_S5(sp)
+	ld x8,  PT_S6(sp)
+	ld x9,  PT_S7(sp)
+	ld x10, PT_S8(sp)
+	ld x11, PT_S9(sp)
+	ld x12, PT_S10(sp)
+	ld x13, PT_S11(sp)
+	ld x15, PT_TP(sp)
+	ld x16, PT_V0(sp)
+	ld x17, PT_V1(sp)
+	ld x18, PT_A0(sp)
+	ld x19, PT_A1(sp)
+	ld x20, PT_A2(sp)
+	ld x21, PT_A3(sp)
+	ld x22, PT_A4(sp)
+	ld x23, PT_A5(sp)
+	ld x24, PT_A6(sp)
+	ld x25, PT_A7(sp)
+	ld x26, PT_A8(sp)
+	ld x27, PT_A9(sp)
+	ld x28, PT_A10(sp)
+	ld x29, PT_A11(sp)
+	ld x30, PT_A12(sp)
+	ld x31, PT_A13(sp)
+
+	ld x14, PT_SP(sp)
 	.endm
 
 ENTRY(handle_exception)
 	SAVE_ALL
-	mfpcr t0, PCR_CAUSE
+	mfpcr s0, PCR_CAUSE
 	la ra, handle_exception_tail
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
-	bge t0, x0, 1f
+	bge s0, zero, 1f
 
 	/* Handle interrupts */
-	slli a0, t0, 1
+	slli a0, s0, 1
 	srli a0, a0, 1
 	move a1, sp
 	j do_IRQ
 1:
 	/* Handle other exceptions */
-	la t1, excp_vect_tab
-	la t2, excp_vect_tab_end
-	slli t0, t0, 3
-	add t1, t1, t0
+	la s1, excp_vect_tab
+	la s2, excp_vect_tab_end
+	slli s0, s0, 3
+	add s1, s1, s0
 	/* Check if exception code lies within bounds */
-	bgeu t1, t2, handle_fault_generic
-	ld t1, 0(t1)
-	jr t1
+	bgeu s1, s2, handle_fault_generic
+	ld s1, 0(s1)
+	jr s1
 
 handle_fault_generic:
 	mfpcr a0, PCR_CAUSE
@@ -153,33 +155,33 @@ handle_page_fault:
 handle_syscall:
 	/* Advance EPC to avoid executing the original
 	   syscall instruction on eret */
-	ld t0, PT_EPC(sp)
-	addi t0, t0, 0x4
-	sd t0, PT_EPC(sp)
-	la t0, sys_call_table
+	ld s0, PT_EPC(sp)
+	addi s0, s0, 0x4
+	sd s0, PT_EPC(sp)
+	la s0, sys_call_table
 	/* Syscall number held in v0 */
 	slli v0, v0, 3
-	add t0, t0, v0
-	ld t0, 0(t0)
-	jalr t0
+	add s0, s0, v0
+	ld s0, 0(s0)
+	jalr s0
 	/* Set user v0 to kernel v0 */
 	sd v0, PT_V0(sp)
 	/* Set user a3 to 0/1 for success/error
 	   (per MIPS ABI convention) */
-	slt t0, v0, zero
-	sd t0, PT_A3(sp)
+	slt s0, v0, zero
+	sd s0, PT_A3(sp)
 
 handle_exception_tail:
-	mfpcr t0, PCR_STATUS
-	andi t0, t0, SR_PS
-	bnez t0, restore_and_return
+	mfpcr s0, PCR_STATUS
+	andi s0, s0, SR_PS
+	bnez s0, restore_and_return
 	/* Resume userspace */
 resume_userspace:
-	mfpcr t0, PCR_K0
-	ld t0, TASK_THREAD_INFO(t0)
-	ld t0, TI_FLAGS(t0)  /* current_thread_info->flags */
-	andi t0, t0, (_TIF_NEED_RESCHED)
-	beqz t0, restore_and_return
+	mfpcr s0, PCR_K0
+	ld s0, TASK_THREAD_INFO(s0)
+	ld s0, TI_FLAGS(s0)  /* current_thread_info->flags */
+	andi s0, s0, (_TIF_NEED_RESCHED)
+	beqz s0, restore_and_return
 	jal schedule
 	j resume_userspace
 
@@ -218,7 +220,7 @@ END(\func)
 
 	/* Callee-save registers only */
 	.macro SAVE_SWITCH_CONTEXT
-	addi sp, sp, -0x58
+	addi sp, sp, -0x68
 	sd ra, 0x00(sp)
 	sd s0, 0x08(sp)
 	sd s1, 0x10(sp)
@@ -230,6 +232,8 @@ END(\func)
 	sd s7, 0x40(sp)
 	sd s8, 0x48(sp)
 	sd s9, 0x50(sp)
+	sd s10, 0x58(sp)
+	sd s11, 0x60(sp)
 	.endm
 
 	.macro RESTORE_SWITCH_CONTEXT
@@ -244,7 +248,9 @@ END(\func)
 	ld s7, 0x40(sp)
 	ld s8, 0x48(sp)
 	ld s9, 0x50(sp)
-	addi sp, sp, 0x58
+	ld s10, 0x58(sp)
+	ld s11, 0x60(sp)
+	addi sp, sp, 0x68
 	.endm
 
 /*

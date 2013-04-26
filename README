@@ -32,18 +32,17 @@ Run the kernel image:
 
 Building riscv-gcc and glibc against this kernel
 ================================================
-Export headers to riscv-gcc installation directory:
+Linux headers are already available in the riscv-gcc repository.
+
+If headers are changed, export them to the riscv-gcc installation directory:
 
 	$ gmake ARCH=riscv headers_check
-	$ gmake ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-3.4.38
-
-Apply patch to riscv-gcc/Makefile to adjust options and kernel version:
-
-	$ patch -p1 < gcc-makefile.patch
+	$ gmake ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-headers
 
 Build riscv-gcc with the linux target:
 	
 	$ gmake linux INSTALL_DIR=/path/to/install
+
 
 ---
 [1] http://www.linux-mips.org/archives/linux-mips/2006-04/msg00130.html

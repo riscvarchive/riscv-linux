@@ -117,7 +117,7 @@ typedef unsigned long elf_fpregset_t;
    the loader.  We need to make sure that it is out of the way of the program
    that it will "exec", and that there is sufficient room for the brk.  */
 
-#define ELF_ET_DYN_BASE         (0x08000000)
+#define ELF_ET_DYN_BASE         (((TASK_SIZE  / 3) * 2) & PAGE_MASK)
 
 /*
  * Enable dump using regset.
@@ -125,7 +125,7 @@ typedef unsigned long elf_fpregset_t;
  */
 #define CORE_DUMP_USE_REGSET
 
-#define ELF_EXEC_PAGESIZE	8192
+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
 
 extern void dump_elf_thread(elf_greg_t *dest, struct pt_regs *pt);
 #define ELF_CORE_COPY_REGS(dest, regs) dump_elf_thread(dest, regs);

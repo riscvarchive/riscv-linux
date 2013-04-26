@@ -32,10 +32,10 @@ endif
 export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
-	KBUILD_CFLAGS += -mabi=64
+	KBUILD_CFLAGS += -m64
 else
 	BITS := 32
-	KBUILD_CFLAGS += -mabi=32
+	KBUILD_CFLAGS += -m32
 endif
 
 KBUILD_CFLAGS += -Wall
