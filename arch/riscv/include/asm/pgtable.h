@@ -272,17 +272,17 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 #define pgd_ERROR(e) \
 	printk("%s:%d: bad pgd %016lx.\n", __FILE__, __LINE__, pgd_val(e))
 
-/* Private */
+/* MAP_PRIVATE permissions: force writes to copy the page */
 #define __P000	PAGE_NONE
 #define __P001	PAGE_R
-#define __P010	PAGE_W
-#define __P011	PAGE_RW
+#define __P010	PAGE_NONE
+#define __P011	PAGE_R
 #define __P100	PAGE_RX
 #define __P101	PAGE_RX
-#define __P110	PAGE_RWX
-#define __P111	PAGE_RWX
+#define __P110	PAGE_RX
+#define __P111	PAGE_RX
 
-/* Shared */
+/* MAP_SHARED permissions */
 #define __S000	PAGE_NONE
 #define __S001	PAGE_R
 #define __S010	PAGE_W
