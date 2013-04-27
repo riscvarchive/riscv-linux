@@ -3,7 +3,7 @@
 
 /*
  * User space memory access functions, these should work
- * on a ny machine that has kernel and user data in the same
+ * on any machine that has kernel and user data in the same
  * address space, e.g. all NOMMU machines.
  */
 #include <linux/sched.h>
@@ -11,6 +11,8 @@
 #include <linux/string.h>
 
 #include <asm/segment.h>
+
+extern int fixup_exception(struct pt_regs *, unsigned long);
 
 #define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
 

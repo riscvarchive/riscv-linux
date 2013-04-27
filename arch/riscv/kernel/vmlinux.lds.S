@@ -36,9 +36,9 @@ SECTIONS
 	NOTES
 
 #ifdef CONFIG_64BIT
-	BSS_SECTION(0, 8, 8)
+	BSS_SECTION(32, 0, 32)
 #else
-	BSS_SECTION(0, 4, 4)
+	BSS_SECTION(16, 0, 16)
 #endif /* CONFIG_64BIT */
 	_end = .;
 

@@ -1,1 +1,1 @@
-obj-y := fault.o init.o
+obj-y := init.o fault.o extable.o

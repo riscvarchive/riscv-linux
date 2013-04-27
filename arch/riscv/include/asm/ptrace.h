@@ -13,10 +13,11 @@ typedef struct pt_regs {
 	unsigned long tp;
 	unsigned long v[2];
 	unsigned long a[14];
-	unsigned long usp;
+	/* PCRs */
 	unsigned long status;
-	unsigned long pc; 
 	unsigned long epc;
+	unsigned long badvaddr;
+	unsigned long cause;
 } pt_regs;
 
 #define user_mode(regs) (((regs)->status & SR_PS) == 0)
@@ -24,7 +25,7 @@ typedef struct pt_regs {
 
 /* Helpers for working with the instruction pointer */
 #ifndef GET_IP
-#define GET_IP(regs) ((regs)->pc)
+#define GET_IP(regs) ((regs)->epc)
 #endif
 #ifndef SET_IP
 #define SET_IP(regs, val) (GET_IP(regs) = (val))
@@ -46,7 +47,7 @@ static inline void instruction_pointer_set(struct pt_regs *regs,
 
 /* Helpers for working with the user stack pointer */
 #ifndef GET_USP
-#define GET_USP(regs) ((regs)->usp)
+#define GET_USP(regs) ((regs)->sp)
 #endif
 #ifndef SET_USP
 #define SET_USP(regs, val) (GET_USP(regs) = (val))

@@ -22,7 +22,7 @@ ENTRY(_start)
 	/* Enable RV64 mode; temporarily disable virtual memory */
 	mfpcr s0, PCR_STATUS
 	li s1, (SR_S64 | SR_U64)
-	li s2, ~(SR_VM)
+	li s2, ~(SR_VM | SR_IM | SR_ET)
 	or s0, s0, s1
 	and s0, s0, s2
 	mtpcr s0, PCR_STATUS
@@ -46,6 +46,10 @@ ENTRY(_start)
 	/* Initialize provisional page tables */
 	la s1, __pa(ident_pm_dir)
 	la s2, __pa(kern_pm_dir)
+
+#if (PAGE_OFFSET & (PMDIR_SHIFT - 1))
+#error PAGE_OFFSET must be aligned on a 4 MiB superpage
+#endif
 
 	/* PGD entry for identity mapping */
 	ori s3, s1, (PAGE_SUPV | _PAGE_T)

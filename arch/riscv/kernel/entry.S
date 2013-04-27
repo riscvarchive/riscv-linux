@@ -60,11 +60,15 @@ _save_context:
 	sd x31, PT_A13(sp)
 
 	mfpcr s0, PCR_K1
-	sd s0,  PT_SP(sp)
+	sd s0, PT_SP(sp)
 	mfpcr s0, PCR_STATUS
-	sd s0,  PT_STATUS(sp)
+	sd s0, PT_STATUS(sp)
 	mfpcr s0, PCR_EPC
-	sd s0,  PT_EPC(sp)
+	sd s0, PT_EPC(sp)
+	mfpcr s0, PCR_BADVADDR
+	sd s0, PT_BADVADDR(sp)
+	mfpcr s0, PCR_CAUSE
+	sd s0, PT_CAUSE(sp)
 	.endm
 
 	.macro RESTORE_ALL
@@ -130,27 +134,23 @@ ENTRY(handle_exception)
 	move a1, sp
 	j do_IRQ
 1:
+	/* Handle syscalls */
+	li s1, EXC_SYSCALL
+	beq s0, s1, handle_syscall
+
 	/* Handle other exceptions */
-	la s1, excp_vect_tab
-	la s2, excp_vect_tab_end
+	move  a0, sp /* pt_regs */
+1:
+	la s1, excp_vect_table
+	la s2, excp_vect_table_end
 	slli s0, s0, 3
 	add s1, s1, s0
 	/* Check if exception code lies within bounds */
-	bgeu s1, s2, handle_fault_generic
+	bgeu s1, s2, 1f
 	ld s1, 0(s1)
 	jr s1
-
-handle_fault_generic:
-	mfpcr a0, PCR_CAUSE
-	mfpcr a1, PCR_EPC
-	mfpcr a2, PCR_BADVADDR
-	j report_exception
-
-handle_page_fault:
-	mfpcr a0, PCR_CAUSE
-	mfpcr a1, PCR_EPC
-	mfpcr a2, PCR_BADVADDR
-	j do_page_fault
+1:
+	j handle_fault_unknown
 
 handle_syscall:
 	/* Advance EPC to avoid executing the original
@@ -172,18 +172,30 @@ handle_syscall:
 	sd s0, PT_A3(sp)
 
 handle_exception_tail:
-	mfpcr s0, PCR_STATUS
+	clearpcr s0, PCR_STATUS, SR_ET
 	andi s0, s0, SR_PS
 	bnez s0, restore_and_return
-	/* Resume userspace */
+	/* Otherwise resume userspace */
+
 resume_userspace:
 	mfpcr s0, PCR_K0
 	ld s0, TASK_THREAD_INFO(s0)
-	ld s0, TI_FLAGS(s0)  /* current_thread_info->flags */
-	andi s0, s0, (_TIF_NEED_RESCHED)
-	beqz s0, restore_and_return
-	jal schedule
-	j resume_userspace
+	ld s0, TI_FLAGS(s0) /* current_thread_info->flags */
+
+	li s1, (_TIF_WORK_MASK)
+	and s1, s0, s1
+	beqz s1, restore_and_return
+	la ra, resume_userspace
+
+	andi s1, s0, (_TIF_NEED_RESCHED)
+	beqz s1, work_notifysig
+	j schedule
+
+work_notifysig:
+	/* Handle pending signals and notify-resume requests */
+	move a0, sp /* pt_regs */
+	move a1, s0 /* current_thread_info->flags */
+	j do_notify_resume
 
 ENTRY(ret_from_fork)
 	jal schedule_tail
@@ -278,20 +290,19 @@ END(__switch_to)
 
 	.section ".rodata"
 	/* Exception vector table */
-ENTRY(excp_vect_tab)
-	.quad handle_fault_generic
-	.quad handle_page_fault
-	.quad handle_fault_generic
-	.quad handle_fault_generic
-	.quad handle_fault_generic
-	.quad handle_fault_generic
-	.quad handle_syscall
-	.quad handle_fault_generic
-	.quad handle_fault_generic
-	.quad handle_fault_generic
-	.quad handle_page_fault
-	.quad handle_page_fault
-	.quad handle_fault_generic
-excp_vect_tab_end:
-END(excp_vect_tab)
+ENTRY(excp_vect_table)
+	.quad handle_misaligned_insn
+	.quad do_page_fault
+	.quad handle_illegal_insn
+	.quad handle_privileged_insn
+	.quad handle_privileged_insn
+	.quad handle_fault_unknown
+	.quad 0 /* handle_syscall */
+	.quad handle_fault_unknown
+	.quad handle_misaligned_data
+	.quad handle_misaligned_data
+	.quad do_page_fault
+	.quad do_page_fault
+excp_vect_table_end:
+END(excp_vect_table)
 

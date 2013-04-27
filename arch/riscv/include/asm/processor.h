@@ -62,7 +62,7 @@ struct thread_struct {
 	((unsigned long)task_stack_page(tsk) + THREAD_SIZE)
 #define task_pt_regs(tsk)	((struct pt_regs *)kstk_tos(tsk) - 1)
 
-#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->pc)
+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->epc)
 #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)
 
 #endif /* __ASSEMBLY__ */

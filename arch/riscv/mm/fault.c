@@ -1,91 +1,162 @@
 #include <linux/mm.h>
 #include <linux/kernel.h>
+#include <linux/interrupt.h>
+#include <linux/perf_event.h>
 
 #include <asm/pgalloc.h>
-#include <asm/pcr.h>
+#include <asm/ptrace.h>
+#include <asm/uaccess.h>
 
-/* Handle a fault in the vmalloc area */
-static int vmalloc_fault(unsigned long addr)
-{
-	return -1;
-}
+extern void die(char *, struct pt_regs *, long);
 
-void do_page_fault(unsigned long cause, unsigned long epc,
-	unsigned long badvaddr)
+asmlinkage void do_page_fault(struct pt_regs *regs)
 {
 	struct task_struct *tsk;
 	struct vm_area_struct *vma;
 	struct mm_struct *mm;
-	unsigned long ksp;
-	struct pt_regs *regs;
-	unsigned long addr, fault;
+	unsigned long addr, epc, cause, fault;
 	unsigned int write, flags;
 	siginfo_t info;
 
+	cause = regs->cause;
 	write = (cause == EXC_STORE_ACCESS);
 	flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE
 		| (write ? FAULT_FLAG_WRITE : 0);
+	epc = regs->epc;
+	addr = (cause == EXC_INST_ACCESS) ? epc : regs->badvaddr;
 
-	addr = (cause == EXC_INST_ACCESS) ? epc : badvaddr;
+	info.si_code = SEGV_MAPERR;
+
 	tsk = current;
 	mm = tsk->mm;
 
+	/*
+	 * Fault-in kernel-space virtual memory on-demand.
+	 * The 'reference' page table is init_mm.pgd.
+	 *
+	 * NOTE! We MUST NOT take any locks for this case. We may
+	 * be in an interrupt or a critical region, and should
+	 * only copy the information from the master page table,
+	 * nothing more.
+	 */
+	if (unlikely((addr >= VMALLOC_START) && (addr <= VMALLOC_END)))
+		goto vmalloc_fault;
+
+	/* Do not take the fault if within an interrupt
+	   or if lacking a user context */
+	if (!mm || in_atomic())
+		goto no_context;
+
+retry:
 	down_read(&mm->mmap_sem);
 	vma = find_vma(mm, addr);
-
-	/* Check for fault in kernel space */
-	if (unlikely(addr >= TASK_SIZE)) {
-		if (vmalloc_fault(addr) >= 0)
-			return;
-	}
-
-	if (unlikely(!vma)) {
-		panic("bad vm area, address was 0x%0lx, epc was 0x%0lx", addr, epc);
-	}
-	if (write && !(vma->vm_flags & VM_WRITE)) {
-		panic("write but vm not writable");
-	}
-	
-	fault = 0;
-	if (likely(vma->vm_start <= addr)) {
-		unsigned long cycle;
-		__asm__ volatile ("rdcycle %0" : "=r" (cycle));
-		fault = handle_mm_fault(mm, vma, addr, flags);
-//		printk(KERN_DEBUG "handle_mm_fault: returned 0x%lx"
-//			" for address 0x%p, pc 0x%p, cycle %lu\n", fault, (void *)addr, (void *)epc, cycle);
+	if (unlikely(!vma))
+		goto bad_area;
+	if (likely(vma->vm_start <= addr))
 		goto good_area;
+	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN)))
+		goto bad_area;
+	if (unlikely(expand_stack(vma, addr)))
+		goto bad_area;
+
+good_area:
+	info.si_code = SEGV_ACCERR;
+
+	if (unlikely(write && (!(vma->vm_flags & VM_WRITE)))) {
+		goto bad_area;
 	}
-	if (unlikely(!(vma->vm_flags & VM_GROWSDOWN))) {
+	if (unlikely((cause == EXC_INST_ACCESS)
+		&& (!(vma->vm_flags & VM_EXEC)))) {
 		goto bad_area;
 	}
 
-	fault = expand_stack(vma, addr);
-	if (fault) {
-		printk(KERN_DEBUG "expand_stack: returned %ld\n", fault);
-		goto bad_area;
+	/*
+	 * If for any reason at all we could not handle the fault,
+	 * make sure we exit gracefully rather than endlessly redo
+	 * the fault.
+	 */
+	fault = handle_mm_fault(mm, vma, addr, flags);
+
+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(tsk))
+		return;
+
+
+	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
+	if (unlikely(fault & VM_FAULT_ERROR)) {
+		if (fault & VM_FAULT_OOM) {
+			goto out_of_memory;
+		} else if (fault & VM_FAULT_SIGBUS) {
+			goto do_sigbus;
+		}
+		BUG();
 	}
 
-	if (fault & (VM_FAULT_RETRY | VM_FAULT_ERROR)) {
-		goto bad_area;
+	if (flags & FAULT_FLAG_ALLOW_RETRY) {
+		if (fault & VM_FAULT_MAJOR) {
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs, addr);
+			tsk->maj_flt++;
+		} else {
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs, addr);
+			tsk->min_flt++;
+		}
+		if (fault & VM_FAULT_RETRY) {
+			flags &= ~(FAULT_FLAG_ALLOW_RETRY);
+//			flags |= FAULT_FLAG_TRIED;
+
+			/*
+			 * No need to up_read(&mm->mmap_sem) as we would
+			 * have already released it in __lock_page_or_retry
+			 * in mm/filemap.c.
+			 */
+			goto retry;
+		}
 	}
-	goto good_area;
+
+	up_read(&mm->mmap_sem);
+	return;
 
 bad_area:
-	/* Obtain pt_regs of process */
-	ksp = (unsigned long)task_stack_page(tsk) + THREAD_SIZE;
-	regs = (struct pt_regs *)ksp - 1;
-
+	up_read(&mm->mmap_sem);
+	/* User mode accesses cause a SIGSEGV */
 	if (user_mode(regs)) {
 		info.si_signo = SIGSEGV;
 		info.si_errno = 0;
-		info.si_addr = (void *)addr;
-//		force_sig_info(SIGSEGV, &info, tsk);
-//		return;
+		/* info.si_code has been set above */
+		info.si_addr = (void __user *)addr;
+		force_sig_info(SIGSEGV, &info, tsk);
+		return;
 	}
 
-	panic("inescapable page fault at 0x%p, pc 0x%p\n",
-		(void *)addr, (void *)epc);	
+no_context:
+	/* Are we prepared to handle this fault as an exception? */
+	if (fixup_exception(regs, epc)) {
+		return;
+	}
+	printk(KERN_ALERT "Unable to handle kernel paging request at "
+		"virtual address 0x%016lx, epc=0x%016lx", addr, epc);
+	die("Oops", regs, 0);
 
-good_area:
+out_of_memory:
 	up_read(&mm->mmap_sem);
+	if (!user_mode(regs))
+		goto no_context;
+	pagefault_out_of_memory();
+	return;
+
+do_sigbus:
+	up_read(&mm->mmap_sem);
+	/* Send a SIGBUS regardless of kernel or user mode */
+	info.si_signo = SIGBUS;
+	info.si_errno = 0;
+	info.si_code = BUS_ADRERR;
+	info.si_addr = (void __user *)addr;
+	force_sig_info(SIGBUS, &info, current);
+	if (!user_mode(regs))
+		goto no_context;
+	return;
+
+vmalloc_fault:
+	/* TODO */
+	panic("do_page_fault: vmalloc_fault unimplemented");
+	return;
 }

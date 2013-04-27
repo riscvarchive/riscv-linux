@@ -162,11 +162,9 @@ static void free_init_pages(const char *what, unsigned long begin, unsigned long
 
 void free_initmem(void)
 {
-/*
 	free_init_pages("unused kernel memory",
-	__pa(&__init_begin),
-	__pa(&__init_end));
-*/
+		__pa(&__init_begin),
+		__pa(&__init_end));
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
