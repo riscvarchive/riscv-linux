@@ -302,6 +302,9 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 {
 }
 
+#define io_remap_pfn_range(vma, vaddr, pfn, size, prot) \
+	remap_pfn_range(vma, vaddr, pfn, size, prot)
+
 #endif /* CONFIG_MMU */
 
 extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
