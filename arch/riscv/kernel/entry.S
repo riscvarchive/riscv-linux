@@ -72,9 +72,15 @@ _save_context:
 	.endm
 
 	.macro RESTORE_ALL
-	ld v0, PT_STATUS(sp)
 	/* eret requires SR_ET to be clear */
-	andi v0, v0, ~(SR_ET)
+	clearpcr v1, PCR_STATUS, SR_ET
+	ld v0, PT_STATUS(sp)
+	li s0, ~(SR_IM | SR_ET)
+	li s1, (SR_IM)
+	and v0, v0, s0
+	and v1, v1, s1
+	/* Retain current IM field */
+	or v0, v0, v1
 	mtpcr v0, PCR_STATUS
 
 	/* Save unwound kernel stack pointer

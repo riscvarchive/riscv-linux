@@ -45,5 +45,4 @@ void __init init_IRQ(void)
 	{
 		irq_set_chip_and_handler(irq, &riscv_irq_chip, handle_level_irq);
 	}
-	input_irq_init();
 }

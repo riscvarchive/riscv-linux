@@ -39,7 +39,7 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	unsigned long sp)
 {
 	/* Remove supervisor privileges */
-	regs->status = mfpcr(PCR_STATUS) & (~SR_PS);
+	regs->status &= ~(SR_PS);
 	regs->epc = pc;
 	regs->sp = sp;
 }
@@ -91,7 +91,7 @@ long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 	kregs.a[0] = (unsigned long)arg;
 	kregs.a[1] = (unsigned long)fn;
 	kregs.epc = (unsigned long)kernel_thread_helper;
-	kregs.status = (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_S | SR_PS | SR_EF);
+	kregs.status = (SR_VM | SR_S64 | SR_U64 | SR_S | SR_PS | SR_EF);
 
 	return do_fork(flags | CLONE_VM | CLONE_UNTRACED,
 		0, &kregs, 0, NULL, NULL);
@@ -99,7 +99,7 @@ long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 
 unsigned long thread_saved_pc(struct task_struct *tsk)
 {
-	return tsk->thread.pc;
+	return task_pt_regs(tsk)->epc;
 }
 
 /*
