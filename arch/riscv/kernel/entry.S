@@ -282,6 +282,9 @@ ENTRY(__switch_to)
 	SAVE_SWITCH_CONTEXT
 	la ra, 1f             /* Return address when resuming prev */
 	sd sp, THREAD_SP(a0)  /* prev->thread.sp = sp */
+#ifdef CONFIG_FRAME_POINTER
+	sd s0, THREAD_FP(a0)  /* prev->thread.sp = sp */
+#endif
 	sd ra, THREAD_PC(a0)  /* prev->thread.pc = 1f */ 
 	ld sp, THREAD_SP(a1)  /* sp = next->thread.sp */
 	ld ra, THREAD_PC(a1)  /* ra = next->thread.pc */

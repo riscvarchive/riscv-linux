@@ -24,12 +24,8 @@ typedef struct pt_regs {
 
 
 /* Helpers for working with the instruction pointer */
-#ifndef GET_IP
 #define GET_IP(regs) ((regs)->epc)
-#endif
-#ifndef SET_IP
 #define SET_IP(regs, val) (GET_IP(regs) = (val))
-#endif
 
 static inline unsigned long instruction_pointer(struct pt_regs *regs)
 {
@@ -41,17 +37,11 @@ static inline void instruction_pointer_set(struct pt_regs *regs,
 	SET_IP(regs, val);
 }
 
-#ifndef profile_pc
 #define profile_pc(regs) instruction_pointer(regs)
-#endif
 
 /* Helpers for working with the user stack pointer */
-#ifndef GET_USP
 #define GET_USP(regs) ((regs)->sp)
-#endif
-#ifndef SET_USP
 #define SET_USP(regs, val) (GET_USP(regs) = (val))
-#endif
 
 static inline unsigned long user_stack_pointer(struct pt_regs *regs)
 {
@@ -64,12 +54,8 @@ static inline void user_stack_pointer_set(struct pt_regs *regs,
 }
 
 /* Helpers for working with the frame pointer */
-#ifndef GET_FP
 #define GET_FP(regs) ((regs)->s[0])
-#endif
-#ifndef SET_FP
 #define SET_FP(regs, val) (GET_FP(regs) = (val))
-#endif
 
 static inline unsigned long frame_pointer(struct pt_regs *regs)
 {

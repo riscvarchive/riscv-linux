@@ -50,6 +50,9 @@ extern unsigned long get_wchan(struct task_struct *p);
 /* CPU-specific state of a task */
 struct thread_struct {
 	unsigned long sp;	/* Kernel mode stack */
+#ifdef CONFIG_FRAME_POINTER
+	unsigned long fp;
+#endif /* CONFIG_FRAME_POINTER */
 	unsigned long pc;
 	unsigned long status;
 };

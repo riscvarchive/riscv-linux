@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/riscv 3.4.41 Kernel Configuration
+# Linux/riscv 3.4.45 Kernel Configuration
 #
 CONFIG_MMU=y
 
@@ -524,6 +524,8 @@ CONFIG_DEBUG_BUGVERBOSE=y
 # CONFIG_DEBUG_SG is not set
 # CONFIG_DEBUG_NOTIFIERS is not set
 # CONFIG_DEBUG_CREDENTIALS is not set
+CONFIG_ARCH_WANT_FRAME_POINTERS=y
+# CONFIG_FRAME_POINTER is not set
 # CONFIG_BOOT_PRINTK_DELAY is not set
 # CONFIG_RCU_TORTURE_TEST is not set
 # CONFIG_RCU_TRACE is not set

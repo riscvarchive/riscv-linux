@@ -8,6 +8,9 @@ void asm_offsets(void)
 	OFFSET(TASK_THREAD_INFO, task_struct, stack);
 	OFFSET(THREAD_PC, task_struct, thread.pc);
 	OFFSET(THREAD_SP, task_struct, thread.sp);
+#ifdef CONFIG_FRAME_POINTER
+	OFFSET(THREAD_FP, task_struct, thread.fp);
+#endif /* CONFIG_FRAME_POINTER */
 	OFFSET(TI_FLAGS, thread_info, flags);
 
 	DEFINE(PT_SIZE, sizeof(struct pt_regs));

@@ -187,3 +187,6 @@ config GENERIC_CSUM
 config NLATTR
 	def_bool y
 
+config ARCH_WANT_FRAME_POINTERS
+	def_bool y
+
