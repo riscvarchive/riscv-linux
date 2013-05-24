@@ -99,9 +99,14 @@
 })
 
 /* Host-Target Interface (HTIF) */
-#define HTIF_DEVICE_CONSOLE 	(1UL << 56)
-#define HTIF_COMMAND_READ	(0UL << 48)
-#define HTIF_COMMAND_WRITE	(1UL << 48)
+#define HTIF_DEV_SHIFT	(56)
+#define HTIF_CMD_SHIFT 	(48)
+
+#define HTIF_DEVICE_CONSOLE 	(1UL << HTIF_DEV_SHIFT)
+
+#define HTIF_COMMAND_READ	(0UL << HTIF_CMD_SHIFT)
+#define HTIF_COMMAND_WRITE	(1UL << HTIF_CMD_SHIFT)
+#define HTIF_COMMAND_IDENTITY	(255UL << HTIF_CMD_SHIFT)
 
 #endif /* __ASSEMBLY__ */
 
