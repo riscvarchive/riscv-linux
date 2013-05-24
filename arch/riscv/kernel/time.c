@@ -80,7 +80,7 @@ static struct clocksource riscv_clocksource = {
 void __init time_init(void)
 {
 	u32 freq;
-	freq = 4000000UL;
+	freq = 100000000UL;
 
 	clocksource_register_hz(&riscv_clocksource, freq);
 	setup_irq(IRQ_TIMER, &timer_irq);

@@ -159,6 +159,8 @@ ENTRY(handle_exception)
 	j handle_fault_unknown
 
 handle_syscall:
+	/* System calls run with interrupts enabled */
+	setpcr zero, PCR_STATUS, SR_ET
 	/* Advance EPC to avoid executing the original
 	   syscall instruction on eret */
 	ld s0, PT_EPC(sp)
