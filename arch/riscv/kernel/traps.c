@@ -33,15 +33,15 @@ static void show_backtrace(struct task_struct *task, const struct pt_regs *regs)
 	}
 
 	for (;;) {
-		if (fp < sp + 0x10 || fp >= ALIGN(sp, THREAD_SIZE)
-			|| !kernel_text_address(pc)) {
+		if (!kernel_text_address(pc))
 			return;
-		}
 		printk(" [<%08lx>] %pS\n", pc, (void *)pc);
+		if (fp < sp + 0x10 || fp >= ALIGN(sp, THREAD_SIZE))
+			return;
 		/* Unwind stack frame */
 		sp = fp;
-		fp = *(unsigned long *)(fp - 0x10);
 		pc = *(unsigned long *)(fp - 0x8);
+		fp = *(unsigned long *)(fp - 0x10);
 	}
 #endif /* CONFIG_FRAME_POINTER */
 }

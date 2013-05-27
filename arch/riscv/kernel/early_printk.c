@@ -3,13 +3,14 @@
 
 #include <asm/setup.h>
 #include <asm/page.h>
-#include <asm/pcr.h>
+#include <asm/htif.h>
 
-static inline void __init early_htif_put_char(unsigned char ch)
+#define HTIF_DEV_CONSOLE	(1U)
+
+static inline void __init early_htif_putc(unsigned char ch)
 {
-	unsigned long packet;
-	packet = (HTIF_DEVICE_CONSOLE | HTIF_COMMAND_WRITE | ch);
-	while (mtpcr(PCR_TOHOST, packet));
+	/* FIXME: Device ID should not be hard-coded. */
+	htif_tohost(HTIF_DEV_CONSOLE, HTIF_CMD_WRITE, ch);
 }
 
 static void __init early_console_write(struct console *con,
@@ -19,8 +20,8 @@ static void __init early_console_write(struct console *con,
 		unsigned char ch;
 		ch = *s++;
 		if (ch == '\n')
-			early_htif_put_char('\r');
-		early_htif_put_char(ch);
+			early_htif_putc('\r');
+		early_htif_putc(ch);
 	}
 }
 

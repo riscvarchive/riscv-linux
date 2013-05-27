@@ -35,6 +35,24 @@ config CPU_SUPPORTS_32BIT_KERNEL
 config CPU_SUPPORTS_64BIT_KERNEL
 	bool
 
+menuconfig HTIF
+	bool "HTIF"
+	default y
+	help
+	  Host-Target Interface
+if HTIF
+
+config HTIF_CONSOLE
+	tristate "HTIF console support"
+	default y
+
+config HTIF_BLK_DEV
+	tristate "HTIF block device support"
+	depends on BLOCK
+	default y
+
+endif # HTIF
+
 endmenu
 
 menu "Kernel type"
@@ -135,8 +153,9 @@ config CMDLINE_OVERRIDE
 
 config EARLY_PRINTK
 	bool "Early printk"
+	depends on HTIF
 	default n
-	---help---
+	help
 	  This option enables special console drivers which allow the kernel
 	  to print messages very early in the bootup process.
 

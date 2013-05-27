@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/riscv 3.4.45 Kernel Configuration
+# Linux/riscv 3.4.47 Kernel Configuration
 #
 CONFIG_MMU=y
 
@@ -11,6 +11,9 @@ CONFIG_CPU_RV_ROCKET=y
 # CONFIG_CPU_RV_GENERIC is not set
 CONFIG_CPU_SUPPORTS_LITTLE_ENDIAN=y
 CONFIG_CPU_SUPPORTS_64BIT_KERNEL=y
+CONFIG_HTIF=y
+CONFIG_HTIF_CONSOLE=y
+CONFIG_HTIF_BLK_DEV=y
 
 #
 # Kernel type
@@ -341,11 +344,7 @@ CONFIG_SERIO_SERPORT=y
 #
 # Character devices
 #
-CONFIG_VT=y
-CONFIG_CONSOLE_TRANSLATIONS=y
-CONFIG_VT_CONSOLE=y
-CONFIG_HW_CONSOLE=y
-# CONFIG_VT_HW_CONSOLE_BINDING is not set
+# CONFIG_VT is not set
 CONFIG_UNIX98_PTYS=y
 # CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
 CONFIG_LEGACY_PTYS=y
@@ -422,7 +421,9 @@ CONFIG_DEVKMEM=y
 #
 # File systems
 #
-# CONFIG_EXT2_FS is not set
+CONFIG_EXT2_FS=y
+# CONFIG_EXT2_FS_XATTR is not set
+# CONFIG_EXT2_FS_XIP is not set
 # CONFIG_EXT3_FS is not set
 # CONFIG_EXT4_FS is not set
 # CONFIG_REISERFS_FS is not set
@@ -472,10 +473,7 @@ CONFIG_TMPFS=y
 # CONFIG_HUGETLB_PAGE is not set
 # CONFIG_CONFIGFS_FS is not set
 # CONFIG_MISC_FILESYSTEMS is not set
-CONFIG_NETWORK_FILESYSTEMS=y
-# CONFIG_CIFS is not set
-# CONFIG_NCP_FS is not set
-# CONFIG_CODA_FS is not set
+# CONFIG_NETWORK_FILESYSTEMS is not set
 # CONFIG_NLS is not set
 
 #

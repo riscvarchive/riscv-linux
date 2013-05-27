@@ -5,12 +5,12 @@ Building this kernel
 ====================
 Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
-	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.45
-	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.45.tar.xz | tar -xJ
+	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.47
+	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.47.tar.xz | tar -xJk
 
 Apply patch to scripts/mod/modpost.c to avoid segfaulting on little-endian 64-bit kernel builds [1]:
 
-	$ cd linux-3.4.45
+	$ cd linux-3.4.47
 	$ patch -p1 < modpost.patch
 
 Generate default kernel configuration:
