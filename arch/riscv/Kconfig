@@ -6,6 +6,9 @@
 config MMU
 	def_bool y
 
+config HAS_DMA
+	def_bool n
+
 menu "Platform type"
 
 choice
@@ -49,6 +52,14 @@ config HTIF_CONSOLE
 config HTIF_BLK_DEV
 	tristate "HTIF block device support"
 	depends on BLOCK
+	default y
+
+config HTIF_RFB
+	tristate "HTIF remote framebuffer"
+	depends on FB
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
 	default y
 
 endif # HTIF
@@ -171,6 +182,8 @@ source "lib/Kconfig.debug"
 config CMDLINE_BOOL
 	bool 
 endmenu
+
+source "lib/Kconfig"
 
 config GENERIC_HWEIGHT
 	def_bool y

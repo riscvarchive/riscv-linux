@@ -1,1 +1,1 @@
-obj-y := init.o fault.o extable.o
+obj-y := init.o fault.o extable.o ioremap.o

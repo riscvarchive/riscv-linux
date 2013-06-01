@@ -40,7 +40,7 @@ static void show_backtrace(struct task_struct *task, const struct pt_regs *regs)
 			return;
 		/* Unwind stack frame */
 		sp = fp;
-		pc = *(unsigned long *)(fp - 0x8);
+		pc = *(unsigned long *)(fp - 0x8) - 0x4;
 		fp = *(unsigned long *)(fp - 0x10);
 	}
 #endif /* CONFIG_FRAME_POINTER */

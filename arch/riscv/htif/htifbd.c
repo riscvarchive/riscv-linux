@@ -50,7 +50,7 @@ static int htifbd_ioctl(struct block_device *bd, fmode_t mode,
 	return -ENOTTY;
 }
 
-static unsigned long htifbd_transfer(struct htifbd_dev *dev, unsigned long sector,
+static void htifbd_transfer(struct htifbd_dev *dev, unsigned long sector,
 	unsigned long nsect, char *buf, int direction)
 {
 	/* HTIF disk address packet */
@@ -70,7 +70,7 @@ static unsigned long htifbd_transfer(struct htifbd_dev *dev, unsigned long secto
 		pr_notice(DRIVER_NAME "out-of-bounds access to %s with"
 			"offset=%lx length=%lx\n",
 			dev->gd->disk_name, offset, length);
-		return 0;
+		return;
 	}
 
 	req.address = (unsigned long)__pa(buf);
@@ -83,35 +83,36 @@ static unsigned long htifbd_transfer(struct htifbd_dev *dev, unsigned long secto
 	} else if (direction == WRITE) {
 		htif_cmd = HTIF_CMD_WRITE;
 	} else {
-		return 0;
+		return;
 	}
 
 	mb();
 	htif_tohost(dev->dev->minor, htif_cmd, __pa(&req));
 	htif_fromhost();
 	mb();
-	return length;
 }
 
 static void htifbd_request(struct request_queue *q)
 {
 	struct request *req;
 
-	while ((req = blk_fetch_request(q)) != NULL) {
+	req = blk_fetch_request(q);
+	while (req != NULL) {
 		struct htifbd_dev *dev;
-		unsigned long count;
 
 		dev = req->rq_disk->private_data;
-		if (!(req->cmd_type == REQ_TYPE_FS)) {
+		if (req->cmd_type != REQ_TYPE_FS) {
 			pr_notice(DRIVER_NAME ": ignoring non-fs request for %s\n",
 				req->rq_disk->disk_name);
-			blk_end_request(req, -EIO, 0);
+			__blk_end_request_all(req, -EIO);
 			continue;
 		}
 
-		count = htifbd_transfer(dev, blk_rq_pos(req), blk_rq_sectors(req),
+		htifbd_transfer(dev, blk_rq_pos(req), blk_rq_cur_sectors(req),
 			req->buffer, rq_data_dir(req));
-		blk_end_request(req, 0, count);
+		if (!__blk_end_request_cur(req, 0)) {
+			req = blk_fetch_request(q);
+		}
 	}
 }
 
