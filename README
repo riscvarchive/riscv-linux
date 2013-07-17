@@ -5,12 +5,12 @@ Building this kernel
 ====================
 Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
-	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.47
-	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.47.tar.xz | tar -xJk
+	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.53
+	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.53.tar.xz | tar -xJk
 
 Apply patch to scripts/mod/modpost.c to avoid segfaulting on little-endian 64-bit kernel builds [1]:
 
-	$ cd linux-3.4.47
+	$ cd linux-3.4.53
 	$ patch -p1 < modpost.patch
 
 Generate default kernel configuration:
@@ -27,7 +27,7 @@ Build static kernel image:
 
 Run the kernel image:
 
-	$ riscv-isa-run vmlinux
+	$ spike +disk=/path/to/root.img vmlinux
 
 
 Building riscv-gcc and glibc against this kernel
@@ -40,7 +40,7 @@ If headers are changed, export them to the riscv-gcc installation directory:
 	$ gmake ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-headers
 
 Build riscv-gcc with the linux target:
-	
+
 	$ gmake linux INSTALL_DIR=/path/to/install
 
 

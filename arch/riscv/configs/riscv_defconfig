@@ -3,6 +3,7 @@
 # Linux/riscv 3.4.47 Kernel Configuration
 #
 CONFIG_MMU=y
+# CONFIG_HAS_DMA is not set
 
 #
 # Platform type
@@ -14,6 +15,7 @@ CONFIG_CPU_SUPPORTS_64BIT_KERNEL=y
 CONFIG_HTIF=y
 CONFIG_HTIF_CONSOLE=y
 CONFIG_HTIF_BLK_DEV=y
+CONFIG_HTIF_RFB=y
 
 #
 # Kernel type
@@ -54,7 +56,7 @@ CONFIG_INIT_ENV_ARG_LIMIT=32
 CONFIG_CROSS_COMPILE="riscv-linux-"
 CONFIG_LOCALVERSION=""
 CONFIG_LOCALVERSION_AUTO=y
-CONFIG_DEFAULT_HOSTNAME="tomasulo"
+CONFIG_DEFAULT_HOSTNAME="ucbvax"
 CONFIG_SWAP=y
 # CONFIG_SYSVIPC is not set
 # CONFIG_BSD_PROCESS_ACCT is not set
@@ -85,16 +87,7 @@ CONFIG_PID_NS=y
 CONFIG_NET_NS=y
 # CONFIG_SCHED_AUTOGROUP is not set
 # CONFIG_RELAY is not set
-CONFIG_BLK_DEV_INITRD=y
-CONFIG_INITRAMFS_SOURCE="arch/riscv/initramfs.txt"
-CONFIG_INITRAMFS_ROOT_UID=0
-CONFIG_INITRAMFS_ROOT_GID=0
-# CONFIG_RD_GZIP is not set
-# CONFIG_RD_BZIP2 is not set
-# CONFIG_RD_LZMA is not set
-# CONFIG_RD_XZ is not set
-# CONFIG_RD_LZO is not set
-CONFIG_INITRAMFS_COMPRESSION_NONE=y
+# CONFIG_BLK_DEV_INITRD is not set
 # CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
 CONFIG_SYSCTL=y
 CONFIG_ANON_INODES=y
@@ -270,6 +263,8 @@ CONFIG_EXTRA_FIRMWARE=""
 # CONFIG_SYS_HYPERVISOR is not set
 # CONFIG_GENERIC_CPU_DEVICES is not set
 # CONFIG_CONNECTOR is not set
+# CONFIG_MTD is not set
+# CONFIG_PARPORT is not set
 # CONFIG_BLK_DEV is not set
 
 #
@@ -299,6 +294,7 @@ CONFIG_SCSI_MOD=y
 # CONFIG_SCSI is not set
 # CONFIG_SCSI_DMA is not set
 # CONFIG_SCSI_NETLINK is not set
+# CONFIG_ATA is not set
 # CONFIG_MD is not set
 # CONFIG_NETDEVICES is not set
 # CONFIG_ISDN is not set
@@ -349,9 +345,24 @@ CONFIG_UNIX98_PTYS=y
 # CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
 CONFIG_LEGACY_PTYS=y
 CONFIG_LEGACY_PTY_COUNT=256
+# CONFIG_SERIAL_NONSTANDARD is not set
 # CONFIG_TRACE_SINK is not set
 CONFIG_DEVKMEM=y
+
+#
+# Serial drivers
+#
+# CONFIG_SERIAL_8250 is not set
+
+#
+# Non-8250 serial port support
+#
+# CONFIG_SERIAL_TIMBERDALE is not set
+# CONFIG_SERIAL_ALTERA_JTAGUART is not set
+# CONFIG_SERIAL_ALTERA_UART is not set
+# CONFIG_SERIAL_XILINX_PS_UART is not set
 # CONFIG_TTY_PRINTK is not set
+# CONFIG_IPMI_HANDLER is not set
 # CONFIG_HW_RANDOM is not set
 # CONFIG_RTC is not set
 # CONFIG_GEN_RTC is not set
@@ -361,6 +372,10 @@ CONFIG_DEVKMEM=y
 # PCMCIA character devices
 #
 # CONFIG_RAW_DRIVER is not set
+# CONFIG_TCG_TPM is not set
+# CONFIG_RAMOOPS is not set
+# CONFIG_I2C is not set
+# CONFIG_SPI is not set
 # CONFIG_HSI is not set
 
 #
@@ -378,14 +393,66 @@ CONFIG_DEVKMEM=y
 #
 # Enable Device Drivers -> PPS to see the PTP clock options.
 #
+# CONFIG_W1 is not set
 # CONFIG_POWER_SUPPLY is not set
+# CONFIG_HWMON is not set
 # CONFIG_THERMAL is not set
 # CONFIG_WATCHDOG is not set
+
+#
+# Multifunction device drivers
+#
+# CONFIG_MFD_CORE is not set
+# CONFIG_MFD_SM501 is not set
+# CONFIG_HTC_PASIC3 is not set
+# CONFIG_MFD_TMIO is not set
+# CONFIG_ABX500_CORE is not set
 # CONFIG_REGULATOR is not set
+# CONFIG_MEDIA_SUPPORT is not set
+
+#
+# Graphics support
+#
+# CONFIG_DRM is not set
+# CONFIG_VGASTATE is not set
+# CONFIG_VIDEO_OUTPUT_CONTROL is not set
+CONFIG_FB=y
+# CONFIG_FIRMWARE_EDID is not set
+# CONFIG_FB_DDC is not set
+# CONFIG_FB_BOOT_VESA_SUPPORT is not set
+CONFIG_FB_CFB_FILLRECT=y
+CONFIG_FB_CFB_COPYAREA=y
+CONFIG_FB_CFB_IMAGEBLIT=y
+# CONFIG_FB_CFB_REV_PIXELS_IN_BYTE is not set
+# CONFIG_FB_SYS_FILLRECT is not set
+# CONFIG_FB_SYS_COPYAREA is not set
+# CONFIG_FB_SYS_IMAGEBLIT is not set
+# CONFIG_FB_FOREIGN_ENDIAN is not set
+# CONFIG_FB_SYS_FOPS is not set
+# CONFIG_FB_WMT_GE_ROPS is not set
+# CONFIG_FB_SVGALIB is not set
+# CONFIG_FB_MACMODES is not set
+# CONFIG_FB_BACKLIGHT is not set
+# CONFIG_FB_MODE_HELPERS is not set
+# CONFIG_FB_TILEBLITTING is not set
+
+#
+# Frame buffer hardware drivers
+#
+# CONFIG_FB_S1D13XXX is not set
+# CONFIG_FB_VIRTUAL is not set
+# CONFIG_FB_METRONOME is not set
+# CONFIG_FB_BROADSHEET is not set
+# CONFIG_EXYNOS_VIDEO is not set
+# CONFIG_BACKLIGHT_LCD_SUPPORT is not set
+# CONFIG_LOGO is not set
+# CONFIG_SOUND is not set
 # CONFIG_HID_SUPPORT is not set
 # CONFIG_USB_ARCH_HAS_OHCI is not set
 # CONFIG_USB_ARCH_HAS_EHCI is not set
 # CONFIG_USB_ARCH_HAS_XHCI is not set
+# CONFIG_USB_SUPPORT is not set
+# CONFIG_MMC is not set
 # CONFIG_MEMSTICK is not set
 # CONFIG_NEW_LEDS is not set
 # CONFIG_ACCESSIBILITY is not set
@@ -480,7 +547,7 @@ CONFIG_TMPFS=y
 # Kernel hacking
 #
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="debug"
+CONFIG_CMDLINE="root=/dev/htifbd0 debug"
 CONFIG_CMDLINE_OVERRIDE=y
 # CONFIG_EARLY_PRINTK is not set
 CONFIG_PRINTK_TIME=y
@@ -535,10 +602,36 @@ CONFIG_ARCH_WANT_FRAME_POINTERS=y
 # CONFIG_ATOMIC64_SELFTEST is not set
 # CONFIG_SAMPLES is not set
 # CONFIG_TEST_KSTRTOX is not set
+# CONFIG_BINARY_PRINTF is not set
+
+#
+# Library routines
+#
+CONFIG_BITREVERSE=y
+CONFIG_GENERIC_IO=y
+# CONFIG_CRC_CCITT is not set
+# CONFIG_CRC16 is not set
+# CONFIG_CRC_T10DIF is not set
+# CONFIG_CRC_ITU_T is not set
+CONFIG_CRC32=y
+# CONFIG_CRC32_SELFTEST is not set
+CONFIG_CRC32_SLICEBY8=y
+# CONFIG_CRC32_SLICEBY4 is not set
+# CONFIG_CRC32_SARWATE is not set
+# CONFIG_CRC32_BIT is not set
+# CONFIG_CRC7 is not set
+# CONFIG_LIBCRC32C is not set
+# CONFIG_CRC8 is not set
+# CONFIG_XZ_DEC is not set
+# CONFIG_XZ_DEC_BCJ is not set
+CONFIG_HAS_IOMEM=y
+CONFIG_HAS_IOPORT=y
+CONFIG_NLATTR=y
+# CONFIG_AVERAGE is not set
+# CONFIG_CORDIC is not set
 CONFIG_GENERIC_HWEIGHT=y
 CONFIG_RWSEM_GENERIC_SPINLOCK=y
 CONFIG_GENERIC_CALIBRATE_DELAY=y
 CONFIG_GENERIC_BUG=y
 CONFIG_GENERIC_CLOCKEVENTS=y
 CONFIG_GENERIC_CSUM=y
-CONFIG_NLATTR=y
