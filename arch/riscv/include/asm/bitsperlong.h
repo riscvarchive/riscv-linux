@@ -9,9 +9,9 @@
  * to decide it, but rather check a compiler provided macro.
  */
 #ifndef __BITS_PER_LONG
-#if defined(__riscv64)
+#if _RISCV_SIM == _ABI64
 #define __BITS_PER_LONG 64
-#elif defined(__riscv32)
+#elif _RISCV_SIM == _ABI32
 #define __BITS_PER_LONG 32
 #else
 #error Unknown word length

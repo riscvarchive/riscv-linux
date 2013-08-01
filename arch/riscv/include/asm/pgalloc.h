@@ -7,19 +7,19 @@
 static inline void pmd_populate_kernel(struct mm_struct *mm,
 	pmd_t *pmd, pte_t *pte)
 {
-	*pmd = __pmd(__pa(pte) | _PAGE_PRESENT | _PAGE_T);
+	*pmd = __pmd(__pa(pte) | _PAGE_PRESENT | _PAGE_T | _PAGE_V);
 }
 
 static inline void pmd_populate(struct mm_struct *mm,
 	pmd_t *pmd, pgtable_t pte)
 {
-	*pmd = __pmd(__pa(page_address(pte)) | _PAGE_PRESENT | _PAGE_T);
+	*pmd = __pmd(__pa(page_address(pte)) | _PAGE_PRESENT | _PAGE_T | _PAGE_V);
 }
 
 #ifndef __PAGETABLE_PMD_FOLDED
 static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
-	*pud = __pud(__pa(pmd) | _PAGE_PRESENT | _PAGE_T);
+	*pud = __pud(__pa(pmd) | _PAGE_PRESENT | _PAGE_T | _PAGE_V);
 }
 #endif /* __PAGETABLE_PMD_FOLDED */
 

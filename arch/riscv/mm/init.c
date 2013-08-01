@@ -21,7 +21,7 @@ static void __init pagetable_init(void)
 	ppn = 0UL;
 	for (i = start; i <= end; i++)
 	{
-		kern_pm_dir[i] = __pmd(ppn | pgprot_val(PAGE_KERNEL) | _PAGE_E);
+		kern_pm_dir[i] = __pmd(ppn | pgprot_val(PAGE_KERNEL) | _PAGE_V);
 		ppn += PMD_SIZE;
 	}
 	/* Remove identity mapping to catch NULL pointer dereferences */

@@ -69,7 +69,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 
 	p->thread.pc = (unsigned long)ret_from_fork; /* pc */
 	p->thread.sp = (unsigned long)childregs; /* kernel sp */
-	p->thread.status = regs->status & (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_PS | SR_S);
+	p->thread.status = regs->status & (SR_IM | SR_VM | SR_S64 | SR_U64 | SR_PEI | SR_PS | SR_S);
 /*
 	if (clone_flags & CLONE_SETTLS) {
 	}
@@ -91,7 +91,7 @@ long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 	kregs.a[0] = (unsigned long)arg;
 	kregs.a[1] = (unsigned long)fn;
 	kregs.epc = (unsigned long)kernel_thread_helper;
-	kregs.status = (SR_VM | SR_S64 | SR_U64 | SR_S | SR_PS | SR_EF);
+	kregs.status = (SR_VM | SR_S64 | SR_U64 | SR_EF | SR_PEI | SR_PS | SR_S);
 
 	return do_fork(flags | CLONE_VM | CLONE_UNTRACED,
 		0, &kregs, 0, NULL, NULL);

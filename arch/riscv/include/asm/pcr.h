@@ -4,14 +4,14 @@
 #include <linux/const.h>
 
 /* Status register flags */
-#define SR_ET   _AC(0x00000001,UL) /* Enable exceptions */
-#define SR_EF   _AC(0x00000002,UL) /* Enable floating-point */
-#define SR_EV   _AC(0x00000004,UL) /* Enable vector unit */
-#define SR_PS   _AC(0x00000010,UL) /* Previous supervisor */
-#define SR_S    _AC(0x00000020,UL) /* Supervisor */
-#define SR_U64  _AC(0x00000040,UL) /* RV64 user mode */
-#define SR_S64  _AC(0x00000080,UL) /* RV64 supervisor mode */
-#define SR_VM   _AC(0x00000100,UL) /* Enable virtual memory */
+#define SR_S    _AC(0x00000001,UL) /* Supervisor */
+#define SR_PS   _AC(0x00000002,UL) /* Previous supervisor */
+#define SR_EI   _AC(0x00000004,UL) /* Enable interrupts */
+#define SR_PEI  _AC(0x00000008,UL) /* Previous EI */
+#define SR_EF   _AC(0x00000010,UL) /* Enable floating-point */
+#define SR_U64  _AC(0x00000020,UL) /* RV64 user mode */
+#define SR_S64  _AC(0x00000040,UL) /* RV64 supervisor mode */
+#define SR_VM   _AC(0x00000080,UL) /* Enable virtual memory */
 #define SR_IM   _AC(0x00FF0000,UL) /* Interrupt mask */
 #define SR_IP   _AC(0xFF000000,UL) /* Pending interrupts */
 
@@ -32,13 +32,18 @@
 #define PCR_EPC		cr1
 #define PCR_BADVADDR	cr2
 #define PCR_EVEC	cr3
-#define PCR_COUNT	cr4
-#define PCR_COMPARE	cr5
-#define PCR_CAUSE	cr6
-#define PCR_PTBR	cr7
-#define PCR_CLR_IPI	cr9
-#define PCR_K0		cr12
-#define PCR_K1		cr13
+#define PCR_CAUSE	cr4
+#define PCR_PTBR	cr5
+#define PCR_ASID	cr6
+#define PCR_FATC	cr7
+#define PCR_COUNT	cr8
+#define PCR_COMPARE	cr9
+#define PCR_SEND_IPI	cr10
+#define PCR_CLEAR_IPI	cr11
+#define PCR_HARTID	cr12
+#define PCR_IMPL	cr13
+#define PCR_SUP0	cr14
+#define PCR_SUP1	cr15
 #define PCR_TOHOST	cr30
 #define PCR_FROMHOST	cr31
 
@@ -48,13 +53,18 @@
 #define PCR_EPC		1
 #define PCR_BADVADDR	2
 #define PCR_EVEC	3
-#define PCR_COUNT	4
-#define PCR_COMPARE	5
-#define PCR_CAUSE	6
-#define PCR_PTBR	7
-#define PCR_CLR_IPI	9
-#define PCR_K0		12
-#define PCR_K1		13
+#define PCR_CAUSE	4
+#define PCR_PTBR	5
+#define PCR_ASID	6
+#define PCR_FATC	7
+#define PCR_COUNT	8
+#define PCR_COMPARE	9
+#define PCR_SEND_IPI	10
+#define PCR_CLEAR_IPI	11
+#define PCR_HARTID	12
+#define PCR_IMPL	13
+#define PCR_SUP0	14
+#define PCR_SUP1	15
 #define PCR_TOHOST	30
 #define PCR_FROMHOST	31
 

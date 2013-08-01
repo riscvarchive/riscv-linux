@@ -10,7 +10,7 @@
 #define PGDIR_SHIFT 33
 #define PMDIR_SHIFT 23
 #define VPN_MASK    (0x3ff)
-#define PAGE_SUPV (_PAGE_SR | _PAGE_SW | _PAGE_SE)
+#define PAGE_SUPV (_PAGE_SR | _PAGE_SW | _PAGE_SX)
 
 #define PGE_OFF(va) ((((va) >> PGDIR_SHIFT) & VPN_MASK) << 3)
 #define PME_OFF(va) ((((va) >> PMDIR_SHIFT) & VPN_MASK) << 3)
@@ -22,7 +22,7 @@ ENTRY(_start)
 	/* Enable RV64 mode; temporarily disable virtual memory */
 	mfpcr s0, PCR_STATUS
 	li s1, (SR_S64 | SR_U64)
-	li s2, ~(SR_VM | SR_IM | SR_ET)
+	li s2, ~(SR_VM | SR_IM | SR_EI)
 	or s0, s0, s1
 	and s0, s0, s2
 	mtpcr s0, PCR_STATUS
@@ -52,11 +52,11 @@ ENTRY(_start)
 #endif
 
 	/* PGD entry for identity mapping */
-	ori s3, s1, (PAGE_SUPV | _PAGE_T)
+	ori s3, s1, (PAGE_SUPV | _PAGE_T | _PAGE_V)
 	sd s3, 0(s0)
 
 	/* PGD entry for kernel mapping */
-	ori s3, s2, (PAGE_SUPV | _PAGE_T)
+	ori s3, s2, (PAGE_SUPV | _PAGE_T | _PAGE_V)
 	li s4, PGE_OFF(PAGE_OFFSET)
 	add s0, s0, s4
 	sd s3, 0(s0)
@@ -67,7 +67,7 @@ ENTRY(_start)
 	add s0, s2, s0  /* End address of kern_pm_dir table */
 	li s3, PME_OFF(PAGE_OFFSET)
 	add s2, s2, s3  /* Address of first PTE in kern_pm_dir */
-	li s3, (PAGE_SUPV | _PAGE_E)
+	li s3, (PAGE_SUPV | _PAGE_V)
 	li s4, (1 << PMDIR_SHIFT)
 1:
 	sd s3, 0(s1)    /* Identity mapping */
@@ -86,7 +86,7 @@ ENTRY(_start)
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current thread_struct pointer */
 	la s0, init_task
-	mtpcr s0, PCR_K0
+	mtpcr s0, PCR_SUP0
 
 	la s0, start_kernel
 	jr s0

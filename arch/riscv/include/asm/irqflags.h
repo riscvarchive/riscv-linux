@@ -13,25 +13,25 @@ static unsigned long arch_local_save_flags(void)
 /* unconditionally enable interrupts */
 static inline void arch_local_irq_enable(void)
 {
-	setpcr(PCR_STATUS, SR_ET);
+	setpcr(PCR_STATUS, SR_EI);
 }
 
 /* unconditionally disable interrupts */
 static inline void arch_local_irq_disable(void)
 {
-	clearpcr(PCR_STATUS, SR_ET);
+	clearpcr(PCR_STATUS, SR_EI);
 }
 
 /* get status and disable interrupts */
 static inline unsigned long arch_local_irq_save(void)
 {
-	return clearpcr(PCR_STATUS, SR_ET);
+	return clearpcr(PCR_STATUS, SR_EI);
 }
 
 /* test flags */
 static inline int arch_irqs_disabled_flags(unsigned long flags)
 {
-	return !(flags & SR_ET);
+	return !(flags & SR_EI);
 }
 
 /* test hardware interrupt enable bit */
@@ -47,7 +47,7 @@ static void arch_local_irq_restore(unsigned long flags)
 		arch_local_irq_enable();
 	} else {
 		/* Not strictly necessary if it can be guaranteed
-		   that SR_ET has already been cleared through
+		   that SR_EI has already been cleared through
 		   arch_irqs_disabled_flags() */
 		arch_local_irq_disable();
 	}

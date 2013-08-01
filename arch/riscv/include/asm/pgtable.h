@@ -32,12 +32,12 @@
 #define VMALLOC_END     (PAGE_OFFSET + ((1 << 13) << PAGE_SHIFT))
 
 /* Page protection bits */
-#define _PAGE_BASE      (_PAGE_R | _PAGE_E | _PAGE_PRESENT)
+#define _PAGE_BASE      (_PAGE_R | _PAGE_V | _PAGE_PRESENT)
 #define _PAGE_RD        (_PAGE_SR | _PAGE_UR)
 #define _PAGE_WR        (_PAGE_SW | _PAGE_UW)
-#define _PAGE_EX        (_PAGE_SE | _PAGE_UE)
+#define _PAGE_EX        (_PAGE_SX | _PAGE_UX)
 
-#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SE)
+#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SX)
 #define PAGE_NONE       __pgprot(0)
 
 #define PAGE_R         __pgprot(_PAGE_BASE | _PAGE_RD)
