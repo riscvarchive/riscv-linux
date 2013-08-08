@@ -10,7 +10,8 @@ typedef struct user_regs_struct {
 	unsigned long sp;
 	unsigned long tp;
 	unsigned long v[2];
-	unsigned long a[14];
+	unsigned long a[8];
+  unsigned long t[6];
 	unsigned long status;
 } user_regs_struct;
 

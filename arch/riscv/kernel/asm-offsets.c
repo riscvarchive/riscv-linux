@@ -41,12 +41,12 @@ void asm_offsets(void)
 	OFFSET(PT_A5, pt_regs, a[5]);
 	OFFSET(PT_A6, pt_regs, a[6]);
 	OFFSET(PT_A7, pt_regs, a[7]);
-	OFFSET(PT_A8, pt_regs, a[8]);
-	OFFSET(PT_A9, pt_regs, a[9]);
-	OFFSET(PT_A10, pt_regs, a[10]);
-	OFFSET(PT_A11, pt_regs, a[11]);
-	OFFSET(PT_A12, pt_regs, a[12]);
-	OFFSET(PT_A13, pt_regs, a[13]);
+	OFFSET(PT_T0, pt_regs, t[0]);
+	OFFSET(PT_T1, pt_regs, t[1]);
+	OFFSET(PT_T2, pt_regs, t[2]);
+	OFFSET(PT_T3, pt_regs, t[3]);
+	OFFSET(PT_T4, pt_regs, t[4]);
+	OFFSET(PT_T5, pt_regs, t[5]);
 	OFFSET(PT_STATUS, pt_regs, status);
 	OFFSET(PT_EPC, pt_regs, epc);
 	OFFSET(PT_BADVADDR, pt_regs, badvaddr);
