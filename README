@@ -8,11 +8,6 @@ Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.53
 	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.53.tar.xz | tar -xJk
 
-Apply patch to scripts/mod/modpost.c to avoid segfaulting on little-endian 64-bit kernel builds [1]:
-
-	$ cd linux-3.4.53
-	$ patch -p1 < modpost.patch
-
 Generate default kernel configuration:
 
 	$ gmake ARCH=riscv defconfig
@@ -43,6 +38,3 @@ Build riscv-gcc with the linux target:
 
 	$ gmake linux INSTALL_DIR=/path/to/install
 
-
----
-[1] http://www.linux-mips.org/archives/linux-mips/2006-04/msg00130.html

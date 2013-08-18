@@ -5,7 +5,6 @@
 !arch/
 !.gitignore
 !README
-!modpost.patch
 
 # The arch/.gitignore and arch/riscv/.gitignore have patterns to un-ignore the
 # appropriate files.
