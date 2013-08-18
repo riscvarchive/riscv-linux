@@ -20,12 +20,12 @@ __INIT
 ENTRY(_start)
 
 	/* Enable RV64 mode; temporarily disable virtual memory */
-	mfpcr s0, PCR_STATUS
+	mfpcr s0, status
 	li s1, (SR_S64 | SR_U64)
 	li s2, ~(SR_VM | SR_IM | SR_EI)
 	or s0, s0, s1
 	and s0, s0, s2
-	mtpcr s0, PCR_STATUS
+	mtpcr s0, status
 
 	/* Clear the .bss segment, assumed to start and
 	   end with a 32-byte alignment */
@@ -41,7 +41,7 @@ ENTRY(_start)
 
 	/* Set PTBR and flush TLB */
 	la s0, __pa(swapper_pg_dir)
-	mtpcr s0, PCR_PTBR
+	mtpcr s0, ptbr
 
 	/* Initialize provisional page tables */
 	la s1, __pa(ident_pm_dir)
@@ -78,15 +78,15 @@ ENTRY(_start)
 	bltu s2, s0, 1b
 
 	/* Enable paging */
-	mfpcr s0, PCR_STATUS
+	mfpcr s0, status
 	ori s0, s0, SR_VM
-	mtpcr s0, PCR_STATUS
+	mtpcr s0, status
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current thread_struct pointer */
 	la s0, init_task
-	mtpcr s0, PCR_SUP0
+	mtpcr s0, sup0
 
 	la s0, start_kernel
 	jr s0

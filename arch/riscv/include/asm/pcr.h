@@ -26,45 +26,24 @@
 #define EXC_LOAD_ACCESS         10
 #define EXC_STORE_ACCESS        11
 
-#ifdef __ASSEMBLY__
+#ifndef __ASSEMBLY__
 
-#define PCR_STATUS 	cr0
-#define PCR_EPC		cr1
-#define PCR_BADVADDR	cr2
-#define PCR_EVEC	cr3
-#define PCR_CAUSE	cr4
-#define PCR_PTBR	cr5
-#define PCR_ASID	cr6
-#define PCR_FATC	cr7
-#define PCR_COUNT	cr8
-#define PCR_COMPARE	cr9
-#define PCR_SEND_IPI	cr10
-#define PCR_CLEAR_IPI	cr11
-#define PCR_HARTID	cr12
-#define PCR_IMPL	cr13
-#define PCR_SUP0	cr14
-#define PCR_SUP1	cr15
-#define PCR_TOHOST	cr30
-#define PCR_FROMHOST	cr31
-
-#else /* __ASSEMBLY__ */
-
-#define PCR_STATUS 	0
-#define PCR_EPC		1
-#define PCR_BADVADDR	2
-#define PCR_EVEC	3
-#define PCR_CAUSE	4
-#define PCR_PTBR	5
-#define PCR_ASID	6
-#define PCR_FATC	7
-#define PCR_COUNT	8
-#define PCR_COMPARE	9
-#define PCR_SEND_IPI	10
-#define PCR_CLEAR_IPI	11
-#define PCR_HARTID	12
-#define PCR_IMPL	13
-#define PCR_SUP0	14
-#define PCR_SUP1	15
+#define PCR_SUP0	0
+#define PCR_SUP1	1
+#define PCR_EPC		2
+#define PCR_BADVADDR	3
+#define PCR_PTBR	4
+#define PCR_ASID	5
+#define PCR_COUNT	6
+#define PCR_COMPARE	7
+#define PCR_EVEC	8
+#define PCR_CAUSE	9
+#define PCR_STATUS	10
+#define PCR_HARTID	11
+#define PCR_IMPL	12
+#define PCR_FATC	13
+#define PCR_SEND_IPI	14
+#define PCR_CLEAR_IPI	15
 #define PCR_TOHOST	30
 #define PCR_FROMHOST	31
 

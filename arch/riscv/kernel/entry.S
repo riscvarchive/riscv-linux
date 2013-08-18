@@ -11,20 +11,20 @@
 	LOCAL _save_context
 
 	/* Save stack pointer */
-	mtpcr sp, PCR_SUP1
+	mtpcr sp, sup1
 	/* Check if originated from user mode */
-	mfpcr sp, PCR_STATUS
+	mfpcr sp, status
 	andi sp, sp, SR_PS
 	bnez sp, _restore_kernel_sp
 
 	/* Switch to kernel mode stack; load stack
 	   pointer from current->thread.sp */
-	mfpcr sp, PCR_SUP0
+	mfpcr sp, sup0
 	ld sp, THREAD_SP(sp)
 	j _save_context
 
 _restore_kernel_sp:
-	mfpcr sp, PCR_SUP1
+	mfpcr sp, sup1
 _save_context:
 	addi sp, sp, -(PT_SIZE)
 	sd x0,  PT_ZERO(sp)
@@ -59,20 +59,20 @@ _save_context:
 	sd x30, PT_T4(sp)
 	sd x31, PT_T5(sp)
 
-	mfpcr s0, PCR_SUP1
+	mfpcr s0, sup1
 	sd s0, PT_SP(sp)
-	mfpcr s0, PCR_STATUS
+	mfpcr s0, status
 	sd s0, PT_STATUS(sp)
-	mfpcr s0, PCR_EPC
+	mfpcr s0, epc
 	sd s0, PT_EPC(sp)
-	mfpcr s0, PCR_BADVADDR
+	mfpcr s0, badvaddr
 	sd s0, PT_BADVADDR(sp)
-	mfpcr s0, PCR_CAUSE
+	mfpcr s0, cause
 	sd s0, PT_CAUSE(sp)
 	.endm
 
 	.macro RESTORE_ALL
-	clearpcr v1, PCR_STATUS, SR_EI
+	clearpcr v1, status, SR_EI
 	ld v0, PT_STATUS(sp)
 	li s0, ~(SR_IM | SR_EI)
 	li s1, (SR_IM)
@@ -80,16 +80,16 @@ _save_context:
 	and v1, v1, s1
 	/* Retain current IM field */
 	or v0, v0, v1
-	mtpcr v0, PCR_STATUS
+	mtpcr v0, status
 
 	/* Save unwound kernel stack pointer
 	   into current->thread.sp */
 	addi s0, sp, PT_SIZE
-	mfpcr v0, PCR_SUP0
+	mfpcr v0, sup0
 	sd s0, THREAD_SP(v0)
 
 	ld v0, PT_EPC(sp)
-	mtpcr v0, PCR_EPC
+	mtpcr v0, epc
 
 	ld x1,  PT_RA(sp)
 	ld x2,  PT_S0(sp)
@@ -127,7 +127,7 @@ _save_context:
 
 ENTRY(handle_exception)
 	SAVE_ALL
-	mfpcr s0, PCR_CAUSE
+	mfpcr s0, cause
 	la ra, handle_exception_tail
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
@@ -159,7 +159,7 @@ ENTRY(handle_exception)
 
 handle_syscall:
 	/* System calls run with interrupts enabled */
-	setpcr zero, PCR_STATUS, SR_EI
+	setpcr zero, status, SR_EI
 	/* Advance EPC to avoid executing the original
 	   syscall instruction on eret */
 	ld s0, PT_EPC(sp)
@@ -179,13 +179,13 @@ handle_syscall:
 	sd s0, PT_A3(sp)
 
 handle_exception_tail:
-	clearpcr s0, PCR_STATUS, SR_EI
+	clearpcr s0, status, SR_EI
 	andi s0, s0, SR_PS
 	bnez s0, restore_and_return
 	/* Otherwise resume userspace */
 
 resume_userspace:
-	mfpcr s0, PCR_SUP0
+	mfpcr s0, sup0
 	ld s0, TASK_THREAD_INFO(s0)
 	ld s0, TI_FLAGS(s0) /* current_thread_info->flags */
 
@@ -289,7 +289,7 @@ ENTRY(__switch_to)
 	sd ra, THREAD_PC(a0)  /* prev->thread.pc = 1f */ 
 	ld sp, THREAD_SP(a1)  /* sp = next->thread.sp */
 	ld ra, THREAD_PC(a1)  /* ra = next->thread.pc */
-	mtpcr a1, PCR_SUP0    /* Next current pointer */
+	mtpcr a1, sup0    /* Next current pointer */
 	ret
 1: 
 	RESTORE_SWITCH_CONTEXT
