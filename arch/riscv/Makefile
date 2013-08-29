@@ -23,12 +23,6 @@ LDFLAGS         :=
 OBJCOPYFLAGS    := -O binary
 LDFLAGS_vmlinux :=
 
-ifeq ($(CONFIG_CPU_LITTLE_ENDIAN),y)
-	KBUILD_CFLAGS += -mel
-else
-	KBUILD_CFLAGS += -meb
-endif
-
 export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
