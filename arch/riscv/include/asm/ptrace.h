@@ -13,7 +13,8 @@ typedef struct pt_regs {
 	unsigned long tp;
 	unsigned long v[2];
 	unsigned long a[8];
-	unsigned long t[6];
+	unsigned long t[5];
+	unsigned long gp;
 	/* PCRs */
 	unsigned long status;
 	unsigned long epc;

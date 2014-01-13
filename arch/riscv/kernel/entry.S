@@ -57,7 +57,7 @@ _save_context:
 	sd x28, PT_T2(sp)
 	sd x29, PT_T3(sp)
 	sd x30, PT_T4(sp)
-	sd x31, PT_T5(sp)
+	sd x31, PT_GP(sp)
 
 	mfpcr s0, sup1
 	sd s0, PT_SP(sp)
@@ -120,7 +120,7 @@ _save_context:
 	ld x28, PT_T2(sp)
 	ld x29, PT_T3(sp)
 	ld x30, PT_T4(sp)
-	ld x31, PT_T5(sp)
+	ld x31, PT_GP(sp)
 
 	ld x14, PT_SP(sp)
 	.endm
