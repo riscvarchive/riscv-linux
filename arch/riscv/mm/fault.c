@@ -156,6 +156,8 @@ do_sigbus:
 	return;
 
 vmalloc_fault:
+	if (user_mode(regs))
+		goto bad_area;
 	/* TODO */
 	panic("do_page_fault: vmalloc_fault unimplemented");
 	return;
