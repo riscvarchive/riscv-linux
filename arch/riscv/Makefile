@@ -33,6 +33,7 @@ else
 endif
 
 KBUILD_CFLAGS += -Wall
+KBUILD_CFLAGS += -fno-section-anchors
 
 head-y := arch/riscv/kernel/head_$(BITS).o \
           arch/riscv/kernel/init_task.o
