@@ -5,8 +5,6 @@
 #include <asm/pgtable-bits.h>
 #include <asm/pcr.h>
 
-#define __pa(x) ((x) - PAGE_OFFSET)
-
 #define PGDIR_SHIFT 33
 #define PMDIR_SHIFT 23
 #define VPN_MASK    (0x3ff)
@@ -27,25 +25,23 @@ ENTRY(_start)
 	and s0, s0, s2
 	mtpcr s0, status
 
-	/* Clear the .bss segment, assumed to start and
-	   end with a 32-byte alignment */
-	la s0, __pa(__bss_start)
-	la s1, __pa(__bss_stop)
-1:
-	sd zero, 0x00(s0)
-	sd zero, 0x08(s0)
-	sd zero, 0x10(s0)
-	sd zero, 0x18(s0)
-	addi s0, s0, 0x20
-	bltu s0, s1, 1b
+	/* Load the global pointer (before any other use of la) */
+	la gp, _gp
+
+	/* Clear the .bss segment */
+	la a0, __bss_start
+	li a1, 0
+	la a2, __bss_stop
+	sub a2, a2, a0
+	call memset
 
 	/* Set PTBR and flush TLB */
-	la s0, __pa(swapper_pg_dir)
+	la s0, swapper_pg_dir
 	mtpcr s0, ptbr
 
 	/* Initialize provisional page tables */
-	la s1, __pa(ident_pm_dir)
-	la s2, __pa(kern_pm_dir)
+	la s1, ident_pm_dir
+	la s2, kern_pm_dir
 
 #if (PAGE_OFFSET & (PMDIR_SHIFT - 1))
 #error PAGE_OFFSET must be aligned on a 4 MiB superpage
@@ -82,14 +78,20 @@ ENTRY(_start)
 	ori s0, s0, SR_VM
 	mtpcr s0, status
 
+	/* Relocate to kernel mapping */
+	li s0, PAGE_OFFSET
+	add gp, gp, s0
+	la s0, 2f + PAGE_OFFSET
+	jr s0
+2:
+
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current thread_struct pointer */
 	la s0, init_task
 	mtpcr s0, sup0
 
-	la s0, start_kernel
-	jr s0
+	jump start_kernel
 
 END(_start)
 

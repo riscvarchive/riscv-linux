@@ -27,13 +27,21 @@ SECTIONS
 		_etext = .;
 	}
 
-	_sdata = .;
 	RO_DATA_SECTION(PAGE_SIZE)
-	RW_DATA_SECTION(64, PAGE_SIZE, THREAD_SIZE)
-	_edata = .;
-
 	EXCEPTION_TABLE(16)
 	NOTES
+	.rel.dyn : { *(.rel.dyn*) }
+
+	_sdata = .;
+	RW_DATA_SECTION(64, PAGE_SIZE, THREAD_SIZE)
+
+	.sdata : {
+	  _gp = . + 0x800;
+	  *(.sdata*)
+	}
+
+	.srodata : { *(.srodata*) }
+	_edata = .;
 
 #ifdef CONFIG_64BIT
 	BSS_SECTION(32, 0, 32)

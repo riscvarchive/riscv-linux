@@ -128,6 +128,7 @@ _save_context:
 ENTRY(handle_exception)
 	SAVE_ALL
 	mfpcr s0, cause
+	la gp, _gp
 	la ra, handle_exception_tail
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
