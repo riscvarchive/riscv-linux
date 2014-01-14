@@ -26,7 +26,8 @@ static inline void switch_mm(struct mm_struct *prev,
 	struct mm_struct *next, struct task_struct *task)
 {
 	if (likely(prev != next)) {
-		mtpcr(PCR_PTBR, __pa(next->pgd));
+		write_csr(ptbr, __pa(next->pgd));
+		write_csr(fatc, 0);
 	}
 }
 

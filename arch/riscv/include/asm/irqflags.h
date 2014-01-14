@@ -7,25 +7,25 @@
 /* read interrupt enabled status */
 static unsigned long arch_local_save_flags(void)
 {
-	return mfpcr(PCR_STATUS);
+	return read_csr(status);
 }
 
 /* unconditionally enable interrupts */
 static inline void arch_local_irq_enable(void)
 {
-	setpcr(PCR_STATUS, SR_EI);
+	set_csr(status, SR_EI);
 }
 
 /* unconditionally disable interrupts */
 static inline void arch_local_irq_disable(void)
 {
-	clearpcr(PCR_STATUS, SR_EI);
+	clear_csr(status, SR_EI);
 }
 
 /* get status and disable interrupts */
 static inline unsigned long arch_local_irq_save(void)
 {
-	return clearpcr(PCR_STATUS, SR_EI);
+	return clear_csr(status, SR_EI);
 }
 
 /* test flags */

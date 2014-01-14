@@ -18,12 +18,10 @@ __INIT
 ENTRY(_start)
 
 	/* Enable RV64 mode; temporarily disable virtual memory */
-	mfpcr s0, status
 	li s1, (SR_S64 | SR_U64)
-	li s2, ~(SR_VM | SR_IM | SR_EI)
-	or s0, s0, s1
-	and s0, s0, s2
-	mtpcr s0, status
+	csrs status, s1
+	li s2, (SR_VM | SR_IM | SR_EI)
+	csrc status, s2
 
 	/* Load the global pointer (before any other use of la) */
 	la gp, _gp
@@ -37,7 +35,7 @@ ENTRY(_start)
 
 	/* Set PTBR and flush TLB */
 	la s0, swapper_pg_dir
-	mtpcr s0, ptbr
+	csrw ptbr, s0
 
 	/* Initialize provisional page tables */
 	la s1, ident_pm_dir
@@ -74,9 +72,8 @@ ENTRY(_start)
 	bltu s2, s0, 1b
 
 	/* Enable paging */
-	mfpcr s0, status
-	ori s0, s0, SR_VM
-	mtpcr s0, status
+	li s0, SR_VM
+	csrs status, s0
 
 	/* Relocate to kernel mapping */
 	li s0, PAGE_OFFSET
@@ -89,7 +86,7 @@ ENTRY(_start)
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current thread_struct pointer */
 	la s0, init_task
-	mtpcr s0, sup0
+	csrw sup0, s0
 
 	jump start_kernel
 

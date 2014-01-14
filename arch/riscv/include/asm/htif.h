@@ -20,13 +20,13 @@ static inline void htif_tohost(unsigned long dev,
 {
 	unsigned long packet;
 	packet = (dev << HTIF_DEV_SHIFT) | (cmd << HTIF_CMD_SHIFT) | data;
-	while (mtpcr(PCR_TOHOST, packet));
+	while (swap_csr(tohost, packet) != 0);
 }
 
 static inline unsigned long htif_fromhost(void)
 {
 	unsigned long data;
-	while ((data = mtpcr(PCR_FROMHOST, 0)) == 0);
+	while ((data = swap_csr(fromhost, 0)) == 0);
 	return data;
 }
 

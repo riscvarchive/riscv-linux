@@ -85,11 +85,13 @@ static void __noreturn kernel_thread_helper(void *arg, int(*fn)(void *))
 long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 {
 	struct pt_regs kregs;
+	register unsigned long gp asm("gp");
 
 	memset(&kregs, 0, sizeof(kregs));
 
 	kregs.a[0] = (unsigned long)arg;
 	kregs.a[1] = (unsigned long)fn;
+	kregs.gp = gp;
 	kregs.epc = (unsigned long)kernel_thread_helper;
 	kregs.status = (SR_VM | SR_S64 | SR_U64 | SR_EF | SR_PEI | SR_PS | SR_S);
 
@@ -120,7 +122,7 @@ int kernel_execve(const char *filename,
 	__a2 = (unsigned long)(envp);
 
 	__asm__ __volatile__ (
-		"syscall;"
+		"scall;"
 		: "+r" (__res)
 		: "r" (__a0), "r" (__a1), "r" (__a2)
 		: "memory");

@@ -28,64 +28,34 @@
 
 #ifndef __ASSEMBLY__
 
-#define PCR_SUP0	0
-#define PCR_SUP1	1
-#define PCR_EPC		2
-#define PCR_BADVADDR	3
-#define PCR_PTBR	4
-#define PCR_ASID	5
-#define PCR_COUNT	6
-#define PCR_COMPARE	7
-#define PCR_EVEC	8
-#define PCR_CAUSE	9
-#define PCR_STATUS	10
-#define PCR_HARTID	11
-#define PCR_IMPL	12
-#define PCR_FATC	13
-#define PCR_SEND_IPI	14
-#define PCR_CLEAR_IPI	15
-#define PCR_TOHOST	30
-#define PCR_FROMHOST	31
+#define read_csr(reg) ({ long __tmp; \
+  asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
+  __tmp; })
 
-#define mtpcr(pcr,val)				\
-({						\
-	register unsigned long __tmp;		\
-	__asm__ __volatile__ (			\
-		"mtpcr %0, %1, cr%2"		\
-		: "=r" (__tmp)			\
-		: "r" (val), "i" (pcr));	\
-	__tmp;					\
-})
+#define write_csr(reg, val) \
+  asm volatile ("csrw " #reg ", %0" :: "r"(val))
 
-#define mfpcr(pcr)				\
-({						\
-	register unsigned long __val;		\
-	__asm__ __volatile__ (			\
-		"mfpcr %0, cr%1"		\
-		: "=r" (__val)			\
-		:  "i" (pcr));			\
-	__val;					\
-})
+#define swap_csr(reg, val) ({ long __tmp; \
+  asm volatile ("csrrw %0, " #reg ", %1" : "=r"(__tmp) : "r"(val)); \
+  __tmp; })
 
-#define setpcr(pcr,val)				\
-({						\
-	register unsigned long __tmp;		\
-	__asm__ __volatile__ (			\
-		"setpcr %0, cr%2, %1"		\
-		: "=r" (__tmp)			\
-		: "i" (val), "i" (pcr));	\
-	__tmp;					\
-})
+#define set_csr(reg, bit) ({ long __tmp; \
+  if (__builtin_constant_p(bit) && (bit) < 32) \
+    asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "i"(bit)); \
+  else \
+    asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "r"(bit)); \
+  __tmp; })
 
-#define clearpcr(pcr,val)			\
-({						\
-	register unsigned long __tmp;		\
-	__asm__ __volatile__ (			\
-		"clearpcr %0, cr%2, %1"		\
-		: "=r" (__tmp)			\
-		: "i" (val), "i" (pcr));	\
-	__tmp;					\
-})
+#define clear_csr(reg, bit) ({ long __tmp; \
+  if (__builtin_constant_p(bit) && (bit) < 32) \
+    asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "i"(bit)); \
+  else \
+    asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "r"(bit)); \
+  __tmp; })
+
+#define rdcycle() ({ unsigned long __tmp; \
+  asm volatile ("rdcycle %0" : "=r"(__tmp)); \
+  __tmp; })
 
 #endif /* __ASSEMBLY__ */
 

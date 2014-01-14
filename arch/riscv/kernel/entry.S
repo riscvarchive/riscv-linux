@@ -11,29 +11,33 @@
 	LOCAL _save_context
 
 	/* Save stack pointer */
-	mtpcr sp, sup1
+	csrw sup1, sp
 	/* Check if originated from user mode */
-	mfpcr sp, status
+	csrr sp, status
 	andi sp, sp, SR_PS
 	bnez sp, _restore_kernel_sp
 
 	/* Switch to kernel mode stack; load stack
 	   pointer from current->thread.sp */
-	mfpcr sp, sup0
+	csrr sp, sup0
 	ld sp, THREAD_SP(sp)
 	j _save_context
 
 _restore_kernel_sp:
-	mfpcr sp, sup1
+	csrr sp, sup1
 _save_context:
 	addi sp, sp, -(PT_SIZE)
-	sd x0,  PT_ZERO(sp)
 	sd x1,  PT_RA(sp)
 	sd x2,  PT_S0(sp)
+	csrr x2, sup1
 	sd x3,  PT_S1(sp)
+	csrr x3, status
 	sd x4,  PT_S2(sp)
+	csrr x4, epc
 	sd x5,  PT_S3(sp)
+	csrr x5, badvaddr
 	sd x6,  PT_S4(sp)
+	csrr x6, cause
 	sd x7,  PT_S5(sp)
 	sd x8,  PT_S6(sp)
 	sd x9,  PT_S7(sp)
@@ -59,20 +63,15 @@ _save_context:
 	sd x30, PT_T4(sp)
 	sd x31, PT_GP(sp)
 
-	mfpcr s0, sup1
 	sd s0, PT_SP(sp)
-	mfpcr s0, status
-	sd s0, PT_STATUS(sp)
-	mfpcr s0, epc
-	sd s0, PT_EPC(sp)
-	mfpcr s0, badvaddr
-	sd s0, PT_BADVADDR(sp)
-	mfpcr s0, cause
-	sd s0, PT_CAUSE(sp)
+	sd s1, PT_STATUS(sp)
+	sd s2, PT_EPC(sp)
+	sd s3, PT_BADVADDR(sp)
+	sd s4, PT_CAUSE(sp)
 	.endm
 
 	.macro RESTORE_ALL
-	clearpcr v1, status, SR_EI
+	csrrc v1, status, SR_EI
 	ld v0, PT_STATUS(sp)
 	li s0, ~(SR_IM | SR_EI)
 	li s1, (SR_IM)
@@ -80,16 +79,16 @@ _save_context:
 	and v1, v1, s1
 	/* Retain current IM field */
 	or v0, v0, v1
-	mtpcr v0, status
+	csrw status, v0
 
 	/* Save unwound kernel stack pointer
 	   into current->thread.sp */
 	addi s0, sp, PT_SIZE
-	mfpcr v0, sup0
+	csrr v0, sup0
 	sd s0, THREAD_SP(v0)
 
 	ld v0, PT_EPC(sp)
-	mtpcr v0, epc
+	csrw epc, v0
 
 	ld x1,  PT_RA(sp)
 	ld x2,  PT_S0(sp)
@@ -127,7 +126,7 @@ _save_context:
 
 ENTRY(handle_exception)
 	SAVE_ALL
-	mfpcr s0, cause
+	csrr s0, cause
 	la gp, _gp
 	la ra, handle_exception_tail
 	/* MSB of cause differentiates between
@@ -138,7 +137,7 @@ ENTRY(handle_exception)
 	slli a0, s0, 1
 	srli a0, a0, 1
 	move a1, sp
-	j do_IRQ
+	jump do_IRQ
 1:
 	/* Handle syscalls */
 	li s1, EXC_SYSCALL
@@ -156,13 +155,13 @@ ENTRY(handle_exception)
 	ld s1, 0(s1)
 	jr s1
 1:
-	j handle_fault_unknown
+	jump handle_fault_unknown
 
 handle_syscall:
 	/* System calls run with interrupts enabled */
-	setpcr zero, status, SR_EI
+	csrs status, SR_EI
 	/* Advance EPC to avoid executing the original
-	   syscall instruction on eret */
+	   syscall instruction on sret */
 	ld s0, PT_EPC(sp)
 	addi s0, s0, 0x4
 	sd s0, PT_EPC(sp)
@@ -180,13 +179,13 @@ handle_syscall:
 	sd s0, PT_A3(sp)
 
 handle_exception_tail:
-	clearpcr s0, status, SR_EI
+	csrrc s0, status, SR_EI
 	andi s0, s0, SR_PS
 	bnez s0, restore_and_return
 	/* Otherwise resume userspace */
 
 resume_userspace:
-	mfpcr s0, sup0
+	csrr s0, sup0
 	ld s0, TASK_THREAD_INFO(s0)
 	ld s0, TI_FLAGS(s0) /* current_thread_info->flags */
 
@@ -197,19 +196,19 @@ resume_userspace:
 
 	andi s1, s0, (_TIF_NEED_RESCHED)
 	beqz s1, work_notifysig
-	j schedule
+	jump schedule
 
 work_notifysig:
 	/* Handle pending signals and notify-resume requests */
 	move a0, sp /* pt_regs */
 	move a1, s0 /* current_thread_info->flags */
-	j do_notify_resume
+	jump do_notify_resume
 
 ENTRY(ret_from_fork)
-	jal schedule_tail
+	call schedule_tail
 restore_and_return:
 	RESTORE_ALL
-	eret
+	sret
 END(ret_from_fork)
 
 END(handle_exception)
@@ -229,7 +228,7 @@ END(handle_exception)
 	.macro PTREGS_SYSCALL func index
 ENTRY(\func)
 	move a\index, sp /* pt_regs pointer */
-	j __\func
+	jump __\func
 END(\func)
 	.endm
 
@@ -290,7 +289,7 @@ ENTRY(__switch_to)
 	sd ra, THREAD_PC(a0)  /* prev->thread.pc = 1f */ 
 	ld sp, THREAD_SP(a1)  /* sp = next->thread.sp */
 	ld ra, THREAD_PC(a1)  /* ra = next->thread.pc */
-	mtpcr a1, sup0    /* Next current pointer */
+	csrw sup0, a1         /* Next current pointer */
 	ret
 1: 
 	RESTORE_SWITCH_CONTEXT

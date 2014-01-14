@@ -177,7 +177,7 @@ asmlinkage void handle_illegal_insn(struct pt_regs *regs)
 void __init trap_init(void)
 {
 	/* Clear the IPI exception that started the processor */
-	mtpcr(PCR_CLEAR_IPI, 0);
+	write_csr(clear_ipi, 0);
 	/* Set the exception vector address */
-	mtpcr(PCR_EVEC, &handle_exception);
+	write_csr(evec, &handle_exception);
 }

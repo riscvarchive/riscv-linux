@@ -10,7 +10,7 @@
 /* Flush all TLB entries */
 static inline void flush_tlb_all(void)
 {
-	mtpcr(PCR_FATC, 0);
+	write_csr(fatc, 0);
 }
 
 /* Flush the TLB entries of the specified mm context */

@@ -10,8 +10,7 @@ static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
 	/* Set comparator */
-	mtpcr(PCR_COUNT, 0);
-	mtpcr(PCR_COMPARE, delta);
+	write_csr(compare, read_csr(count) + delta);
 	return 0;
 }
 
@@ -81,6 +80,8 @@ void __init time_init(void)
 {
 	u32 freq;
 	freq = 100000000UL;
+
+	write_csr(count, 0);
 
 	clocksource_register_hz(&riscv_clocksource, freq);
 	setup_irq(IRQ_TIMER, &timer_irq);

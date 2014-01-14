@@ -17,18 +17,12 @@ asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 
 static void riscv_irq_mask(struct irq_data *d)
 {
-	unsigned long sreg;
-	sreg = mfpcr(PCR_STATUS);
-	sreg &= ~(SR_IM_MASK(d->irq));
-	mtpcr(PCR_STATUS, sreg);
+	clear_csr(status, SR_IM_MASK(d->irq));
 }
 
 static void riscv_irq_unmask(struct irq_data *d)
 {
-	unsigned long sreg;
-	sreg = mfpcr(PCR_STATUS);
-	sreg |= (SR_IM_MASK(d->irq));
-	mtpcr(PCR_STATUS, sreg);
+	set_csr(status, SR_IM_MASK(d->irq));
 }
 
 struct irq_chip riscv_irq_chip = {
