@@ -5,20 +5,20 @@ Building this kernel
 ====================
 Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
-	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.53
-	$ curl ftp://ftp.kernel.org/pub/linux/kernel/v3.x/linux-3.4.53.tar.xz | tar -xJk
+	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.76
+	$ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.4.76.tar.xz | tar -xJk
 
 Generate default kernel configuration:
 
-	$ gmake ARCH=riscv defconfig
+	$ make ARCH=riscv defconfig
 
 Edit configuration via an ncurses interface:
 
-	$ gmake ARCH=riscv menuconfig
+	$ make ARCH=riscv menuconfig
 
 Build static kernel image:
 
-	$ gmake ARCH=riscv -j vmlinux
+	$ make ARCH=riscv -j vmlinux
 
 Run the kernel image:
 
@@ -31,10 +31,10 @@ Linux headers are already available in the riscv-gcc repository.
 
 If headers are changed, export them to the riscv-gcc installation directory:
 
-	$ gmake ARCH=riscv headers_check
-	$ gmake ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-headers
+	$ make ARCH=riscv headers_check
+	$ make ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-headers
 
 Build riscv-gcc with the linux target:
 
-	$ gmake linux INSTALL_DIR=/path/to/install
+	$ make linux INSTALL_DIR=/path/to/install
 

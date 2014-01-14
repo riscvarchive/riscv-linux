@@ -5,7 +5,7 @@
 #include <asm/unistd.h>
 #include <asm/processor.h>
 #include <asm/ptrace.h>
-#include <asm/pcr.h>
+#include <asm/csr.h>
 #include <asm/string.h>
 
 extern asmlinkage void ret_from_fork(void);
@@ -85,7 +85,7 @@ static void __noreturn kernel_thread_helper(void *arg, int(*fn)(void *))
 long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
 {
 	struct pt_regs kregs;
-	register unsigned long gp asm("gp");
+	register unsigned long gp __asm__ ("gp");
 
 	memset(&kregs, 0, sizeof(kregs));
 

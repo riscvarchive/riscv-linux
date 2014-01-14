@@ -64,5 +64,5 @@ generic-y += unaligned.h
 generic-y += vmlinux.lds.h
 
 header-y += asm-offsets.h
-header-y += pcr.h
+header-y += csr.h
 header-y += user.h

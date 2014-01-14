@@ -19,35 +19,42 @@ SECTIONS
 	INIT_DATA_SECTION(16)
 	__init_end = .;
 
-	.text : {
+	.text : AT(ADDR(.text) - LOAD_OFFSET) {
 		_text = .;
 		_stext = .;
 		TEXT_TEXT
 		SCHED_TEXT
+		LOCK_TEXT
+		KPROBES_TEXT
+		ENTRY_TEXT
+		IRQENTRY_TEXT
+		*(.fixup)
 		_etext = .;
 	}
 
-	RO_DATA_SECTION(PAGE_SIZE)
-	EXCEPTION_TABLE(16)
-	NOTES
-	.rel.dyn : { *(.rel.dyn*) }
-
+	/* Start of data section */
 	_sdata = .;
-	RW_DATA_SECTION(64, PAGE_SIZE, THREAD_SIZE)
-
+	RO_DATA_SECTION(PAGE_SIZE)
+	RW_DATA_SECTION(0x40, PAGE_SIZE, THREAD_SIZE)
 	.sdata : {
-	  _gp = . + 0x800;
-	  *(.sdata*)
+		_gp = . + 0x800;
+		*(.sdata*)
 	}
-
-	.srodata : { *(.srodata*) }
+	.srodata : {
+		*(.srodata*)
+	}
+	/* End of data section */
 	_edata = .;
 
-#ifdef CONFIG_64BIT
-	BSS_SECTION(32, 0, 32)
-#else
-	BSS_SECTION(16, 0, 16)
-#endif /* CONFIG_64BIT */
+	BSS_SECTION(0x20, 0, 0x20)
+
+	EXCEPTION_TABLE(0x10)
+	NOTES
+
+	.rel.dyn : {
+		*(.rel.dyn*)
+	}
+
 	_end = .;
 
 	STABS_DEBUG

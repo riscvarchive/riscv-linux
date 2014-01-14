@@ -3,7 +3,9 @@
 #include <asm/thread_info.h>
 #include <asm/page.h>
 #include <asm/pgtable-bits.h>
-#include <asm/pcr.h>
+#include <asm/csr.h>
+
+#define __va(x) ((x) + PAGE_OFFSET)
 
 #define PGDIR_SHIFT 33
 #define PMDIR_SHIFT 23
@@ -18,10 +20,10 @@ __INIT
 ENTRY(_start)
 
 	/* Enable RV64 mode; temporarily disable virtual memory */
-	li s1, (SR_S64 | SR_U64)
-	csrs status, s1
-	li s2, (SR_VM | SR_IM | SR_EI)
-	csrc status, s2
+	li s0, (SR_S64 | SR_U64)
+	li s1, (SR_VM | SR_IM | SR_EI)
+	csrs status, s0
+	csrc status, s1
 
 	/* Load the global pointer (before any other use of la) */
 	la gp, _gp
@@ -36,6 +38,7 @@ ENTRY(_start)
 	/* Set PTBR and flush TLB */
 	la s0, swapper_pg_dir
 	csrw ptbr, s0
+	csrw fatc, 0
 
 	/* Initialize provisional page tables */
 	la s1, ident_pm_dir
@@ -78,17 +81,15 @@ ENTRY(_start)
 	/* Relocate to kernel mapping */
 	li s0, PAGE_OFFSET
 	add gp, gp, s0
-	la s0, 2f + PAGE_OFFSET
-	jr s0
-2:
 
 	/* Initialize stack pointer */
-	la sp, init_thread_union + THREAD_SIZE
+	la sp, __va(init_thread_union) + THREAD_SIZE
 	/* Initialize current thread_struct pointer */
-	la s0, init_task
+	la s0, __va(init_task)
 	csrw sup0, s0
 
-	jump start_kernel
+	la s0, __va(start_kernel)
+	jr s0
 
 END(_start)
 

@@ -5,12 +5,12 @@
 
 #include <linux/mm.h>
 #include <linux/bug.h>
-#include <asm/pcr.h>
+#include <asm/csr.h>
 
 /* Flush all TLB entries */
 static inline void flush_tlb_all(void)
 {
-	write_csr(fatc, 0);
+	csr_write(fatc, 0);
 }
 
 /* Flush the TLB entries of the specified mm context */

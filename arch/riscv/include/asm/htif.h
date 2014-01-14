@@ -4,7 +4,7 @@
 #include <linux/kernel.h>
 #include <linux/device.h>
 
-#include <asm/pcr.h>
+#include <asm/csr.h>
 
 #define HTIF_DEV_SHIFT      (56)
 #define HTIF_CMD_SHIFT      (48)
@@ -20,13 +20,13 @@ static inline void htif_tohost(unsigned long dev,
 {
 	unsigned long packet;
 	packet = (dev << HTIF_DEV_SHIFT) | (cmd << HTIF_CMD_SHIFT) | data;
-	while (swap_csr(tohost, packet) != 0);
+	while (csr_swap(tohost, packet) != 0);
 }
 
 static inline unsigned long htif_fromhost(void)
 {
 	unsigned long data;
-	while ((data = swap_csr(fromhost, 0)) == 0);
+	while ((data = csr_swap(fromhost, 0)) == 0);
 	return data;
 }
 

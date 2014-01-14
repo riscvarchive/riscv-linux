@@ -118,7 +118,7 @@ err_alloc_cmap:
 	return ret;
 }
 
-static struct htif_driver htifrfb_driver = {
+static struct htif_driver htifrfb_driver __devinitdata = {
 	.type = "rfb",
 	.driver = {
 		.name = DRIVER_NAME,

@@ -2,30 +2,30 @@
 #define _ASM_RISCV_IRQFLAGS_H
 
 #include <asm/processor.h>
-#include <asm/pcr.h>
+#include <asm/csr.h>
 
 /* read interrupt enabled status */
 static unsigned long arch_local_save_flags(void)
 {
-	return read_csr(status);
+	return csr_read(status);
 }
 
 /* unconditionally enable interrupts */
 static inline void arch_local_irq_enable(void)
 {
-	set_csr(status, SR_EI);
+	csr_set(status, SR_EI);
 }
 
 /* unconditionally disable interrupts */
 static inline void arch_local_irq_disable(void)
 {
-	clear_csr(status, SR_EI);
+	csr_clear(status, SR_EI);
 }
 
 /* get status and disable interrupts */
 static inline unsigned long arch_local_irq_save(void)
 {
-	return clear_csr(status, SR_EI);
+	return csr_read_clear(status, SR_EI);
 }
 
 /* test flags */

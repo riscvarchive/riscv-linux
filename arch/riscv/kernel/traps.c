@@ -6,7 +6,7 @@
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
-#include <asm/pcr.h>
+#include <asm/csr.h>
 
 extern asmlinkage void handle_exception(void);
 
@@ -177,7 +177,7 @@ asmlinkage void handle_illegal_insn(struct pt_regs *regs)
 void __init trap_init(void)
 {
 	/* Clear the IPI exception that started the processor */
-	write_csr(clear_ipi, 0);
+	csr_write(clear_ipi, 0);
 	/* Set the exception vector address */
-	write_csr(evec, &handle_exception);
+	csr_write(evec, &handle_exception);
 }

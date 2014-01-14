@@ -4,13 +4,13 @@
 #include <linux/irq.h>
 
 #include <asm/irq.h>
-#include <asm/pcr.h>
+#include <asm/csr.h>
 
 static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
 	/* Set comparator */
-	write_csr(compare, read_csr(count) + delta);
+	csr_write(compare, csr_read(count) + delta);
 	return 0;
 }
 
@@ -56,11 +56,7 @@ static struct irqaction timer_irq = {
 
 static cycle_t riscv_rdcycle(struct clocksource *cs)
 {
-	cycle_t n;
-	__asm__ __volatile__ (
-		"rdcycle %0"
-		: "=r" (n));
-	return n;
+	return csr_read(cycle);
 }
 
 static struct clocksource riscv_clocksource = {
@@ -81,7 +77,7 @@ void __init time_init(void)
 	u32 freq;
 	freq = 100000000UL;
 
-	write_csr(count, 0);
+	csr_write(count, 0);
 
 	clocksource_register_hz(&riscv_clocksource, freq);
 	setup_irq(IRQ_TIMER, &timer_irq);

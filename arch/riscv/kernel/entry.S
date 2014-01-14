@@ -1,7 +1,7 @@
 #include <linux/init.h>
 #include <linux/linkage.h>
 
-#include <asm/pcr.h>
+#include <asm/csr.h>
 #include <asm/thread_info.h>
 #include <asm/asm-offsets.h>
 
@@ -29,15 +29,10 @@ _save_context:
 	addi sp, sp, -(PT_SIZE)
 	sd x1,  PT_RA(sp)
 	sd x2,  PT_S0(sp)
-	csrr x2, sup1
 	sd x3,  PT_S1(sp)
-	csrr x3, status
 	sd x4,  PT_S2(sp)
-	csrr x4, epc
 	sd x5,  PT_S3(sp)
-	csrr x5, badvaddr
 	sd x6,  PT_S4(sp)
-	csrr x6, cause
 	sd x7,  PT_S5(sp)
 	sd x8,  PT_S6(sp)
 	sd x9,  PT_S7(sp)
@@ -63,6 +58,11 @@ _save_context:
 	sd x30, PT_T4(sp)
 	sd x31, PT_GP(sp)
 
+	csrr s0, sup1
+	csrr s1, status
+	csrr s2, epc
+	csrr s3, badvaddr
+	csrr s4, cause
 	sd s0, PT_SP(sp)
 	sd s1, PT_STATUS(sp)
 	sd s2, PT_EPC(sp)
@@ -161,7 +161,7 @@ handle_syscall:
 	/* System calls run with interrupts enabled */
 	csrs status, SR_EI
 	/* Advance EPC to avoid executing the original
-	   syscall instruction on sret */
+	   scall instruction on sret */
 	ld s0, PT_EPC(sp)
 	addi s0, s0, 0x4
 	sd s0, PT_EPC(sp)
