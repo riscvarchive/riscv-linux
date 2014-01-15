@@ -6,7 +6,6 @@ generic-y += bug.h
 generic-y += bugs.h
 generic-y += cacheflush.h
 generic-y += checksum.h
-generic-y += cmpxchg.h
 generic-y += cputime.h
 generic-y += current.h
 generic-y += delay.h

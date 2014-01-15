@@ -1,8 +1,6 @@
 #ifndef _ASM_RISCV_ATOMIC_H
 #define _ASM_RISCV_ATOMIC_H
 
-#include <linux/compiler.h>
-#include <linux/irqflags.h>
 #include <asm/cmpxchg.h>
 #include <asm/barrier.h>
 
@@ -29,9 +27,9 @@ static inline int atomic_read(const atomic_t *v)
 static inline void atomic_set(atomic_t *v, int i)
 {
 	__asm__ __volatile__ (
-		"amoswap.w x0, %1, 0(%0)"
+		"amoswap.w zero, %0, 0(%1)"
 		:
-		: "r" (&(v->counter)), "r" (i)
+		: "r" (i), "r" (&(v->counter))
 		: "memory");
 }
 
@@ -45,9 +43,9 @@ static inline void atomic_set(atomic_t *v, int i)
 static inline void atomic_add(int i, atomic_t *v)
 {
 	__asm__ __volatile__ (
-		"amoadd.w x0, %1, 0(%0)"
+		"amoadd.w zero, %0, 0(%1)"
 		:
-		: "r" (&(v->counter)), "r" (i)
+		: "r" (i), "r" (&(v->counter))
 		: "memory");
 }
 
@@ -60,7 +58,7 @@ static inline void atomic_add(int i, atomic_t *v)
  */
 static inline void atomic_sub(int i, atomic_t *v)
 {
-	return atomic_add(-i, v);
+	atomic_add(-i, v);
 }
 
 /**
@@ -74,9 +72,9 @@ static inline int atomic_add_return(int i, atomic_t *v)
 {
 	register int c;
 	__asm__ __volatile__ (
-		"amoadd.w %0, %2, 0(%1)"
+		"amoadd.w %0, %1, 0(%2)"
 		: "=r" (c)
-		: "r" (&(v->counter)), "r" (i)
+		: "r" (i), "r" (&(v->counter))
 		: "memory");
 	return (c + i);
 }
@@ -184,38 +182,28 @@ static inline int atomic_xchg(atomic_t *v, int n)
 {
 	register int c;
 	__asm__ __volatile__ (
-		"amoswap.w %0, %2, 0(%1)"
+		"amoswap.w %0, %1, 0(%2)"
 		: "=r" (c)
-		: "r" (&(v->counter)), "r" (n)
+		: "r" (n), "r" (&(v->counter))
 		: "memory");
 	return c;
 }
 
-#ifndef CONFIG_SMP
-
 static inline int atomic_cmpxchg(atomic_t *v, int o, int n)
 {
-	int prev;
-	unsigned long flags;
-
-	local_irq_save(flags);
-	if ((prev = v->counter) == o)
-		v->counter = n;
-	local_irq_restore(flags);
+	register int prev, rc;
+	__asm__ __volatile__ (
+	"0:"
+		"lr.w %0, 0(%2)\n"
+		"bne  %0, %3, 1f\n"
+		"sc.w %1, %4, 0(%2)\n"
+		"bnez %1, 0b\n"
+	"1:"
+		: "=&r" (prev), "=r" (rc)
+		: "r" (&(v->counter)), "r" (o), "r" (n)
+		: "memory");
 	return prev;
 }
-
-#define cmpxchg_local(ptr, o, n)                                \
-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr),     \
-		(unsigned long)(o), (unsigned long)(n),         \
-		sizeof(*(ptr))))
-
-#define cmpxchg64_local(ptr, o, n) \
-	__cmpxchg64_local_generic((ptr), (o), (n))
-
-#else
-#error "SMP not supported by current cmpxchg implementation"
-#endif /* !CONFIG_SMP */
 
 /**
  * __atomic_add_unless - add unless the number is already a given value
@@ -228,17 +216,23 @@ static inline int atomic_cmpxchg(atomic_t *v, int o, int n)
  */
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
-	int c, old;
-	c = atomic_read(v);
-	for (;;) {
-		if (unlikely(c == u))
-			break;
-		old = atomic_cmpxchg(v, c, c + a);
-		if (likely(old == c))
-			break;
-		c = old;
-	}
-	return c;
+	register int prev, rc;
+	__asm__ __volatile__ (
+	"0:"
+		"lr.w %0, 0(%3)\n"
+		"beq  %0, %4, 1f\n"
+#ifdef CONFIG_64BIT
+		"addw %1, %0, %1\n"
+#else
+		"add  %1, %0, %1\n"
+#endif /* CONFIG_64BIT */
+		"sc.w %2, %1, 0(%3)\n"
+		"bnez %2, 0b\n"
+	"1:"
+		: "=&r" (prev), "+r" (a), "=r" (rc)
+		: "r" (&(v->counter)), "r" (u)
+		: "memory");
+	return prev;
 }
 
 /**
@@ -251,9 +245,9 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
 {
 	__asm__ __volatile__ (
-		"amoand.w x0, %1, 0(%0)"
+		"amoand.w zero, %0, 0(%1)"
 		:
-		: "r" (&(v->counter)), "r" (~mask)
+		: "r" (~mask), "r" (&(v->counter))
 		: "memory");
 }
 
@@ -267,9 +261,9 @@ static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
 static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
 {
 	__asm__ __volatile__ (
-		"amoor.w x0, %1, 0(%0)"
+		"amoor.w zero, %0, 0(%1)"
 		:
-		: "r" (&(v->counter)), "r" (mask)
+		: "r" (mask), "r" (&(v->counter))
 		: "memory");
 }
 

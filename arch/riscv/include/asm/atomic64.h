@@ -1,9 +1,11 @@
 #ifndef _ASM_RISCV_ATOMIC64_H
 #define _ASM_RISCV_ATOMIC64_H
 
-#include <linux/compiler.h>
 #include <linux/types.h>
-#include <linux/irqflags.h>
+
+#ifdef CONFIG_32BIT
+#error "RV64A instruction set extension required"
+#endif /* CONFIG_32BIT */
 
 #define ATOMIC64_INIT(i)	{ (i) }
 
@@ -28,9 +30,9 @@ static inline s64 atomic64_read(const atomic64_t *v)
 static inline void atomic64_set(atomic64_t *v, s64 i)
 {
 	__asm__ __volatile__ (
-		"amoswap.d x0, %1, 0(%0)"
+		"amoswap.d zero, %0, 0(%1)"
 		:
-		: "r" (&(v->counter)), "r" (i)
+		: "r" (i), "r" (&(v->counter))
 		: "memory");
 }
 
@@ -44,9 +46,9 @@ static inline void atomic64_set(atomic64_t *v, s64 i)
 static inline void atomic64_add(s64 a, atomic64_t *v)
 {
 	__asm__ __volatile__ (
-		"amoadd.d x0, %1, 0(%0)"
+		"amoadd.d zero, %0, 0(%1)"
 		:
-		: "r" (&(v->counter)), "r" (a)
+		: "r" (a), "r" (&(v->counter))
 		: "memory");
 }
 
@@ -59,35 +61,30 @@ static inline void atomic64_add(s64 a, atomic64_t *v)
  */
 static inline void atomic64_sub(s64 a, atomic64_t *v)
 {
-	__asm__ __volatile__ (
-		"sub %0, x0, %0;"
-		"amoadd.d x0, %0, 0(%1);"
-		: "+r" (a)
-		: "r" (&(v->counter))
-		: "memory");
+	atomic64_add(-a, v);
 }
 
+/**
+ * atomic64_add_return - add and return
+ * @i: integer value to add
+ * @v: pointer to type atomic64_t
+ *
+ * Atomically adds @i to @v and returns @i + @v
+ */
 static inline s64 atomic64_add_return(s64 a, atomic64_t *v)
 {
 	register s64 c;
 	__asm__ __volatile__ (
-		"amoadd.d %0, %2, 0(%1)"
+		"amoadd.d %0, %1, 0(%2)"
 		: "=r" (c)
-		: "r" (&(v->counter)), "r" (a)
+		: "r" (a), "r" (&(v->counter))
 		: "memory");
 	return (c + a);
 }
 
 static inline s64 atomic64_sub_return(s64 a, atomic64_t *v)
 {
-	register s64 c;
-	__asm__ __volatile__ (
-		"sub %1, x0, %1;"
-		"amoadd.d %0, %1, 0(%2);"
-		: "=r" (c), "+r" (a)
-		: "r" (&(v->counter))
-		: "memory");
-	return (c + a);
+	return atomic64_add_return(-a, v);
 }
 
 /**
@@ -177,31 +174,31 @@ static inline int atomic64_add_negative(s64 a, atomic64_t *v)
 }
 
 
-#ifndef CONFIG_SMP
-static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
-{
-	s64 prev;
-	unsigned long flags;
-
-	local_irq_save(flags);
-	if ((prev = v->counter) == o)
-		v->counter = n;
-	local_irq_restore(flags);
-	return prev;
-}
-#else
-#error "SMP not supported by current cmpxchg implementation"
-#endif /* !CONFIG_SMP */
-
 static inline s64 atomic64_xchg(atomic64_t *v, s64 n)
 {
 	register s64 c;
 	__asm__ __volatile__ (
-		"amoswap.d %0, %2, 0(%1)"
+		"amoswap.d %0, %1, 0(%2)"
 		: "=r" (c)
-		: "r" (&(v->counter)), "r" (n)
+		: "r" (n), "r" (&(v->counter))
 		: "memory");
 	return c;
+}
+
+static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
+{
+	register s64 prev, rc;
+	__asm__ __volatile__ (
+	"0:"
+		"lr.d %0, 0(%2)\n"
+		"bne  %0, %1, 1f\n"
+		"sc.d %1, %4, 0(%2)\n"
+		"bnez %1, 0b\n"
+	"1:"
+		: "=&r" (prev), "=r" (rc)
+		: "r" (&(v->counter)), "r" (o), "r" (n)
+		: "memory");
+	return prev;
 }
 
 /*
@@ -213,19 +210,19 @@ static inline s64 atomic64_xchg(atomic64_t *v, s64 n)
  */
 static inline s64 atomic64_dec_if_positive(atomic64_t *v)
 {
-	s64 c;
-	c = atomic64_read(v);
-	for (;;) {
-		s64 d, old;
-		d = c - 1;
-		if (unlikely(d < 0))
-			break;
-		old = atomic64_cmpxchg((v), c, d);
-		if (likely(d == c))
-			break;
-		c = old;
-	}
-	return c;
+	register s64 prev, rc;
+	__asm__ __volatile__ (
+	"0:"
+		"lr.d %0, 0(%2)\n"
+		"add  %0, %0, -1\n"
+		"bltz %0, 1f\n"
+		"sc.w %1, %0, 0(%2)\n"
+		"bnez %1, 0b\n"
+	"1:"
+		: "=&r" (prev), "=r" (rc)
+		: "r" (&(v->counter))
+		: "memory");
+	return prev;
 }
 
 /**
@@ -239,23 +236,40 @@ static inline s64 atomic64_dec_if_positive(atomic64_t *v)
  */
 static inline int atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
 {
-	s64 c;
-	c = atomic64_read(v);
-	for (;;) {
-		s64 old;
-		if (unlikely(c == u))
-			break;
-		old = atomic64_cmpxchg(v, c, c + a);
-		if (likely(old == c))
-			break;
-		c = old;
-	}
-	return (c != u);
+	register s64 tmp;
+	register int rc = 1;
+
+	__asm__ __volatile__ (
+	"0:"
+		"lr.d %0, 0(%3)\n"
+		"beq  %0, %4, 1f\n"
+		"add  %0, %0, %2\n"
+		"sc.d %1, %0, 0(%3)\n"
+		"bnez %1, 0b\n"
+	"1:"
+		: "=&r" (tmp), "=r" (rc), "=r" (a)
+		: "r" (&(v->counter)), "r" (u)
+		: "memory");
+	return !rc;
 }
 
 static inline int atomic64_inc_not_zero(atomic64_t *v)
 {
-	return atomic64_add_unless(v, 1L, 0L);
+	register s64 tmp;
+	register int rc = 1;
+
+	__asm__ __volatile__ (
+	"0:"
+		"lr.d %0, 0(%2)\n"
+		"beqz %0, 1f\n"
+		"add  %0, %0, 1\n"
+		"sc.d %1, %0, 0(%2)\n"
+		"bnez %1, 0b\n"
+	"1:"
+		: "=&r" (tmp), "=r" (rc)
+		: "r" (&(v->counter))
+		: "memory");
+	return !rc;
 }
 
 #endif /* _ASM_RISCV_ATOMIC64_H */
