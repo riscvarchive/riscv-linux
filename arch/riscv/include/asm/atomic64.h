@@ -191,7 +191,7 @@ static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
 	__asm__ __volatile__ (
 	"0:"
 		"lr.d %0, 0(%2)\n"
-		"bne  %0, %1, 1f\n"
+		"bne  %0, %3, 1f\n"
 		"sc.d %1, %4, 0(%2)\n"
 		"bnez %1, 0b\n"
 	"1:"
