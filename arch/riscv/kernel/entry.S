@@ -173,10 +173,6 @@ handle_syscall:
 	jalr s0
 	/* Set user v0 to kernel v0 */
 	sd v0, PT_V0(sp)
-	/* Set user a3 to 0/1 for success/error
-	   (per MIPS ABI convention) */
-	slt s0, v0, zero
-	sd s0, PT_A3(sp)
 
 handle_exception_tail:
 	csrrc s0, status, SR_EI
