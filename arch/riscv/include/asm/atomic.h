@@ -199,7 +199,7 @@ static inline int atomic_cmpxchg(atomic_t *v, int o, int n)
 		"sc.w %1, %4, 0(%2)\n"
 		"bnez %1, 0b\n"
 	"1:"
-		: "=&r" (prev), "=r" (rc)
+		: "=&r" (prev), "=&r" (rc)
 		: "r" (&(v->counter)), "r" (o), "r" (n)
 		: "memory");
 	return prev;
@@ -222,15 +222,15 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 		"lr.w %0, 0(%3)\n"
 		"beq  %0, %4, 1f\n"
 #ifdef CONFIG_64BIT
-		"addw %1, %0, %1\n"
+		"addw %1, %0, %2\n"
 #else
-		"add  %1, %0, %1\n"
+		"add  %1, %0, %2\n"
 #endif /* CONFIG_64BIT */
-		"sc.w %2, %1, 0(%3)\n"
-		"bnez %2, 0b\n"
+		"sc.w %1, %1, 0(%3)\n"
+		"bnez %1, 0b\n"
 	"1:"
-		: "=&r" (prev), "+r" (a), "=r" (rc)
-		: "r" (&(v->counter)), "r" (u)
+		: "=&r" (prev), "=&r" (rc)
+		: "r" (a), "r" (&(v->counter)), "r" (u)
 		: "memory");
 	return prev;
 }

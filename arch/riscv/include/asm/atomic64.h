@@ -195,7 +195,7 @@ static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
 		"sc.d %1, %4, 0(%2)\n"
 		"bnez %1, 0b\n"
 	"1:"
-		: "=&r" (prev), "=r" (rc)
+		: "=&r" (prev), "=&r" (rc)
 		: "r" (&(v->counter)), "r" (o), "r" (n)
 		: "memory");
 	return prev;
@@ -247,8 +247,8 @@ static inline int atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
 		"sc.d %1, %0, 0(%3)\n"
 		"bnez %1, 0b\n"
 	"1:"
-		: "=&r" (tmp), "=r" (rc), "=r" (a)
-		: "r" (&(v->counter)), "r" (u)
+		: "=&r" (tmp), "=&r" (rc)
+		: "r" (a), "r" (&(v->counter)), "r" (u)
 		: "memory");
 	return !rc;
 }
@@ -266,7 +266,7 @@ static inline int atomic64_inc_not_zero(atomic64_t *v)
 		"sc.d %1, %0, 0(%2)\n"
 		"bnez %1, 0b\n"
 	"1:"
-		: "=&r" (tmp), "=r" (rc)
+		: "=&r" (tmp), "=&r" (rc)
 		: "r" (&(v->counter))
 		: "memory");
 	return !rc;
