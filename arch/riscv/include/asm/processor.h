@@ -40,7 +40,7 @@ extern unsigned long get_wchan(struct task_struct *p);
  * This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */
-#define TASK_UNMAPPED_BASE	((TASK_SIZE / 3) & PAGE_MASK)
+#define TASK_UNMAPPED_BASE	0x40000000
 
 #ifdef __KERNEL__
 #define STACK_TOP	TASK_SIZE
