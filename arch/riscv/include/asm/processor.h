@@ -25,9 +25,15 @@ extern unsigned long get_wchan(struct task_struct *p);
  */
 #define current_text_addr() ({ __label__ _l; _l: &&_l; })
 
-#define cpu_relax()		barrier()
 #define release_thread(thread)	do {} while (0)
 #define prepare_to_copy(tsk)	do {} while (0)
+
+static inline void cpu_relax(void)
+{
+	int dummy;
+	/* In lieu of a halt instruction, induce a long-latency stall. */
+	asm volatile("div %0, %0, x0" : "=r"(dummy));
+}
 
 /*
  * User space process size: 2GB. This is hardcoded into a few places,
