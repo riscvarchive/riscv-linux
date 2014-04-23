@@ -309,6 +309,7 @@ ENTRY(excp_vect_table)
 	.quad handle_misaligned_data
 	.quad do_page_fault
 	.quad do_page_fault
+	.quad handle_disabled_accelerator
 excp_vect_table_end:
 END(excp_vect_table)
 

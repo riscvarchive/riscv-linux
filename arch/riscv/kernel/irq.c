@@ -3,6 +3,7 @@
 #include <linux/seq_file.h>
 
 #include <asm/ptrace.h>
+#include <asm/hwacha.h>
 
 asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
@@ -39,4 +40,5 @@ void __init init_IRQ(void)
 	{
 		irq_set_chip_and_handler(irq, &riscv_irq_chip, handle_level_irq);
 	}
+	hwacha_init();
 }

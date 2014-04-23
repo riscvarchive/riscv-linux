@@ -174,6 +174,14 @@ asmlinkage void handle_illegal_insn(struct pt_regs *regs)
 	}
 }
 
+asmlinkage void handle_disabled_accelerator(struct pt_regs *regs)
+{
+	/* Set the EA bit */
+	/* TODO: need to check whether the EA bit sticks,
+	 * if not send a SIGILL */
+	regs->status |= SR_EA;
+}
+
 void __init trap_init(void)
 {
 	/* Clear the IPI exception that started the processor */

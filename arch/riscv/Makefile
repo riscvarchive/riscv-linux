@@ -26,7 +26,7 @@ LDFLAGS_vmlinux :=
 export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
-	KBUILD_CFLAGS += -m64
+	KBUILD_CFLAGS += -m64 -Wa,-march=RVIMAFDXhwacha
 else
 	BITS := 32
 	KBUILD_CFLAGS += -m32

@@ -42,9 +42,9 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	if (unlikely((addr >= VMALLOC_START) && (addr <= VMALLOC_END)))
 		goto vmalloc_fault;
 
-	/* Do not take the fault if within an interrupt
+	/* Do not take the fault if within an interrupt if SR_EA is disabled
 	   or if lacking a user context */
-	if (!mm || in_atomic())
+	if (!mm || (in_atomic() && !(regs->status & SR_EA)))
 		goto no_context;
 
 retry:
