@@ -15,6 +15,12 @@ config HAS_DMA
 
 menu "Platform type"
 
+config NR_CPUS
+	int "Number of cores"
+	range 1 1024
+	default "1"
+	depends on SMP
+
 choice
 	prompt "CPU selection"
 	default CPU_RV_ROCKET
@@ -85,9 +91,9 @@ endchoice
 
 source "mm/Kconfig"
 
-source "kernel/Kconfig.hz"
+source "kernel/Kconfig.preempt"
 
-source "kernel/time/Kconfig"
+source "kernel/Kconfig.hz"
 
 endmenu
 
@@ -161,6 +167,8 @@ source "lib/Kconfig.debug"
 config CMDLINE_BOOL
 	bool 
 endmenu
+
+source "crypto/Kconfig"
 
 source "lib/Kconfig"
 
