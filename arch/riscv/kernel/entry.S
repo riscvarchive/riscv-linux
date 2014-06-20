@@ -175,7 +175,7 @@ handle_syscall:
 	sd v0, PT_V0(sp)
 
 handle_exception_tail:
-	csrrc s0, status, SR_EI
+	csrr s0, status
 	andi s0, s0, SR_PS
 	bnez s0, restore_and_return
 	/* Otherwise resume userspace */

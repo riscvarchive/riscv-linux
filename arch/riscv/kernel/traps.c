@@ -77,6 +77,8 @@ void die(const char *str, struct pt_regs *regs, long err)
 	ret = notify_die(DIE_OOPS, str, regs, err, 0, SIGSEGV);
 	oops_exit();
 
+	if (in_interrupt())
+		panic("Fatal exception in interrupt");
 	if (panic_on_oops)
 		panic("Fatal exception");
 	if (ret != NOTIFY_STOP)
