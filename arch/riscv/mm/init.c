@@ -82,94 +82,26 @@ void __init paging_init(void)
 
 void __init mem_init(void)
 {
-	unsigned long code_size, data_size, init_size;
-	unsigned long num_resvpages;
-	unsigned long pfn;
-#ifdef CONFIG_NUMA
-	int nid;
-#endif /* CONFIG_NUMA */
+#ifdef CONFIG_FLATMEM
+	BUG_ON(!mem_map);
+#endif /* CONFIG_FLATMEM */
 
+	set_max_mapnr(max_low_pfn);
 	high_memory = (void *)(__va(PFN_PHYS(max_low_pfn)));
+	free_all_bootmem();
 
-#ifdef CONFIG_NUMA
-	num_physpages = 0;
-	totalram_pages = 0;
-	for_each_online_node(nid) {
-		pg_data_t *pgdat;
-		pgdat = NODE_DATA(nid);
-		num_physpages += pgdat->node_present_pages;
-		totalram_pages += free_all_bootmem_node(pgdat);
-	}
-#else
-	totalram_pages = free_all_bootmem();
-	num_physpages = NODE_DATA(0)->node_present_pages;
-#endif /* CONFIG_NUMA */
-
-	num_resvpages = 0;
-	for (pfn = 0; pfn < max_low_pfn; pfn++) {
-		if (page_is_ram(pfn) && PageReserved(pfn_to_page(pfn)))
-			num_resvpages++;
-	}
-
-	code_size = (unsigned long)(&_etext) - (unsigned long)(&_stext);
-	data_size = (unsigned long)(&_edata) - (unsigned long)(&_etext);
-	init_size = (unsigned long)(&__init_end) - (unsigned long)(&__init_begin);
-
-	printk(KERN_INFO
-		"Memory: %luk/%luk available (%luk kernel code, "
-		"%luk reserved, %luk data, %luk init)\n",
-		nr_free_pages() << (PAGE_SHIFT - 10),
-		num_physpages << (PAGE_SHIFT - 10),
-		code_size >> 10,
-		num_resvpages << (PAGE_SHIFT - 10),
-		data_size >> 10,
-		init_size >> 10);
-
-	printk(KERN_INFO "virtual kernel memory layout:\n"
-		"    vmalloc : 0x%08lx - 0x%08lx  [%4ld MiB]\n"
-		"     lowmem : 0x%08lx - 0x%08lx  [%4ld MiB]\n"
-		"      .data : 0x%08lx - 0x%08lx\n"
-		"      .text : 0x%08lx - 0x%08lx\n"
-		"      .init : 0x%08lx - 0x%08lx\n",
-		VMALLOC_START, VMALLOC_END,
-		(VMALLOC_END - VMALLOC_START) >> 20,
-		PAGE_OFFSET, (unsigned long)(high_memory),
-		((unsigned long)(high_memory) - PAGE_OFFSET) >> 20,
-		(unsigned long)(&_etext),
-		(unsigned long)(&_edata),
-		(unsigned long)(&_text),
-		(unsigned long)(&_etext),
-		(unsigned long)(&__init_begin),
-		(unsigned long)(&__init_end));
-}
-
-static void free_init_pages(const char *what, unsigned long begin, unsigned long end)
-{
-	unsigned long pfn;
-
-	for (pfn = PFN_UP(begin); pfn < PFN_DOWN(end); pfn++) {
-		struct page *page = pfn_to_page(pfn);
-		void *addr = phys_to_virt(PFN_PHYS(pfn));
-
-		ClearPageReserved(page);
-		init_page_count(page);
-		memset(addr, POISON_FREE_INITMEM, PAGE_SIZE);
-		__free_page(page);
-		totalram_pages++;
-	}
-	printk(KERN_INFO "Freeing %s: %ldk freed\n", what, (end - begin) >> 10);
+	mem_init_print_info(NULL);
 }
 
 void free_initmem(void)
 {
-	free_init_pages("unused kernel memory",
-		__pa(&__init_begin),
-		__pa(&__init_end));
+	free_initmem_default(0);
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
 void free_initrd_mem(unsigned long start, unsigned long end)
 {
+//	free_reserved_area(start, end, 0, "initrd");
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
