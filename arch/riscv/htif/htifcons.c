@@ -190,7 +190,6 @@ console_initcall(htif_console_init);
 
 static irqreturn_t htif_input_isr(int irq, void *dev_id)
 {
-	struct tty_struct *tty;
 	unsigned long data;
 	unsigned int index, id;
 
@@ -199,23 +198,22 @@ static irqreturn_t htif_input_isr(int irq, void *dev_id)
 		return IRQ_NONE;
 	id = (data >> HTIF_DEV_SHIFT);
 
-	tty = NULL;
 	for (index = 0; index < HTIF_NR_TTY; index++) {
-		struct htifcons_port *port;
-		port = htifcons_table[index];
-		if (port != NULL && port->dev->minor == id) {
-			tty = tty_port_tty_get(&port->port);
-			break;
+		struct htifcons_port *p;
+		p = htifcons_table[index];
+		if (p != NULL && p->dev->minor == id) {
+			struct tty_port *port;
+			port = &(p->port);
+
+			tty_insert_flip_char(port, data, TTY_NORMAL);
+			tty_flip_buffer_push(port);
+
+			/* Send next request for character */
+			htif_tohost(id, HTIF_CMD_READ, 0);
+			return IRQ_HANDLED;
 		}
 	}
-	if (tty == NULL)
-		return IRQ_NONE;
-	tty_insert_flip_char(tty, data, TTY_NORMAL);
-	tty_flip_buffer_push(tty);
-
-	/* Send next request for character */
-	htif_tohost(id, HTIF_CMD_READ, 0);
-	return IRQ_HANDLED;
+	return IRQ_NONE;
 }
 
 
@@ -241,7 +239,7 @@ static int htifcons_probe(struct device *dev)
 	if (unlikely(ret))
 		goto err_port_add;
 
-	dev = tty_register_device(htif_tty_driver, port->index, dev);
+	dev = tty_port_register_device(&port->port, htif_tty_driver, port->index, dev);
 	if (unlikely(IS_ERR(dev))) {
 		ret = PTR_ERR(dev);
 		goto err_port_reg;

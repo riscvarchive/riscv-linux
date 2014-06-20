@@ -31,7 +31,7 @@ static struct fb_ops htifrfb_ops = {
 	.fb_imageblit	= cfb_imageblit,
 };
 
-static struct fb_var_screeninfo htifrfb_var __devinitdata = {
+static struct fb_var_screeninfo htifrfb_var = {
 	.xres		= RFB_XRES,
 	.yres		= RFB_YRES,
 	.bits_per_pixel	= RFB_BPP,
@@ -56,7 +56,7 @@ static struct fb_var_screeninfo htifrfb_var __devinitdata = {
 	.width		= -1,
 };
 
-static struct fb_fix_screeninfo htifrfb_fix __devinitdata = {
+static struct fb_fix_screeninfo htifrfb_fix = {
 	.id		= "HTIF RFB",
 	.smem_len	= RFB_MEM_SIZE,
 	.type		= FB_TYPE_PACKED_PIXELS,
@@ -65,7 +65,7 @@ static struct fb_fix_screeninfo htifrfb_fix __devinitdata = {
 	.accel		= FB_ACCEL_NONE,
 };
 
-static int __devinit htifrfb_probe(struct device *dev)
+static int htifrfb_probe(struct device *dev)
 {
 	struct htif_dev *htif_dev;
 	struct fb_info *info;
@@ -118,7 +118,7 @@ err_alloc_cmap:
 	return ret;
 }
 
-static struct htif_driver htifrfb_driver __devinitdata = {
+static struct htif_driver htifrfb_driver = {
 	.type = "rfb",
 	.driver = {
 		.name = DRIVER_NAME,

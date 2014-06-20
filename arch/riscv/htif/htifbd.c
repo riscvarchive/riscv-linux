@@ -25,9 +25,8 @@ static int htifbd_open(struct block_device *bd, fmode_t mode)
 	return 0;
 }
 
-static int htifbd_release(struct gendisk *gd, fmode_t mode)
+static void htifbd_release(struct gendisk *gd, fmode_t mode)
 {
-	return 0;
 }
 
 static int htifbd_ioctl(struct block_device *bd, fmode_t mode,
