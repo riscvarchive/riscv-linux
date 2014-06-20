@@ -28,8 +28,8 @@ static void show_backtrace(struct task_struct *task, const struct pt_regs *regs)
 		pc = (unsigned long)(&show_backtrace);
 	} else {
 		sp = task->thread.sp;
-		fp = task->thread.fp;
-		pc = task->thread.pc;
+		fp = task->thread.s[0];
+		pc = task->thread.ra;
 	}
 
 	for (;;) {

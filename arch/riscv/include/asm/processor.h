@@ -14,14 +14,13 @@ struct pt_regs;
  */
 extern void (*cpu_wait)(void);
 
-extern long kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
 extern unsigned long thread_saved_pc(struct task_struct *tsk);
 extern void start_thread(struct pt_regs *regs,
 			unsigned long pc, unsigned long sp);
 extern unsigned long get_wchan(struct task_struct *p);
 
 /*
- * Return current * instruction pointer ("program counter").
+ * Return current instruction pointer ("program counter").
  */
 #define current_text_addr() ({ __label__ _l; _l: &&_l; })
 
@@ -55,21 +54,18 @@ static inline void cpu_relax(void)
 
 /* CPU-specific state of a task */
 struct thread_struct {
+	/* Callee-saved registers */
+	unsigned long ra;
+	unsigned long s[12];	/* s[0]: frame pointer */
 	unsigned long sp;	/* Kernel mode stack */
-#ifdef CONFIG_FRAME_POINTER
-	unsigned long fp;
-#endif /* CONFIG_FRAME_POINTER */
-	unsigned long pc;
-	unsigned long status;
 };
 
 #define INIT_THREAD {		\
 	.sp = sizeof(init_stack) + (long)&init_stack, \
 }
 
-#define kstk_tos(tsk) \
-	((unsigned long)task_stack_page(tsk) + THREAD_SIZE)
-#define task_pt_regs(tsk)	((struct pt_regs *)kstk_tos(tsk) - 1)
+#define task_pt_regs(tsk) \
+	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE) - 1)
 
 #define KSTK_EIP(tsk)		(task_pt_regs(tsk)->epc)
 #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)

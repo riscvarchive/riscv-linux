@@ -6,11 +6,20 @@
 void asm_offsets(void)
 {
 	OFFSET(TASK_THREAD_INFO, task_struct, stack);
-	OFFSET(THREAD_PC, task_struct, thread.pc);
+	OFFSET(THREAD_RA, task_struct, thread.ra);
+	OFFSET(THREAD_S0, task_struct, thread.s[0]);
+	OFFSET(THREAD_S1, task_struct, thread.s[1]);
+	OFFSET(THREAD_S2, task_struct, thread.s[2]);
+	OFFSET(THREAD_S3, task_struct, thread.s[3]);
+	OFFSET(THREAD_S4, task_struct, thread.s[4]);
+	OFFSET(THREAD_S5, task_struct, thread.s[5]);
+	OFFSET(THREAD_S6, task_struct, thread.s[6]);
+	OFFSET(THREAD_S7, task_struct, thread.s[7]);
+	OFFSET(THREAD_S8, task_struct, thread.s[8]);
+	OFFSET(THREAD_S9, task_struct, thread.s[9]);
+	OFFSET(THREAD_S10, task_struct, thread.s[10]);
+	OFFSET(THREAD_S11, task_struct, thread.s[11]);
 	OFFSET(THREAD_SP, task_struct, thread.sp);
-#ifdef CONFIG_FRAME_POINTER
-	OFFSET(THREAD_FP, task_struct, thread.fp);
-#endif /* CONFIG_FRAME_POINTER */
 	OFFSET(TI_FLAGS, thread_info, flags);
 
 	DEFINE(PT_SIZE, sizeof(struct pt_regs));

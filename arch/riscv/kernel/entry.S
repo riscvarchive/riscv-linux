@@ -200,6 +200,14 @@ work_notifysig:
 	move a1, s0 /* current_thread_info->flags */
 	jump do_notify_resume
 
+ENTRY(ret_from_kernel_thread)
+	call schedule_tail
+	/* Call fn(arg) */
+	la ra, restore_and_return
+	move a0, s1
+	jr s0
+END(ret_from_kernel_thread)
+
 ENTRY(ret_from_fork)
 	call schedule_tail
 restore_and_return:
@@ -209,64 +217,6 @@ END(ret_from_fork)
 
 END(handle_exception)
 
-/* 
- * Wrapper routines are necessary to accommodate system calls
- * that require a pt_regs pointer, provided as an additional
- * argument at the position specified by \index.
- * The original arguments are passed through unmodified.
- * 
- * The address of the pt_regs struct on the kernel mode stack
- * is assumed to be the current value of sp.
- *
- * Note: These routines are intended to be called exclusively
- * by the syscall trap handler.
- */
-	.macro PTREGS_SYSCALL func index
-ENTRY(\func)
-	move a\index, sp /* pt_regs pointer */
-	jump __\func
-END(\func)
-	.endm
-
-	PTREGS_SYSCALL sys_sigaltstack, 2
-	PTREGS_SYSCALL sys_rt_sigreturn, 0
-	PTREGS_SYSCALL sys_clone, 5
-	PTREGS_SYSCALL sys_execve, 3
-
-	/* Callee-save registers only */
-	.macro SAVE_SWITCH_CONTEXT
-	addi sp, sp, -0x68
-	sd ra, 0x00(sp)
-	sd s0, 0x08(sp)
-	sd s1, 0x10(sp)
-	sd s2, 0x18(sp)
-	sd s3, 0x20(sp)
-	sd s4, 0x28(sp)
-	sd s5, 0x30(sp)
-	sd s6, 0x38(sp)
-	sd s7, 0x40(sp)
-	sd s8, 0x48(sp)
-	sd s9, 0x50(sp)
-	sd s10, 0x58(sp)
-	sd s11, 0x60(sp)
-	.endm
-
-	.macro RESTORE_SWITCH_CONTEXT
-	ld ra, 0x00(sp)
-	ld s0, 0x08(sp)
-	ld s1, 0x10(sp)
-	ld s2, 0x18(sp)
-	ld s3, 0x20(sp)
-	ld s4, 0x28(sp)
-	ld s5, 0x30(sp)
-	ld s6, 0x38(sp)
-	ld s7, 0x40(sp)
-	ld s8, 0x48(sp)
-	ld s9, 0x50(sp)
-	ld s10, 0x58(sp)
-	ld s11, 0x60(sp)
-	addi sp, sp, 0x68
-	.endm
 
 /*
  * Register context switch
@@ -276,20 +226,38 @@ END(\func)
  *   a1: next task_struct
  */
 ENTRY(__switch_to)
-	SAVE_SWITCH_CONTEXT
-	la ra, 1f             /* Return address when resuming prev */
-	sd sp, THREAD_SP(a0)  /* prev->thread.sp = sp */
-#ifdef CONFIG_FRAME_POINTER
-	sd s0, THREAD_FP(a0)  /* prev->thread.sp = sp */
-#endif
-	sd ra, THREAD_PC(a0)  /* prev->thread.pc = 1f */ 
-	ld sp, THREAD_SP(a1)  /* sp = next->thread.sp */
-	ld ra, THREAD_PC(a1)  /* ra = next->thread.pc */
-	csrw sup0, a1         /* Next current pointer */
-	ret
-1: 
-	RESTORE_SWITCH_CONTEXT
-	move v0, a0  /* Preserve reference */
+	/* Save context into prev->thread */
+	sd ra,  THREAD_RA(a0)
+	sd s0,  THREAD_S0(a0)
+	sd s1,  THREAD_S1(a0)
+	sd s2,  THREAD_S2(a0)
+	sd s3,  THREAD_S3(a0)
+	sd s4,  THREAD_S4(a0)
+	sd s5,  THREAD_S5(a0)
+	sd s6,  THREAD_S6(a0)
+	sd s7,  THREAD_S7(a0)
+	sd s8,  THREAD_S8(a0)
+	sd s9,  THREAD_S9(a0)
+	sd s10, THREAD_S10(a0)
+	sd s11, THREAD_S11(a0)
+	sd sp,  THREAD_SP(a0)
+	/* Restore context from next->thread */
+	ld ra,  THREAD_RA(a1)
+	ld s0,  THREAD_S0(a1)
+	ld s1,  THREAD_S1(a1)
+	ld s2,  THREAD_S2(a1)
+	ld s3,  THREAD_S3(a1)
+	ld s4,  THREAD_S4(a1)
+	ld s5,  THREAD_S5(a1)
+	ld s6,  THREAD_S6(a1)
+	ld s7,  THREAD_S7(a1)
+	ld s8,  THREAD_S8(a1)
+	ld s9,  THREAD_S9(a1)
+	ld s10, THREAD_S10(a1)
+	ld s11, THREAD_S11(a1)
+	ld sp,  THREAD_SP(a1)
+	csrw sup0, a1 /* Next current pointer */
+	move v0, a0   /* Preserve reference */
 	ret
 END(__switch_to)
 

@@ -3,6 +3,10 @@
 # see Documentation/kbuild/kconfig-language.txt.
 #
 
+config RISCV
+	def_bool y
+	select CLONE_BACKWARDS
+
 config MMU
 	def_bool y
 

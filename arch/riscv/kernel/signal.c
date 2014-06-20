@@ -11,13 +11,7 @@ struct rt_sigframe {
 	struct ucontext uc;
 };
 
-asmlinkage long __sys_sigaltstack(const stack_t __user *uss,
-	stack_t __user *uoss, struct pt_regs *regs)
-{
-	return do_sigaltstack(uss, uoss, regs->sp);
-}
-
-asmlinkage long __sys_rt_sigreturn(struct pt_regs *regs)
+SYSCALL_DEFINE0(rt_sigreturn)
 {
 	/* TODO */
 	return 0;
