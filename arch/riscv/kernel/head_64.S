@@ -2,7 +2,7 @@
 #include <linux/linkage.h>
 #include <asm/thread_info.h>
 #include <asm/page.h>
-#include <asm/pgtable-bits.h>
+#include <asm/pgtable.h>
 #include <asm/csr.h>
 
 #define __va(x) ((x) + PAGE_OFFSET)
@@ -60,11 +60,11 @@ ENTRY(_start)
 
 	/* PMD entries to cover the entire kernel virtual
 	   address space using 4 MiB superpages */
-	li s0, PAGE_SIZE
+	li s0, PME_OFF(VMALLOC_START)
 	add s0, s2, s0  /* End address of kern_pm_dir table */
 	li s3, PME_OFF(PAGE_OFFSET)
 	add s2, s2, s3  /* Address of first PTE in kern_pm_dir */
-	li s3, (PAGE_SUPV | _PAGE_V)
+	li s3, (PAGE_SUPV | _PAGE_G | _PAGE_V)
 	li s4, (1 << PMDIR_SHIFT)
 1:
 	sd s3, 0(s1)    /* Identity mapping */
@@ -94,7 +94,7 @@ ENTRY(_start)
 END(_start)
 
 
-	.bss
+__PAGE_ALIGNED_BSS
 	/* Empty zero page */
 	.balign PAGE_SIZE
 ENTRY(empty_zero_page)

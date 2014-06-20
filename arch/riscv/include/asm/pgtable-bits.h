@@ -15,7 +15,7 @@
  */
 
 #define _PAGE_V         (1 << 0) /* Valid */
-#define _PAGE_T         (1 << 1) /* Page table descriptor */
+#define _PAGE_T         (1 << 1) /* Non-leaf entry */
 #define _PAGE_G         (1 << 2) /* Global */
 
 #define _PAGE_SR        (1 << 6) /* Supervisor read */
@@ -31,10 +31,10 @@
 #define _PAGE_SOFT3     (1 << 11) /* Reserved for software */
 #define _PAGE_SOFT4     (1 << 12) /* Reserved for software */
 
-#define _PAGE_D         _PAGE_SOFT1 /* Dirty */
-#define _PAGE_R         _PAGE_SOFT2 /* Referenced */
 #define _PAGE_PRESENT   _PAGE_V
-#define _PAGE_FILE      _PAGE_D /* when !present: non-linear file mapping */
+#define _PAGE_ACCESSED  _PAGE_SOFT1
+#define _PAGE_DIRTY     _PAGE_SOFT2
+#define _PAGE_FILE      _PAGE_DIRTY /* when !present: non-linear file mapping */
 
 /* Set of bits to retain in pte_modify() */
 #define _PAGE_CHG_MASK  (~(_PAGE_SR | _PAGE_SW | _PAGE_SX | \

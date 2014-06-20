@@ -1,6 +1,7 @@
 #include <linux/init.h>
 #include <linux/mm.h>
 #include <linux/bootmem.h>
+#include <linux/sched.h>
 #include <linux/initrd.h>
 
 #include <asm/setup.h>
@@ -54,7 +55,7 @@ static void __init setup_bootmem(void)
 
 	mem_size = MEMORY_SIZE;
 	printk(KERN_INFO "Detected 0x%lx bytes of physical memory\n", mem_size);
-	end_pfn = PFN_DOWN(min(VMALLOC_END - PAGE_OFFSET, mem_size));
+	end_pfn = PFN_DOWN(min(VMALLOC_START - PAGE_OFFSET, mem_size));
 
 	/* First page after kernel image */
 	start_pfn = PFN_UP(__pa(&_end));
@@ -84,6 +85,11 @@ void __init setup_arch(char **cmdline_p)
 #endif /* CONFIG_CMDLINE_BOOL */
 	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
 	*cmdline_p = command_line;
+
+	init_mm.start_code = (unsigned long) _stext;
+	init_mm.end_code   = (unsigned long) _etext;
+	init_mm.end_data   = (unsigned long) _edata;
+	init_mm.brk        = (unsigned long) _end;
 
 	setup_bootmem();
 	paging_init();

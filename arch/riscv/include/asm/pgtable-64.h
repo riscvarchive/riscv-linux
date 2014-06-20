@@ -36,9 +36,14 @@ static inline int pud_bad(pud_t pud)
 	return !pud_present(pud);
 }
 
+static inline void set_pud(pud_t *pudp, pud_t pud)
+{
+	*pudp = pud;
+}
+
 static inline void pud_clear(pud_t *pudp)
 {
-	*pudp = __pud(0);
+	set_pud(pudp, __pud(0));
 }
 
 static inline unsigned long pud_page_vaddr(pud_t pud)

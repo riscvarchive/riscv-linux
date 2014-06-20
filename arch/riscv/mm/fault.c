@@ -156,9 +156,53 @@ do_sigbus:
 	return;
 
 vmalloc_fault:
-	if (user_mode(regs))
-		goto bad_area;
-	/* TODO */
-	panic("do_page_fault: vmalloc_fault unimplemented");
-	return;
+	{
+		pgd_t *pgd, *pgd_k;
+		pud_t *pud, *pud_k;
+		pmd_t *pmd, *pmd_k;
+		pte_t *pte_k;
+		int index;
+
+	        if (user_mode(regs))
+			goto bad_area;
+
+		/*
+		 * Synchronize this task's top level page-table
+		 * with the 'reference' page table.
+		 *
+		 * Do _not_ use "tsk->active_mm->pgd" here.
+		 * We might be inside an interrupt in the middle
+		 * of a task switch.
+		 */
+		index = pgd_index(addr);
+		pgd = (pgd_t *)__va(csr_read(ptbr)) + index;
+		pgd_k = init_mm.pgd + index;
+
+		if (!pgd_present(*pgd_k))
+			goto no_context;
+		set_pgd(pgd, *pgd_k);
+
+		pud = pud_offset(pgd, addr);
+		pud_k = pud_offset(pgd_k, addr);
+		if (!pud_present(*pud_k))
+			goto no_context;
+
+		/* Since the vmalloc area is global, it is unnecessary
+		   to copy individual PTEs */
+		pmd = pmd_offset(pud, addr);
+		pmd_k = pmd_offset(pud_k, addr);
+		if (!pmd_present(*pmd_k))
+			goto no_context;
+		set_pmd(pmd, *pmd_k);
+
+		/* Make sure the actual PTE exists as well to
+		 * catch kernel vmalloc-area accesses to non-mapped
+		 * addresses. If we don't do this, this will just
+		 * silently loop forever.
+		 */
+		pte_k = pte_offset_kernel(pmd_k, addr);
+		if (!pte_present(*pte_k))
+			goto no_context;
+		return;
+	}
 }

@@ -1,6 +1,8 @@
 #ifndef _ASM_RISCV_PGTABLE_H
 #define _ASM_RISCV_PGTABLE_H
 
+#include <asm/pgtable-bits.h>
+
 #ifndef __ASSEMBLY__
 
 #ifdef CONFIG_MMU
@@ -8,8 +10,6 @@
 /* Page Upper Directory not used in RISC-V */
 #include <asm-generic/pgtable-nopud.h>
 #include <asm/page.h>
-#include <asm/pgtable-bits.h>
-
 #include <linux/mm_types.h>
 
 #ifdef CONFIG_32BIT
@@ -28,23 +28,20 @@
 #define USER_PTRS_PER_PGD   (TASK_SIZE / PGDIR_SIZE)
 #define FIRST_USER_ADDRESS  0
 
-#define VMALLOC_START   (PAGE_OFFSET)
-#define VMALLOC_END     (PAGE_OFFSET + ((1 << 13) << PAGE_SHIFT))
-
 /* Page protection bits */
-#define _PAGE_BASE      (_PAGE_R | _PAGE_V | _PAGE_PRESENT)
+#define _PAGE_BASE      (_PAGE_ACCESSED | _PAGE_V)
 #define _PAGE_RD        (_PAGE_SR | _PAGE_UR)
 #define _PAGE_WR        (_PAGE_SW | _PAGE_UW)
 #define _PAGE_EX        (_PAGE_SX | _PAGE_UX)
 
-#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SX)
+#define PAGE_KERNEL     __pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_SX | _PAGE_G)
 #define PAGE_NONE       __pgprot(0)
 
-#define PAGE_R         __pgprot(_PAGE_BASE | _PAGE_RD)
-#define PAGE_W         __pgprot(_PAGE_BASE | _PAGE_WR)
-#define PAGE_RW        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR)
-#define PAGE_RX        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_EX)
-#define PAGE_RWX       __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR | _PAGE_EX)
+#define PAGE_R          __pgprot(_PAGE_BASE | _PAGE_RD)
+#define PAGE_W          __pgprot(_PAGE_BASE | _PAGE_WR)
+#define PAGE_RW         __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR)
+#define PAGE_RX         __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_EX)
+#define PAGE_RWX        __pgprot(_PAGE_BASE | _PAGE_RD | _PAGE_WR | _PAGE_EX)
 
 static inline void pgtable_cache_init(void)
 {
@@ -66,9 +63,14 @@ static inline int pmd_bad(pmd_t pmd)
 	return !pmd_present(pmd);
 }
 
+static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
+{
+	*pmdp = pmd;
+}
+
 static inline void pmd_clear(pmd_t *pmdp)
 {
-	*pmdp = __pmd(0);
+	set_pmd(pmdp, __pmd(0));
 }
 
 #define pte_unmap(pte) ((void)(pte))
@@ -199,7 +201,7 @@ static inline int pte_write(pte_t pte)
 
 static inline int pte_dirty(pte_t pte)
 {
-	return pte_val(pte) & _PAGE_D;
+	return pte_val(pte) & _PAGE_DIRTY;
 }
 
 static inline int pte_file(pte_t pte)
@@ -209,7 +211,7 @@ static inline int pte_file(pte_t pte)
 
 static inline int pte_young(pte_t pte)
 {
-	return pte_val(pte) & _PAGE_R;
+	return pte_val(pte) & _PAGE_ACCESSED;
 }
 
 /* static inline pte_t pte_rdprotect(pte_t pte) */
@@ -230,22 +232,22 @@ static inline pte_t pte_mkwrite(pte_t pte)
 
 static inline pte_t pte_mkdirty(pte_t pte)
 {
-	return __pte(pte_val(pte) | _PAGE_D);
+	return __pte(pte_val(pte) | _PAGE_DIRTY);
 }
 
 static inline pte_t pte_mkclean(pte_t pte)
 {
-	return __pte(pte_val(pte) & ~(_PAGE_D));
+	return __pte(pte_val(pte) & ~(_PAGE_DIRTY));
 }
 
 static inline pte_t pte_mkyoung(pte_t pte)
 {
-	return __pte(pte_val(pte) & ~(_PAGE_R)); 
+	return __pte(pte_val(pte) & ~(_PAGE_ACCESSED));
 }
 
 static inline pte_t pte_mkold(pte_t pte)
 {
-	return __pte(pte_val(pte) | _PAGE_R);
+	return __pte(pte_val(pte) | _PAGE_ACCESSED);
 }
 
 static inline int pte_special(pte_t pte)
@@ -315,8 +317,11 @@ extern pmd_t ident_pm_dir[PTRS_PER_PMD];
 extern pmd_t kern_pm_dir[PTRS_PER_PMD];
 #endif /* __PAGETABLE_PMD_FOLDED */
 
+#include <asm-generic/pgtable.h>
+
 #endif /* !__ASSEMBLY__ */
 
-#include <asm-generic/pgtable.h>
+#define VMALLOC_START    _AC(0xfffffffff8000000,UL)
+#define VMALLOC_END      _AC(0xffffffffffffffff,UL)
 
 #endif /* _ASM_RISCV_PGTABLE_H */

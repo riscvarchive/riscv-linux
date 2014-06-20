@@ -13,17 +13,6 @@
 #ifdef CONFIG_64BIT
 static void __init pagetable_init(void)
 {
-	unsigned int i, start, end;
-	unsigned long ppn;
-	start = pmd_index(PAGE_OFFSET);
-	end = pmd_index((unsigned long)pfn_to_virt(max_low_pfn));
-
-	ppn = 0UL;
-	for (i = start; i <= end; i++)
-	{
-		kern_pm_dir[i] = __pmd(ppn | pgprot_val(PAGE_KERNEL) | _PAGE_V);
-		ppn += PMD_SIZE;
-	}
 	/* Remove identity mapping to catch NULL pointer dereferences */
 	swapper_pg_dir[0] = __pgd(0);
 }
