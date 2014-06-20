@@ -1,12 +1,16 @@
 This is a port of Linux kernel for the RISC-V architecture.
-Development is currently based on the 3.4 long-term support branch.
+Development is currently based on the 3.12 long-term support branch.
 
 Building this kernel
 ====================
 Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
-	$ git clone https://github.com/ucb-bar/riscv-linux.git linux-3.4.76
-	$ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.4.76.tar.xz | tar -xJk
+	$ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.12.22.tar.xz | tar -xJ
+	$ cd linux-3.12.22
+	$ git init
+	$ git remote add origin https://github.com/ucb-bar/riscv-linux.git
+	$ git fetch
+	$ git checkout -f -t origin/master
 
 Generate default kernel configuration:
 
@@ -32,9 +36,9 @@ Linux headers are already available in the riscv-gcc repository.
 If headers are changed, export them to the riscv-gcc installation directory:
 
 	$ make ARCH=riscv headers_check
-	$ make ARCH=riscv headers_install INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-headers
+	$ make ARCH=riscv INSTALL_HDR_PATH=/path/to/riscv-gcc/linux-headers headers_install
 
 Build riscv-gcc with the linux target:
 
-	$ make linux INSTALL_DIR=/path/to/install
+	$ make INSTALL_DIR=/path/to/install linux
 
