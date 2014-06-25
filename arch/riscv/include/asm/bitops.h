@@ -12,6 +12,8 @@
 #include <asm/barrier.h>
 #include <asm/bitsperlong.h>
 
+#ifdef CONFIG_RV_ATOMIC
+
 #define LONG_MASK(nr) (1UL << ((nr) & (BITS_PER_LONG - 1)))
 #ifdef CONFIG_64BIT
 #define LONG_WORD(nr) ((nr) >> 6)
@@ -276,5 +278,12 @@ static inline void __clear_bit_unlock(
 #include <asm-generic/bitops/le.h>
 #include <asm-generic/bitops/ext2-atomic.h>
 
+#else /* !CONFIG_RV_ATOMIC */
+
+#include <asm-generic/bitops.h>
+
+#endif /* CONFIG_RV_ATOMIC */
+
 #endif /* __KERNEL__ */
+
 #endif /* _ASM_RISCV_BITOPS_H */
