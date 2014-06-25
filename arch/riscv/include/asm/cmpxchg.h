@@ -3,6 +3,8 @@
 
 #include <linux/bug.h>
 
+#ifdef CONFIG_RV_ATOMIC
+
 #include <asm/barrier.h>
 
 #define __xchg(new, ptr, size)					\
@@ -103,5 +105,11 @@
 	BUILD_BUG_ON(sizeof(*(ptr)) != 8);	\
 	cmpxchg_local((ptr), (o), (n));		\
 })
+
+#else /* !CONFIG_RV_ATOMIC */
+
+#include <asm-generic/cmpxchg.h>
+
+#endif /* CONFIG_RV_ATOMIC */
 
 #endif /* _ASM_RISCV_CMPXCHG_H */

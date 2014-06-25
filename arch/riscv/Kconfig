@@ -9,6 +9,9 @@ config RISCV
 	select CLONE_BACKWARDS
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
+	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
+	select RV_ATOMIC if SMP
+	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
 
 config MMU
 	def_bool y
@@ -46,6 +49,22 @@ config CPU_SUPPORTS_32BIT_KERNEL
 	bool
 config CPU_SUPPORTS_64BIT_KERNEL
 	bool
+
+config RV_ATOMIC
+	bool "Use atomic memory instructions (RV32A or RV64A)"
+	default y
+
+config RV_SYSRISCV_ATOMIC
+	bool "Include support for atomic operation syscalls"
+	default n
+	help
+	  If atomic memory instructions are present, i.e.,
+	  CONFIG_RV_ATOMIC, this includes support for the syscall that
+	  provides atomic accesses.  This is only useful to run
+	  binaries that require atomic access but were compiled with
+	  -mno-atomic.
+
+	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
 
 menuconfig HTIF
 	bool "HTIF"

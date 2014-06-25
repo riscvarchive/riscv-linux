@@ -55,7 +55,6 @@ generic-y += stat.h
 generic-y += statfs.h
 generic-y += swab.h
 generic-y += switch_to.h
-generic-y += syscalls.h
 generic-y += termbits.h
 generic-y += termios.h
 generic-y += topology.h

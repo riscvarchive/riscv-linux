@@ -30,6 +30,10 @@ else
 	KBUILD_CFLAGS += -m32
 endif
 
+ifeq ($(CONFIG_RV_ATOMIC),)
+KBUILD_CFLAGS += -mno-atomic
+endif
+
 KBUILD_CFLAGS += -Wall
 KBUILD_CFLAGS += -fno-section-anchors
 

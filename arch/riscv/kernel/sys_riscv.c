@@ -1,4 +1,5 @@
 #include <linux/syscalls.h>
+#include <asm/unistd.h>
 
 SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 	unsigned long, prot, unsigned long, flags,
@@ -9,3 +10,50 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
 }
 
+#ifdef CONFIG_RV_SYSRISCV_ATOMIC
+SYSCALL_DEFINE4(sysriscv, unsigned long, cmd, unsigned long, arg1,
+	unsigned long, arg2, unsigned long, arg3)
+{
+	unsigned long flags;
+	unsigned long prev;
+	unsigned int err;
+
+	switch (cmd) {
+	case RISCV_ATOMIC_CMPXCHG:
+		if (unlikely(!access_ok(VERIFY_WRITE, arg1, sizeof(unsigned int))))
+			return -EINVAL;
+
+		preempt_disable();
+		raw_local_irq_save(flags);
+		err = __get_user(prev, (unsigned int *)arg1);
+		if (prev == arg2)
+			err |= __put_user(arg3, (unsigned int *)arg1);
+		raw_local_irq_restore(flags);
+		preempt_enable();
+
+		if (unlikely(err))
+			return -EFAULT;
+
+		return prev;
+
+	case RISCV_ATOMIC_CMPXCHG64:
+		if (unlikely(!access_ok(VERIFY_WRITE, arg1, sizeof(unsigned long))))
+			return -EINVAL;
+
+		preempt_disable();
+		raw_local_irq_save(flags);
+		err = __get_user(prev, (unsigned long *)arg1);
+		if (prev == arg2)
+			err |= __put_user(arg3, (unsigned long *)arg1);
+		raw_local_irq_restore(flags);
+		preempt_enable();
+
+		if (unlikely(err))
+			return -EFAULT;
+
+		return prev;
+	}
+
+	return -EINVAL;
+}
+#endif /* CONFIG_RV_SYSRISCV_ATOMIC */
