@@ -145,7 +145,6 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 	return ((res & mask) != 0);
 }
 
-#ifndef CONFIG_SMP
 /**
  * test_and_change_bit - Change a bit and return its old value
  * @nr: Bit to change
@@ -159,21 +158,18 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 	unsigned long res;
 	unsigned long mask;
 	volatile unsigned long *p;
-	unsigned long flags;
 
 	mask = LONG_MASK(nr);
 	p = addr + LONG_WORD(nr);
 
-	local_save_flags(flags);
-	res = *p;
-	*p = (res ^ mask);
-	local_irq_restore(flags);
+	__asm__ __volatile__ (
+		"amoxor.d %0, %2, 0(%1)"
+		: "=r" (res)
+		: "r" (p), "r" (~mask)
+		: "memory");
 
 	return ((res & mask) != 0);
 }
-#else
-#error "SMP not supported by current test_and_change_bit implementation"
-#endif /* !CONFIG_SMP */
 
 /**
  * set_bit - Atomically set a bit in memory
