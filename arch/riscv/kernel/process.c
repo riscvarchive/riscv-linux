@@ -70,14 +70,12 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 		*childregs = *(current_pt_regs());
 		if (usp) /* User fork */
 			childregs->sp = usp;
+		if (clone_flags & CLONE_SETTLS)
+			childregs->tp = childregs->a[5];
 		childregs->v[0] = 0; /* Return value of fork() */
 		p->thread.ra = (unsigned long)ret_from_fork;
 	}
 	p->thread.sp = (unsigned long)childregs; /* kernel sp */
-/*
-	if (clone_flags & CLONE_SETTLS) {
-	}
-*/
 	return 0;
 }
 
