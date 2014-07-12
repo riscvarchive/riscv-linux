@@ -43,14 +43,7 @@ static inline int arch_irqs_disabled(void)
 /* set interrupt enabled status */
 static void arch_local_irq_restore(unsigned long flags)
 {
-	if (!arch_irqs_disabled_flags(flags)) {
-		arch_local_irq_enable();
-	} else {
-		/* Not strictly necessary if it can be guaranteed
-		   that SR_EI has already been cleared through
-		   arch_irqs_disabled_flags() */
-		arch_local_irq_disable();
-	}
+	csr_set(status, flags & SR_EI);
 }
 
 #endif /* _ASM_RISCV_IRQFLAGS_H */
