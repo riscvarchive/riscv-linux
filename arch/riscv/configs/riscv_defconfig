@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/riscv 3.12.22 Kernel Configuration
+# Linux/riscv 3.14.13 Kernel Configuration
 #
 CONFIG_RISCV=y
 CONFIG_MMU=y
@@ -39,6 +39,7 @@ CONFIG_NEED_PER_CPU_KM=y
 # CONFIG_FRONTSWAP is not set
 # CONFIG_CMA is not set
 # CONFIG_ZBUD is not set
+# CONFIG_ZSMALLOC is not set
 CONFIG_PREEMPT_NONE=y
 # CONFIG_PREEMPT_VOLUNTARY is not set
 # CONFIG_PREEMPT is not set
@@ -105,7 +106,6 @@ CONFIG_UTS_NS=y
 # CONFIG_USER_NS is not set
 CONFIG_PID_NS=y
 CONFIG_NET_NS=y
-# CONFIG_UIDGID_STRICT_TYPE_CHECKS is not set
 # CONFIG_SCHED_AUTOGROUP is not set
 # CONFIG_RELAY is not set
 # CONFIG_BLK_DEV_INITRD is not set
@@ -139,6 +139,8 @@ CONFIG_SLUB=y
 # CONFIG_SLOB is not set
 # CONFIG_PROFILING is not set
 CONFIG_HAVE_64BIT_ALIGNED_ACCESS=y
+# CONFIG_CC_STACKPROTECTOR is not set
+CONFIG_HAVE_VIRT_CPU_ACCOUNTING_GEN=y
 CONFIG_CLONE_BACKWARDS=y
 
 #
@@ -262,6 +264,7 @@ CONFIG_DEFAULT_TCP_CONG="cubic"
 # CONFIG_NETLINK_MMAP is not set
 # CONFIG_NETLINK_DIAG is not set
 # CONFIG_NET_MPLS_GSO is not set
+# CONFIG_HSR is not set
 CONFIG_NET_RX_BUSY_POLL=y
 
 #
@@ -335,6 +338,14 @@ CONFIG_FW_LOADER_USER_HELPER=y
 #
 
 #
+# Intel MIC Host Driver
+#
+
+#
+# Intel MIC Card Driver
+#
+
+#
 # SCSI device support
 #
 CONFIG_SCSI_MOD=y
@@ -377,7 +388,6 @@ CONFIG_INPUT=y
 # Hardware I/O ports
 #
 CONFIG_SERIO=y
-# CONFIG_SERIO_I8042 is not set
 CONFIG_SERIO_SERPORT=y
 # CONFIG_SERIO_LIBPS2 is not set
 # CONFIG_SERIO_RAW is not set
@@ -414,7 +424,6 @@ CONFIG_DEVKMEM=y
 # CONFIG_SERIAL_ALTERA_UART is not set
 # CONFIG_SERIAL_ARC is not set
 # CONFIG_SERIAL_FSL_LPUART is not set
-# CONFIG_SERIAL_ST_ASC is not set
 # CONFIG_TTY_PRINTK is not set
 # CONFIG_IPMI_HANDLER is not set
 # CONFIG_HW_RANDOM is not set
@@ -448,7 +457,6 @@ CONFIG_DEVKMEM=y
 #
 # Enable PHYLIB and NETWORK_PHY_TIMESTAMPING to see the additional clocks.
 #
-CONFIG_GPIO_DEVRES=y
 # CONFIG_W1 is not set
 # CONFIG_POWER_SUPPLY is not set
 # CONFIG_POWER_AVS is not set
@@ -498,6 +506,7 @@ CONFIG_FB_CFB_IMAGEBLIT=y
 #
 # Frame buffer hardware drivers
 #
+# CONFIG_FB_OPENCORES is not set
 # CONFIG_FB_S1D13XXX is not set
 # CONFIG_FB_VIRTUAL is not set
 # CONFIG_FB_METRONOME is not set
@@ -541,6 +550,7 @@ CONFIG_HID_GENERIC=y
 # CONFIG_HID_TWINHAN is not set
 # CONFIG_HID_KENSINGTON is not set
 # CONFIG_HID_LCPOWER is not set
+# CONFIG_HID_LENOVO_TPKBD is not set
 # CONFIG_HID_LOGITECH is not set
 # CONFIG_HID_MAGICMOUSE is not set
 # CONFIG_HID_MICROSOFT is not set
@@ -607,6 +617,13 @@ CONFIG_USB_OHCI_LITTLE_ENDIAN=y
 # CONFIG_IPACK_BUS is not set
 # CONFIG_RESET_CONTROLLER is not set
 # CONFIG_FMC is not set
+
+#
+# PHY Subsystem
+#
+# CONFIG_GENERIC_PHY is not set
+# CONFIG_PHY_EXYNOS_MIPI_VIDEO is not set
+# CONFIG_POWERCAP is not set
 
 #
 # File systems
@@ -719,6 +736,7 @@ CONFIG_DEBUG_KERNEL=y
 # CONFIG_DETECT_HUNG_TASK is not set
 # CONFIG_PANIC_ON_OOPS is not set
 CONFIG_PANIC_ON_OOPS_VALUE=0
+CONFIG_PANIC_TIMEOUT=0
 CONFIG_SCHED_DEBUG=y
 # CONFIG_SCHEDSTATS is not set
 # CONFIG_TIMER_STATS is not set
@@ -877,6 +895,7 @@ CONFIG_CRC32_SLICEBY8=y
 # CONFIG_CRC7 is not set
 # CONFIG_LIBCRC32C is not set
 # CONFIG_CRC8 is not set
+# CONFIG_RANDOM32_SELFTEST is not set
 # CONFIG_XZ_DEC is not set
 # CONFIG_XZ_DEC_BCJ is not set
 CONFIG_HAS_IOMEM=y
