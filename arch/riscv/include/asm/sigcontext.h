@@ -1,16 +1,21 @@
 #ifndef __ASM_RISCV_SIGCONTEXT_H
 #define __ASM_RISCV_SIGCONTEXT_H
 
-#include <asm/ptrace.h>
-#include <asm/user.h>
-
 /* This struct is saved by setup_frame in signal.c, to keep the current
  * context while a signal handler is executed. It is restored by sys_sigreturn.
  */
 
 struct sigcontext {
-	struct user_regs_struct regs;  /* needs to be first */
-	unsigned long oldmask;
+	unsigned long zero;
+	unsigned long ra;
+	unsigned long s[12];
+	unsigned long sp;
+	unsigned long tp;
+	unsigned long v[2];
+	unsigned long a[8];
+	unsigned long t[5];
+	unsigned long gp;
+	unsigned long epc;
 };
 
 #endif /* __ASM_RISCV_SIGCONTEXT_H */

@@ -2,10 +2,13 @@
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
 #include <linux/perf_event.h>
+#include <linux/signal.h>
 
 #include <asm/pgalloc.h>
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
+
+int show_unhandled_signals = 1;
 
 extern void die(char *, struct pt_regs *, long);
 

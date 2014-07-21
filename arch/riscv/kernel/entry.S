@@ -167,6 +167,7 @@ handle_syscall:
 	sd s0, PT_EPC(sp)
 	la s0, sys_call_table
 	/* Syscall number held in v0 */
+	sd v0, PT_SYSCALLNO(sp) /* save in case of restart */
 	slli v0, v0, 3
 	add s0, s0, v0
 	ld s0, 0(s0)
@@ -175,7 +176,7 @@ handle_syscall:
 	sd v0, PT_V0(sp)
 
 handle_exception_tail:
-	csrr s0, status
+	ld s0, PT_STATUS(sp)
 	andi s0, s0, SR_PS
 	bnez s0, restore_and_return
 	/* Otherwise resume userspace */

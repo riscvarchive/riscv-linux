@@ -60,4 +60,5 @@ void asm_offsets(void)
 	OFFSET(PT_EPC, pt_regs, epc);
 	OFFSET(PT_BADVADDR, pt_regs, badvaddr);
 	OFFSET(PT_CAUSE, pt_regs, cause);
+	OFFSET(PT_SYSCALLNO, pt_regs, syscallno);
 }

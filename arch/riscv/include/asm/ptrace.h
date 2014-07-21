@@ -20,6 +20,8 @@ typedef struct pt_regs {
 	unsigned long epc;
 	unsigned long badvaddr;
 	unsigned long cause;
+	/* For restarting system calls */
+	unsigned long syscallno;
 } pt_regs;
 
 #define user_mode(regs) (((regs)->status & SR_PS) == 0)
