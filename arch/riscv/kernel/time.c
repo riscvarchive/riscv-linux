@@ -75,7 +75,7 @@ static struct clocksource riscv_clocksource = {
 void __init time_init(void)
 {
 	u32 freq;
-	freq = 100000000UL;
+	freq = 500000000UL;
 
 	csr_write(count, 0);
 

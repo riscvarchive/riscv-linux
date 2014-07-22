@@ -1,4 +1,5 @@
-This is a port of Linux kernel for the RISC-V architecture.
+This is a port of Linux kernel for the RISC-V architecture, modified to boot
+in qemu.
 Development is currently based on the 3.14 long-term support branch.
 
 Building this kernel
@@ -14,7 +15,7 @@ Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 
 Generate default kernel configuration:
 
-	$ make ARCH=riscv defconfig
+	$ make ARCH=riscv qemu_defconfig
 
 Edit configuration via an ncurses interface:
 
@@ -24,10 +25,7 @@ Build static kernel image:
 
 	$ make ARCH=riscv -j vmlinux
 
-Run the kernel image:
-
-	$ spike +disk=/path/to/root.img vmlinux
-
+To run the kernel image, see the instructions in the riscv-qemu repo's README.md.
 
 Building riscv-gcc and glibc against this kernel
 ================================================
