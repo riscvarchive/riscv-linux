@@ -1,5 +1,4 @@
-This is a port of Linux kernel for the RISC-V architecture, modified to boot
-in qemu.
+This is a port of Linux kernel for the RISC-V architecture, modified to boot in qemu.
 Development is currently based on the 3.14 long-term support branch.
 
 Building this kernel
@@ -11,7 +10,7 @@ Obtain RISC-V architecture-dependent subtree and overlay sources from upstream:
 	$ git init
 	$ git remote add origin git@github.com:ucb-bar/riscv-linux.git
 	$ git fetch
-	$ git checkout -f -t origin/master
+	$ git checkout -f -t origin/qemu
 
 Generate default kernel configuration:
 
