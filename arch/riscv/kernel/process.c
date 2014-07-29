@@ -11,18 +11,16 @@
 extern asmlinkage void ret_from_fork(void);
 extern asmlinkage void ret_from_kernel_thread(void);
 
-void __noreturn cpu_idle(void)
+#if 0
+/*
+ * Default to the generic definition until the RISC-V specification
+ * incorporates architectural support an explicit sleep mode.
+ */
+void arch_cpu_idle(void)
 {
-	for (;;) {
-		tick_nohz_idle_enter();
-		rcu_idle_enter();
-		while (!need_resched())
-			cpu_relax();
-		rcu_idle_exit();
-		tick_nohz_idle_exit();
-		schedule_preempt_disabled();
-	}
+	local_irq_enable();
 }
+#endif
 
 unsigned long get_wchan(struct task_struct *task)
 {
@@ -40,10 +38,6 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	regs->status &= ~(SR_PS);
 	regs->epc = pc;
 	regs->sp = sp;
-}
-
-void exit_thread(void)
-{
 }
 
 void flush_thread(void)
@@ -78,9 +72,3 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	p->thread.sp = (unsigned long)childregs; /* kernel sp */
 	return 0;
 }
-
-unsigned long thread_saved_pc(struct task_struct *tsk)
-{
-	return task_pt_regs(tsk)->epc;
-}
-
