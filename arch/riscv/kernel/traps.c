@@ -10,64 +10,6 @@
 
 extern asmlinkage void handle_exception(void);
 
-static void show_backtrace(struct task_struct *task, const struct pt_regs *regs)
-{
-#ifdef CONFIG_FRAME_POINTER
-	unsigned long sp, fp, pc;
-
-	printk("Call Trace:\n");
-	if (regs) {
-		sp = GET_USP(regs);
-		fp = GET_FP(regs);
-		pc = GET_IP(regs);
-	} else if (!task || task == current) {
-		const register unsigned long current_sp __asm__ ("sp");
-		const register unsigned long current_fp __asm__ ("s0");
-		sp = current_sp;
-		fp = current_fp;
-		pc = (unsigned long)(&show_backtrace);
-	} else {
-		sp = task->thread.sp;
-		fp = task->thread.s[0];
-		pc = task->thread.ra;
-	}
-
-	for (;;) {
-		if (!kernel_text_address(pc))
-			return;
-		printk(" [<%08lx>] %pS\n", pc, (void *)pc);
-		if (fp < sp + 0x10 || fp >= ALIGN(sp, THREAD_SIZE))
-			return;
-		/* Unwind stack frame */
-		sp = fp;
-		pc = *(unsigned long *)(fp - 0x8) - 0x4;
-		fp = *(unsigned long *)(fp - 0x10);
-	}
-#endif /* CONFIG_FRAME_POINTER */
-}
-
-void show_stack(struct task_struct *task, unsigned long *sp)
-{
-	show_backtrace(task, NULL);
-}
-
-void dump_stack(void)
-{
-	struct task_struct *task;
-	task = current;
-	printk("pid: %d, comm: %.20s %s\n",
-		task->pid, task->comm, print_tainted());
-	show_backtrace(NULL, NULL);
-}
-EXPORT_SYMBOL(dump_stack);
-
-void show_regs(struct pt_regs *regs)
-{
-}
-
-extern void *sys_call_table[__NR_syscalls];
-
-
 void die(const char *str, struct pt_regs *regs, long err)
 {
 	int ret;

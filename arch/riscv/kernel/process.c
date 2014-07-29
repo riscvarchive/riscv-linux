@@ -22,13 +22,36 @@ void arch_cpu_idle(void)
 }
 #endif
 
-unsigned long get_wchan(struct task_struct *task)
+void show_regs(struct pt_regs *regs)
 {
-	if (!task || task == current || task->state == TASK_RUNNING)
-		return 0;
-	if (!task_stack_page(task))
-		return 0;
-	return task->thread.ra;
+	show_regs_print_info(KERN_DEFAULT);
+
+	printk("x0 : %016lx ra : %016lx s0 : %016lx\n",
+		regs->zero, regs->ra, regs->s[0]);
+	printk("s1 : %016lx s2 : %016lx s3 : %016lx\n",
+		regs->s[1], regs->s[2], regs->s[3]);
+	printk("s4 : %016lx s5 : %016lx s6 : %016lx\n",
+		regs->s[4], regs->s[5], regs->s[6]);
+	printk("s7 : %016lx s8 : %016lx s9 : %016lx\n",
+		regs->s[7], regs->s[8], regs->s[9]);
+	printk("s10: %016lx s11: %016lx sp : %016lx\n",
+		regs->s[10], regs->s[11], regs->sp);
+	printk("tp : %016lx v0 : %016lx v1 : %016lx\n",
+		regs->tp, regs->v[0], regs->v[1]);
+	printk("a0 : %016lx a1 : %016lx a2 : %016lx\n",
+		regs->a[0], regs->a[1], regs->a[2]);
+	printk("a3 : %016lx a4 : %016lx a5 : %016lx\n",
+		regs->a[3], regs->a[4], regs->a[5]);
+	printk("a6 : %016lx a7 : %016lx t0 : %016lx\n",
+		regs->a[6], regs->a[7], regs->t[0]);
+	printk("t1 : %016lx t2 : %016lx t3 : %016lx\n",
+		regs->t[1], regs->t[2], regs->t[3]);
+	printk("t4 : %016lx gp : %016lx\n",
+		regs->t[4], regs->gp);
+
+	printk("status  : %016lx epc  : %016lx\n"
+		"badvaddr: %016lx cause: %016lx\n",
+		regs->status, regs->epc, regs->badvaddr, regs->cause);
 }
 
 void start_thread(struct pt_regs *regs, unsigned long pc, 
