@@ -4,7 +4,6 @@
 #ifndef __ASSEMBLY__
 
 #include <linux/threads.h>
-#include <asm/segment.h>
 
 struct task_struct;
 struct pt_regs;

@@ -128,7 +128,7 @@ ENTRY(handle_exception)
 	SAVE_ALL
 	csrr s0, cause
 	la gp, _gp
-	la ra, handle_exception_tail
+	la ra, ret_from_exception
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
 	bge s0, zero, 1f
@@ -175,48 +175,53 @@ handle_syscall:
 	/* Set user v0 to kernel v0 */
 	sd v0, PT_V0(sp)
 
-handle_exception_tail:
+ret_from_exception:
 	ld s0, PT_STATUS(sp)
 	andi s0, s0, SR_PS
-	bnez s0, restore_and_return
-	/* Otherwise resume userspace */
+	bnez s0, restore_all
 
 resume_userspace:
+	csrc status, SR_EI /* Disable interrupts to ensure that thread
+	                      info flags are checked atomically */
 	csrr s0, sup0
 	ld s0, TASK_THREAD_INFO(s0)
 	ld s0, TI_FLAGS(s0) /* current_thread_info->flags */
+	andi s1, s0, _TIF_WORK_MASK
+	bnez s1, work_pending
 
-	li s1, (_TIF_WORK_MASK)
-	and s1, s0, s1
-	beqz s1, restore_and_return
+restore_all:
+	RESTORE_ALL
+	sret
+
+work_pending:
+	/* Enter slow path for supplementary processing */
 	la ra, resume_userspace
-
-	andi s1, s0, (_TIF_NEED_RESCHED)
-	beqz s1, work_notifysig
-	jump schedule
-
+	andi s1, s0, _TIF_NEED_RESCHED
+	bnez s1, work_resched
 work_notifysig:
 	/* Handle pending signals and notify-resume requests */
+	csrs status, SR_EI /* Enable interrupts for do_notify_resume() */
 	move a0, sp /* pt_regs */
 	move a1, s0 /* current_thread_info->flags */
 	jump do_notify_resume
+work_resched:
+	jump schedule
+
+END(handle_exception)
+
+
+ENTRY(ret_from_fork)
+	la ra, restore_all
+	jump schedule_tail
+ENDPROC(ret_from_fork)
 
 ENTRY(ret_from_kernel_thread)
 	call schedule_tail
 	/* Call fn(arg) */
-	la ra, restore_and_return
+	la ra, restore_all
 	move a0, s1
 	jr s0
-END(ret_from_kernel_thread)
-
-ENTRY(ret_from_fork)
-	call schedule_tail
-restore_and_return:
-	RESTORE_ALL
-	sret
-END(ret_from_fork)
-
-END(handle_exception)
+ENDPROC(ret_from_kernel_thread)
 
 
 /*
@@ -260,7 +265,7 @@ ENTRY(__switch_to)
 	csrw sup0, a1 /* Next current pointer */
 	move v0, a0   /* Preserve reference */
 	ret
-END(__switch_to)
+ENDPROC(__switch_to)
 
 
 	.section ".rodata"

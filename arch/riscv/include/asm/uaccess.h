@@ -10,11 +10,9 @@
 #include <linux/mm.h>
 #include <linux/string.h>
 
-#include <asm/segment.h>
-
 extern int fixup_exception(struct pt_regs *, unsigned long);
 
-#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
+#define MAKE_MM_SEG(s)	((mm_segment_t)(s))
 
 #ifndef KERNEL_DS
 #define KERNEL_DS	MAKE_MM_SEG(~0UL)
@@ -34,7 +32,7 @@ static inline void set_fs(mm_segment_t fs)
 }
 #endif
 
-#define segment_eq(a, b) ((a).seg == (b).seg)
+#define segment_eq(a, b) ((a) == (b))
 
 #define VERIFY_READ	0
 #define VERIFY_WRITE	1

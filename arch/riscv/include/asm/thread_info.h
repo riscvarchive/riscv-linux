@@ -9,39 +9,29 @@
 /* thread information allocation */
 #define THREAD_SIZE_ORDER 	(0)
 #define THREAD_SIZE 		(PAGE_SIZE << THREAD_SIZE_ORDER)
-#define THREAD_MASK 		(THREAD_SIZE - _AC(1,UL))
-#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
 
 #ifndef __ASSEMBLY__
 
 #include <asm/processor.h>
 #include <asm/csr.h>
 
+typedef unsigned long mm_segment_t;
+
 /*
  * low level task data that entry.S needs immediate access to
  * - this struct should fit entirely inside of one cache line
- * - this struct shares the supervisor stack pages
- * - if the contents of this structure are changed, the assembly constants
- *   must also be changed
+ * - this struct resides at the bottom of the supervisor stack
+ * - if the members of this struct changes, the assembly constants
+ *   in asm-offsets.c must be updated accordingly
  */
 struct thread_info {
 	struct task_struct	*task;		/* main task structure */
 	struct exec_domain	*exec_domain;	/* execution domain */
 	unsigned long		flags;		/* low level flags */
-	unsigned long		tp_value;	/* thread pointer */
 	__u32			cpu;		/* current CPU */
-
-	/* 0 => preemptable, < 0 => BUG */
-	int			preempt_count;
-
-	/*
-	 * thread address space:
-	 * 0-0xBFFFFFFF for user-thead
-	 * 0-0xFFFFFFFF for kernel-thread
-	 */
+	int                     preempt_count;  /* 0 => preemptable, <0 => BUG */
 	mm_segment_t		addr_limit;
 	struct restart_block	restart_block;
-	struct pt_regs		*regs;
 };
 
 /*
@@ -55,7 +45,7 @@ struct thread_info {
 	.exec_domain	= &default_exec_domain,	\
 	.flags		= 0,			\
 	.cpu		= 0,			\
-	.preempt_count	= 1,			\
+	.preempt_count	= INIT_PREEMPT_COUNT,	\
 	.addr_limit	= KERNEL_DS,		\
 	.restart_block	= {			\
 		.fn = do_no_restart_syscall,	\
@@ -85,22 +75,19 @@ static inline struct thread_info *current_thread_info(void)
  * - other flags in upper half-word(s)
  */
 #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
-#define TIF_SIGPENDING		1	/* signal pending */
-#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-#define TIF_NOTIFY_RESUME	5	/* callback before returning to user */
-#define TIF_RESTORE_SIGMASK	9	/* restore signal mask in do_signal() */
-#define TIF_POLLING_NRFLAG	17	/* true if poll_idle() is polling
-						 TIF_NEED_RESCHED */
-#define TIF_MEMDIE		18	/* is terminating due to OOM killer */
+#define TIF_NOTIFY_RESUME	1	/* callback before returning to user */
+#define TIF_SIGPENDING		2	/* signal pending */
+#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
+#define TIF_RESTORE_SIGMASK	4	/* restore signal mask in do_signal() */
+#define TIF_MEMDIE		5	/* is terminating due to OOM killer */
 
 #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
 #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
 #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-#define _TIF_RESTORE_SIGMASK	(1 << TIF_RESTORE_SIGMASK)
-#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
 
-#define _TIF_WORK_MASK		(0x0000ffff)
+#define _TIF_WORK_MASK \
+	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | _TIF_NEED_RESCHED)
 
 #endif /* __KERNEL__ */
 
