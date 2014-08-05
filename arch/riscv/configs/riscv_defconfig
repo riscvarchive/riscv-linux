@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/riscv 3.14.14 Kernel Configuration
+# Linux/riscv 3.14.15 Kernel Configuration
 #
 CONFIG_RISCV=y
 CONFIG_MMU=y
@@ -881,6 +881,8 @@ CONFIG_CRYPTO_AES=y
 # Library routines
 #
 CONFIG_BITREVERSE=y
+CONFIG_GENERIC_STRNCPY_FROM_USER=y
+CONFIG_GENERIC_STRNLEN_USER=y
 CONFIG_GENERIC_NET_UTILS=y
 CONFIG_GENERIC_IO=y
 # CONFIG_CRC_CCITT is not set

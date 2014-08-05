@@ -7,6 +7,8 @@ config RISCV
 	def_bool y
 	select ARCH_WANT_FRAME_POINTERS
 	select CLONE_BACKWARDS
+	select GENERIC_STRNCPY_FROM_USER
+	select GENERIC_STRNLEN_USER
 
 config MMU
 	def_bool y

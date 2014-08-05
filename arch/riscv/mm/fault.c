@@ -132,7 +132,7 @@ bad_area:
 
 no_context:
 	/* Are we prepared to handle this fault as an exception? */
-	if (fixup_exception(regs, epc)) {
+	if (fixup_exception(regs)) {
 		return;
 	}
 	printk(KERN_ALERT "Unable to handle kernel paging request at "
