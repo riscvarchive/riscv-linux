@@ -43,10 +43,10 @@ The `riscv-gcc` repository includes a copy of the kernel header files.
 If the userspace API has changed, export the updated headers to the
 `riscv-gcc` source directory:
 
-        $ make ARCH=riscv headers_check
-        $ make ARCH=riscv INSTALL_HDR_PATH=path/to/riscv-gcc/linux-headers headers_install
+    $ make ARCH=riscv headers_check
+    $ make ARCH=riscv INSTALL_HDR_PATH=path/to/riscv-gcc/linux-headers headers_install
 
 Rebuild `riscv-gcc` with the `linux` target:
 
-        $ make INSTALL_DIR=path/to/install linux
+    $ make INSTALL_DIR=path/to/install linux
 
