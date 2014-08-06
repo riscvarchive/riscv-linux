@@ -17,8 +17,6 @@
 # Based on:
 # arch/score/Makefile
 
-KBUILD_DEFCONFIG 	:= riscv_defconfig
-
 LDFLAGS         :=
 OBJCOPYFLAGS    := -O binary
 LDFLAGS_vmlinux :=
