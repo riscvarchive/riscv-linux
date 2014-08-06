@@ -45,10 +45,18 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	if (unlikely((addr >= VMALLOC_START) && (addr <= VMALLOC_END)))
 		goto vmalloc_fault;
 
+	 /* Enable interrupts if they were previously enabled in the
+	    parent context */
+	if (likely(regs->status & SR_PEI))
+		local_irq_enable();
+
 	/* Do not take the fault if within an interrupt
 	   or if lacking a user context */
 	if (!mm || in_atomic())
 		goto no_context;
+
+	if (user_mode(regs))
+		flags |= FAULT_FLAG_USER;
 
 retry:
 	down_read(&mm->mmap_sem);
