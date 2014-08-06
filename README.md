@@ -1,11 +1,13 @@
-## Linux/RISC-V
+Linux/RISC-V
+================================================================================
 
 This is a port of Linux kernel for the [RISC-V](http://riscv.org/)
 instruction set architecture.
 Development is currently based on the [3.14 longterm branch](
 https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/log/?h=linux-3.14.y).
 
-### Building the kernel image
+Building the kernel image
+--------------------------------------------------------------------------------
 
 1. Fetch upstream sources and overlay the `riscv` architecture-specific
    subtree:
@@ -34,7 +36,8 @@ https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/log/?h=linu
 
         $ spike +disk=path/to/root.img vmlinux
 
-### Exporting kernel headers
+Exporting kernel headers
+--------------------------------------------------------------------------------
 
 The `riscv-gcc` repository includes a copy of the kernel header files.
 If the userspace API has changed, export the updated headers to the
