@@ -65,6 +65,11 @@ config HTIF_RFB
 	select FB_CFB_IMAGEBLIT
 	default y
 
+config HTIF_NET
+	tristate "HTIF network device support"
+	default y
+
+
 endif # HTIF
 
 endmenu
