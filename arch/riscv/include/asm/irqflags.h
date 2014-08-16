@@ -5,7 +5,7 @@
 #include <asm/csr.h>
 
 /* read interrupt enabled status */
-static unsigned long arch_local_save_flags(void)
+static inline unsigned long arch_local_save_flags(void)
 {
 	return csr_read(status);
 }
@@ -41,7 +41,7 @@ static inline int arch_irqs_disabled(void)
 }
 
 /* set interrupt enabled status */
-static void arch_local_irq_restore(unsigned long flags)
+static inline void arch_local_irq_restore(unsigned long flags)
 {
 	csr_set(status, flags & SR_EI);
 }
