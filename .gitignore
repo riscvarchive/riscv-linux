@@ -4,7 +4,7 @@
 # Then include just this.
 !arch/
 !.gitignore
-!README
+!README.md
 
 # The arch/.gitignore and arch/riscv/.gitignore have patterns to un-ignore the
 # appropriate files.
