@@ -20,6 +20,11 @@ static void riscv_irq_mask(struct irq_data *d)
 	csr_clear(status, SR_IM_MASK(d->irq));
 }
 
+static void riscv_irq_mask_ack(struct irq_data *d)
+{
+	csr_clear(status, SR_IP_MASK(d->irq));
+}
+
 static void riscv_irq_unmask(struct irq_data *d)
 {
 	csr_set(status, SR_IM_MASK(d->irq));
@@ -28,7 +33,7 @@ static void riscv_irq_unmask(struct irq_data *d)
 struct irq_chip riscv_irq_chip = {
 	.name = "riscv",
 	.irq_mask = riscv_irq_mask,
-	.irq_mask_ack = riscv_irq_mask,
+	.irq_mask_ack = riscv_irq_mask_ack,
 	.irq_unmask = riscv_irq_unmask,
 };
 
