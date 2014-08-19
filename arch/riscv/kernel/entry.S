@@ -75,13 +75,13 @@ _save_context:
 	.macro RESTORE_ALL
 	csrrc a1, status, SR_EI
 	ld a0, PT_STATUS(sp)
-	li s0, ~(SR_IM | SR_EI)
+	li s0, ~(SR_IP | SR_IM | SR_EI)
 	ld a2, PT_EPC(sp)
 	csrr a3, sup0
 	li s1, (SR_IM)
 	and a0, a0, s0
 	and a1, a1, s1
-	/* Retain current IM field */
+	/* Retain current IP and IM fields */
 	or a0, a0, a1
 	csrw status, a0
 
