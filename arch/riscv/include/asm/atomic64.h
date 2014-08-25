@@ -3,9 +3,7 @@
 
 #include <linux/types.h>
 
-#ifdef CONFIG_32BIT
-#error "RV64A instruction set extension required"
-#endif /* CONFIG_32BIT */
+#ifndef CONFIG_GENERIC_ATOMIC64
 
 #define ATOMIC64_INIT(i)	{ (i) }
 
@@ -271,5 +269,7 @@ static inline int atomic64_inc_not_zero(atomic64_t *v)
 		: "memory");
 	return !rc;
 }
+
+#endif /* CONFIG_GENERIC_ATOMIC64 */
 
 #endif /* _ASM_RISCV_ATOMIC64_H */
