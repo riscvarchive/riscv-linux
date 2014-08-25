@@ -21,7 +21,7 @@ static int restore_sigcontext(struct pt_regs *regs,
 	int err = 0;
 	unsigned int i;
 
-	err |= __get_user(regs->zero, &sc->zero);
+	err |= __get_user(regs->epc, &sc->epc);
 	err |= __get_user(regs->ra, &sc->ra);
 	for (i = 0; i < (sizeof(regs->s) / sizeof(unsigned long)); i++) {
 		err |= __get_user(regs->s[i], &sc->s[i]);
@@ -38,8 +38,6 @@ static int restore_sigcontext(struct pt_regs *regs,
 		err |= __get_user(regs->t[i], &sc->t[i]);
 	}
 	err |= __get_user(regs->gp, &sc->gp);
-
-	err |= __get_user(regs->epc, &sc->epc);
 
 	/* Disable sys_rt_sigreturn() restarting */
 	regs->syscallno = ~0UL;
@@ -92,7 +90,7 @@ static int setup_sigcontext(struct sigcontext __user *sc,
 	int err = 0;
 	unsigned int i;
 
-	err |= __put_user(regs->zero, &sc->zero);
+	err |= __put_user(regs->epc, &sc->epc);
 	err |= __put_user(regs->ra, &sc->ra);
 	for (i = 0; i < (sizeof(regs->s) / sizeof(unsigned long)); i++) {
 		err |= __put_user(regs->s[i], &sc->s[i]);
@@ -110,7 +108,6 @@ static int setup_sigcontext(struct sigcontext __user *sc,
 	}
 	err |= __put_user(regs->gp, &sc->gp);
 
-	err |= __put_user(regs->epc, &sc->epc);
 	return err;
 }
 

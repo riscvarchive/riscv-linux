@@ -4,7 +4,7 @@
 /* Mirror pt_regs from ptrace.h */
 
 typedef struct user_regs_struct {
-	unsigned long zero;
+	unsigned long pc;
 	unsigned long ra;
 	unsigned long s[12];
 	unsigned long sp;

@@ -23,7 +23,7 @@ void asm_offsets(void)
 	OFFSET(TI_FLAGS, thread_info, flags);
 
 	DEFINE(PT_SIZE, sizeof(struct pt_regs));
-	OFFSET(PT_ZERO, pt_regs, zero);
+	OFFSET(PT_EPC, pt_regs, epc);
 	OFFSET(PT_RA, pt_regs, ra);
 	OFFSET(PT_FP, pt_regs, s[0]);
 	OFFSET(PT_S0, pt_regs, s[0]);
@@ -57,7 +57,6 @@ void asm_offsets(void)
 	OFFSET(PT_T4, pt_regs, t[4]);
 	OFFSET(PT_GP, pt_regs, gp);
 	OFFSET(PT_STATUS, pt_regs, status);
-	OFFSET(PT_EPC, pt_regs, epc);
 	OFFSET(PT_BADVADDR, pt_regs, badvaddr);
 	OFFSET(PT_CAUSE, pt_regs, cause);
 	OFFSET(PT_SYSCALLNO, pt_regs, syscallno);
