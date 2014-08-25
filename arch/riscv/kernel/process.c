@@ -26,8 +26,8 @@ void show_regs(struct pt_regs *regs)
 {
 	show_regs_print_info(KERN_DEFAULT);
 
-	printk("x0 : %016lx ra : %016lx s0 : %016lx\n",
-		regs->zero, regs->ra, regs->s[0]);
+	printk("epc: %016lx ra : %016lx s0 : %016lx\n",
+		regs->epc, regs->ra, regs->s[0]);
 	printk("s1 : %016lx s2 : %016lx s3 : %016lx\n",
 		regs->s[1], regs->s[2], regs->s[3]);
 	printk("s4 : %016lx s5 : %016lx s6 : %016lx\n",
@@ -49,9 +49,8 @@ void show_regs(struct pt_regs *regs)
 	printk("t4 : %016lx gp : %016lx\n",
 		regs->t[4], regs->gp);
 
-	printk("status  : %016lx epc  : %016lx\n"
-		"badvaddr: %016lx cause: %016lx\n",
-		regs->status, regs->epc, regs->badvaddr, regs->cause);
+	printk("status: %016lx badvaddr: %016lx cause: %016lx\n",
+		regs->status, regs->badvaddr, regs->cause);
 }
 
 void start_thread(struct pt_regs *regs, unsigned long pc, 

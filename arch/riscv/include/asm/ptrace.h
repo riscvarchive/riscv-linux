@@ -6,7 +6,7 @@
 #ifndef __ASSEMBLY__
 
 typedef struct pt_regs {
-	unsigned long zero;
+	unsigned long epc;
 	unsigned long ra;
 	unsigned long s[12];
 	unsigned long sp;
@@ -17,7 +17,6 @@ typedef struct pt_regs {
 	unsigned long gp;
 	/* PCRs */
 	unsigned long status;
-	unsigned long epc;
 	unsigned long badvaddr;
 	unsigned long cause;
 	/* For restarting system calls */

@@ -6,7 +6,7 @@
  */
 
 struct sigcontext {
-	unsigned long zero;
+	unsigned long epc;
 	unsigned long ra;
 	unsigned long s[12];
 	unsigned long sp;
@@ -15,7 +15,6 @@ struct sigcontext {
 	unsigned long a[8];
 	unsigned long t[5];
 	unsigned long gp;
-	unsigned long epc;
 };
 
 #endif /* __ASM_RISCV_SIGCONTEXT_H */
