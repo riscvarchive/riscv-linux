@@ -16,42 +16,39 @@ SYSCALL_DEFINE4(sysriscv, unsigned long, cmd, unsigned long, arg1,
 {
 	unsigned long flags;
 	unsigned long prev;
+	unsigned int *ptr;
 	unsigned int err;
 
 	switch (cmd) {
 	case RISCV_ATOMIC_CMPXCHG:
-		if (unlikely(!access_ok(VERIFY_WRITE, arg1, sizeof(unsigned int))))
-			return -EINVAL;
+		ptr = (unsigned int *)arg1;
+		if (!access_ok(VERIFY_WRITE, ptr, sizeof(unsigned int)))
+			return -EFAULT;
 
 		preempt_disable();
 		raw_local_irq_save(flags);
-		err = __get_user(prev, (unsigned int *)arg1);
-		if (prev == arg2)
-			err |= __put_user(arg3, (unsigned int *)arg1);
+		err = __get_user(prev, ptr);
+		if (likely(!err && prev == arg2))
+			err = __put_user(arg3, ptr);
 		raw_local_irq_restore(flags);
 		preempt_enable();
 
-		if (unlikely(err))
-			return -EFAULT;
-
-		return prev;
+		return unlikely(err) ? err : prev;
 
 	case RISCV_ATOMIC_CMPXCHG64:
-		if (unlikely(!access_ok(VERIFY_WRITE, arg1, sizeof(unsigned long))))
-			return -EINVAL;
+		ptr = (unsigned int *)arg1;
+		if (!access_ok(VERIFY_WRITE, ptr, sizeof(unsigned long)))
+			return -EFAULT;
 
 		preempt_disable();
 		raw_local_irq_save(flags);
-		err = __get_user(prev, (unsigned long *)arg1);
-		if (prev == arg2)
-			err |= __put_user(arg3, (unsigned long *)arg1);
+		err = __get_user(prev, ptr);
+		if (likely(!err && prev == arg2))
+			err = __put_user(arg3, ptr);
 		raw_local_irq_restore(flags);
 		preempt_enable();
 
-		if (unlikely(err))
-			return -EFAULT;
-
-		return prev;
+		return unlikely(err) ? err : prev;
 	}
 
 	return -EINVAL;
