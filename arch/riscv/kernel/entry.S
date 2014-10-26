@@ -163,8 +163,10 @@ handle_syscall:
 	/* Advance EPC to avoid executing the original
 	   scall instruction on sret */
 	ld s0, PT_EPC(sp)
+	li t0, __NR_syscalls
 	addi s0, s0, 0x4
 	sd s0, PT_EPC(sp)
+	bge v0, t0, bad_syscall_number
 	la s0, sys_call_table
 	/* Syscall number held in v0 */
 	sd v0, PT_SYSCALLNO(sp) /* save in case of restart */
@@ -172,6 +174,8 @@ handle_syscall:
 	add s0, s0, v0
 	ld s0, 0(s0)
 	jalr s0
+
+ret_from_syscall:
 	/* Set user v0 to kernel v0 */
 	sd v0, PT_V0(sp)
 
@@ -207,6 +211,9 @@ work_notifysig:
 work_resched:
 	jump schedule
 
+bad_syscall_number:
+	li v0, -ENOSYS
+	j ret_from_syscall
 END(handle_exception)
 
 
