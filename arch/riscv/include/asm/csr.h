@@ -33,7 +33,7 @@
 
 #define csr_swap(csr,val)					\
 ({								\
-	typeof(val) __v = (val);				\
+	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) { 					\
 		__asm__ __volatile__ (				\
 			"csrrw %0, " #csr ", %1"		\
@@ -56,7 +56,7 @@
 
 #define csr_write(csr,val)					\
 ({								\
-	typeof(val) __v = (val);				\
+	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
 			"csrw " #csr ", %0" : : "i" (__v));	\
@@ -68,7 +68,7 @@
 
 #define csr_read_set(csr,val)					\
 ({								\
-	typeof(val) __v = (val);				\
+	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(val)) {					\
 		__asm__ __volatile__ (				\
 			"csrrs %0, " #csr ", %1"		\
@@ -83,7 +83,7 @@
 
 #define csr_set(csr,val)					\
 ({								\
-	typeof(val) __v = (val);				\
+	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
 			"csrs " #csr ", %0" : : "i" (__v));	\
@@ -95,7 +95,7 @@
 
 #define csr_read_clear(csr,val)					\
 ({								\
-	typeof(val) __v = (val);				\
+	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
 			"csrrc %0, " #csr ", %1"		\
@@ -110,7 +110,7 @@
 
 #define csr_clear(csr,val)					\
 ({								\
-	typeof(val) __v = (val);				\
+	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
 			"csrc " #csr ", %0" : : "i" (__v));	\
