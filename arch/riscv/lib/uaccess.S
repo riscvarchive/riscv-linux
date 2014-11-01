@@ -12,16 +12,16 @@ _epc:
 	.endm
 
 ENTRY(__copy_user)
-	add v1, a1, a2
+	add a3, a1, a2
 	/* Use word-oriented copy only if low-order bits match */
 	andi t0, a0, 0x7
 	andi t1, a1, 0x7
 	bne t0, t1, 2f
 
 	addi t0, a1, 7
-	andi t1, v1, ~0x7
+	andi t1, a3, ~0x7
 	andi t0, t0, ~0x7
-	/* v1: terminal address of source region
+	/* a3: terminal address of source region
 	 * t0: lowest doubleword-aligned address in source
 	 * t1: highest doubleword-aligned address in source
 	 */
@@ -34,8 +34,8 @@ ENTRY(__copy_user)
 	addi a0, a0, 8
 	bltu a1, t1, 1b
 2:
-	li v0, 0
-	bltu a1, v1, 4f
+	bltu a1, a3, 4f
+	li a0, 0
 	ret
 3: /* Edge case: unalignment */
 	fixup lbu, t2, (a1), 10f
@@ -49,17 +49,18 @@ ENTRY(__copy_user)
 	fixup sb, t2, (a0), 10f
 	addi a1, a1, 1
 	addi a0, a0, 1
-	bltu a1, v1, 4b
+	bltu a1, a3, 4b
+	li a0, 0
 	ret
 ENDPROC(__copy_user)
 
 
 ENTRY(__clear_user)
-	add v1, a0, a1
+	add a3, a0, a1
 	addi t0, a0, 7
-	andi t1, v1, ~0x7
+	andi t1, a3, ~0x7
 	andi t0, t0, ~0x7
-	/* v1: terminal address of target region
+	/* a3: terminal address of target region
 	 * t0: lowest doubleword-aligned address in target region
 	 * t1: highest doubleword-aligned address in target region
 	 */
@@ -70,8 +71,8 @@ ENTRY(__clear_user)
 	addi a0, a0, 8
 	bltu a0, t1, 1b
 2:
-	li v0, 0
-	bltu a0, v1, 4f
+	bltu a0, a3, 4f
+	li a0, 0
 	ret
 3: /* Edge case: unalignment */
 	fixup sb, zero, (a0), 10f
@@ -80,14 +81,14 @@ ENTRY(__clear_user)
 	jump 1b
 4: /* Edge case: remainder */
 	fixup sb, zero, (a0), 10f
-	addi a0, a0, 1
-	bltu a0, v1, 4b
+	bltu a0, a3, 4b
+	li a0, 0
 	ret
 ENDPROC(__clear_user)
 
 	.section .fixup,"ax"
 	.balign 4
 10:
-	sub v0, v1, a0
+	sub a0, a3, a0
 	ret
 	.previous

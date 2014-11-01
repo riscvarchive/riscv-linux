@@ -26,28 +26,28 @@ void show_regs(struct pt_regs *regs)
 {
 	show_regs_print_info(KERN_DEFAULT);
 
-	printk("epc: %016lx ra : %016lx s0 : %016lx\n",
-		regs->epc, regs->ra, regs->s[0]);
-	printk("s1 : %016lx s2 : %016lx s3 : %016lx\n",
-		regs->s[1], regs->s[2], regs->s[3]);
-	printk("s4 : %016lx s5 : %016lx s6 : %016lx\n",
-		regs->s[4], regs->s[5], regs->s[6]);
-	printk("s7 : %016lx s8 : %016lx s9 : %016lx\n",
-		regs->s[7], regs->s[8], regs->s[9]);
-	printk("s10: %016lx s11: %016lx sp : %016lx\n",
-		regs->s[10], regs->s[11], regs->sp);
-	printk("tp : %016lx v0 : %016lx v1 : %016lx\n",
-		regs->tp, regs->v[0], regs->v[1]);
-	printk("a0 : %016lx a1 : %016lx a2 : %016lx\n",
-		regs->a[0], regs->a[1], regs->a[2]);
-	printk("a3 : %016lx a4 : %016lx a5 : %016lx\n",
-		regs->a[3], regs->a[4], regs->a[5]);
-	printk("a6 : %016lx a7 : %016lx t0 : %016lx\n",
-		regs->a[6], regs->a[7], regs->t[0]);
-	printk("t1 : %016lx t2 : %016lx t3 : %016lx\n",
-		regs->t[1], regs->t[2], regs->t[3]);
-	printk("t4 : %016lx gp : %016lx\n",
-		regs->t[4], regs->gp);
+	printk("epc: %016lx ra : %016lx sp : %016lx\n",
+		regs->epc, regs->ra, regs->sp);
+	printk("gp : %016lx tp : %016lx t0 : %016lx\n",
+		regs->gp, regs->tp, regs->t0);
+	printk("t1 : %016lx t2 : %016lx s0 : %016lx\n",
+		regs->t1, regs->t2, regs->s0);
+	printk("s1 : %016lx a0 : %016lx a1 : %016lx\n",
+		regs->s1, regs->a0, regs->a1);
+	printk("a2 : %016lx a3 : %016lx a4 : %016lx\n",
+		regs->a2, regs->a3, regs->a4);
+	printk("a5 : %016lx a6 : %016lx a7 : %016lx\n",
+		regs->a5, regs->a6, regs->a7);
+	printk("s2 : %016lx s3 : %016lx s4 : %016lx\n",
+		regs->s2, regs->s3, regs->s4);
+	printk("s5 : %016lx s6 : %016lx s7 : %016lx\n",
+		regs->s5, regs->s6, regs->s7);
+	printk("s8 : %016lx s9 : %016lx s10: %016lx\n",
+		regs->s8, regs->s9, regs->s10);
+	printk("s11: %016lx t3 : %016lx t4 : %016lx\n",
+		regs->s11, regs->t3, regs->t4);
+	printk("t5 : %016lx t6 : %016lx\n",
+		regs->t5, regs->t6);
 
 	printk("status: %016lx badvaddr: %016lx cause: %016lx\n",
 		regs->status, regs->badvaddr, regs->cause);
@@ -87,8 +87,8 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 		if (usp) /* User fork */
 			childregs->sp = usp;
 		if (clone_flags & CLONE_SETTLS)
-			childregs->tp = childregs->a[5];
-		childregs->v[0] = 0; /* Return value of fork() */
+			childregs->tp = childregs->a5;
+		childregs->a0 = 0; /* Return value of fork() */
 		p->thread.ra = (unsigned long)ret_from_fork;
 	}
 	p->thread.sp = (unsigned long)childregs; /* kernel sp */

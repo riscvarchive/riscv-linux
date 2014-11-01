@@ -5,13 +5,13 @@
 #ifdef CONFIG_64BIT
 
 ENTRY(memcpy)
-	move v0, a0  /* Initialize return value */
+	move t6, a0  /* Preserve return value */
 
 	/* Defer to byte-oriented copy for small sizes */
 	sltiu a3, a2, 128
 	bnez a3, 4f
 	/* Use word-oriented copy only if low-order bits match */
-	andi a3, a0, 0x7
+	andi a3, t6, 0x7
 	andi a4, a1, 0x7
 	bne a3, a4, 4f
 
@@ -25,8 +25,8 @@ ENTRY(memcpy)
 1:
 	lb a5, 0(a1)
 	addi a1, a1, 1
-	sb a5, 0(a0)
-	addi a0, a0, 1
+	sb a5, 0(t6)
+	addi t6, t6, 1
 	bltu a1, a3, 1b
 	sub a2, a2, a4  /* Update count */
 
@@ -44,17 +44,17 @@ ENTRY(memcpy)
 	ld t2, 0x30(a1)
 	ld t3, 0x38(a1)
 	ld t4, 0x40(a1)
-	ld v1, 0x48(a1)
-	sd a4, 0x00(a0)
-	sd a5, 0x08(a0)
-	sd a6, 0x10(a0)
-	sd a7, 0x18(a0)
-	sd t0, 0x20(a0)
-	sd t1, 0x28(a0)
-	sd t2, 0x30(a0)
-	sd t3, 0x38(a0)
-	sd t4, 0x40(a0)
-	sd v1, 0x48(a0)
+	ld t5, 0x48(a1)
+	sd a4, 0x00(t6)
+	sd a5, 0x08(t6)
+	sd a6, 0x10(t6)
+	sd a7, 0x18(t6)
+	sd t0, 0x20(t6)
+	sd t1, 0x28(t6)
+	sd t2, 0x30(t6)
+	sd t3, 0x38(t6)
+	sd t4, 0x40(t6)
+	sd t5, 0x48(t6)
 	ld a4, 0x50(a1)
 	ld a5, 0x58(a1)
 	ld a6, 0x60(a1)
@@ -62,13 +62,13 @@ ENTRY(memcpy)
 	ld t0, 0x70(a1)
 	ld t1, 0x78(a1)
 	addi a1, a1, 0x80
-	sd a4, 0x50(a0)
-	sd a5, 0x58(a0)
-	sd a6, 0x60(a0)
-	sd a7, 0x68(a0)
-	sd t0, 0x70(a0)
-	sd t1, 0x78(a0)
-	addi a0, a0, 0x80
+	sd a4, 0x50(t6)
+	sd a5, 0x58(t6)
+	sd a6, 0x60(t6)
+	sd a7, 0x68(t6)
+	sd t0, 0x70(t6)
+	sd t1, 0x78(t6)
+	addi t6, t6, 0x80
 	bltu a1, a3, 3b
 	andi a2, a2, 0x7f  /* Update count */
 
@@ -79,8 +79,8 @@ ENTRY(memcpy)
 5:
 	lb a4, 0(a1)
 	addi a1, a1, 1
-	sb a4, 0(a0)
-	addi a0, a0, 1
+	sb a4, 0(t6)
+	addi t6, t6, 1
 	bltu a1, a3, 5b
 6:
 	ret

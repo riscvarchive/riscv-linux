@@ -5,7 +5,7 @@
 ENTRY(__vdso_rt_sigreturn)
 	.cfi_startproc
 	.cfi_signal_frame
-	li v0, __NR_rt_sigreturn
+	li a7, __NR_rt_sigreturn
 	scall
 	.cfi_endproc
 ENDPROC(__vdso_rt_sigreturn)

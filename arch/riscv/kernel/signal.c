@@ -15,33 +15,13 @@ struct rt_sigframe {
 	struct ucontext uc;
 };
 
-static int restore_sigcontext(struct pt_regs *regs,
+static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
-	int err = 0;
-	unsigned int i;
-
-	err |= __get_user(regs->epc, &sc->epc);
-	err |= __get_user(regs->ra, &sc->ra);
-	for (i = 0; i < (sizeof(regs->s) / sizeof(unsigned long)); i++) {
-		err |= __get_user(regs->s[i], &sc->s[i]);
-	}
-	err |= __get_user(regs->sp, &sc->sp);
-	err |= __get_user(regs->tp, &sc->tp);
-	for (i = 0; i < (sizeof(regs->v) / sizeof(unsigned long)); i++) {
-		err |= __get_user(regs->v[i], &sc->v[i]);
-	}
-	for (i = 0; i < (sizeof(regs->a) / sizeof(unsigned long)); i++) {
-		err |= __get_user(regs->a[i], &sc->a[i]);
-	}
-	for (i = 0; i < (sizeof(regs->t) / sizeof(unsigned long)); i++) {
-		err |= __get_user(regs->t[i], &sc->t[i]);
-	}
-	err |= __get_user(regs->gp, &sc->gp);
-
 	/* Disable sys_rt_sigreturn() restarting */
 	regs->syscallno = ~0UL;
-	return err;
+	/* sigcontext is laid out the same as the start of pt_regs */
+	return __copy_from_user(regs, sc, sizeof(*sc));
 }
 
 SYSCALL_DEFINE0(rt_sigreturn)
@@ -70,7 +50,7 @@ SYSCALL_DEFINE0(rt_sigreturn)
 	if (restore_altstack(&frame->uc.uc_stack))
 		goto badframe;
 
-	return regs->v[0];
+	return regs->a0;
 
 badframe:
 	task = current;
@@ -84,31 +64,11 @@ badframe:
 	return 0;
 }
 
-static int setup_sigcontext(struct sigcontext __user *sc,
+static long setup_sigcontext(struct sigcontext __user *sc,
 	struct pt_regs *regs)
 {
-	int err = 0;
-	unsigned int i;
-
-	err |= __put_user(regs->epc, &sc->epc);
-	err |= __put_user(regs->ra, &sc->ra);
-	for (i = 0; i < (sizeof(regs->s) / sizeof(unsigned long)); i++) {
-		err |= __put_user(regs->s[i], &sc->s[i]);
-	}
-	err |= __put_user(regs->sp, &sc->sp);
-	err |= __put_user(regs->tp, &sc->tp);
-	for (i = 0; i < (sizeof(regs->v) / sizeof(unsigned long)); i++) {
-		err |= __put_user(regs->v[i], &sc->v[i]);
-	}
-	for (i = 0; i < (sizeof(regs->a) / sizeof(unsigned long)); i++) {
-		err |= __put_user(regs->a[i], &sc->a[i]);
-	}
-	for (i = 0; i < (sizeof(regs->t) / sizeof(unsigned long)); i++) {
-		err |= __put_user(regs->t[i], &sc->t[i]);
-	}
-	err |= __put_user(regs->gp, &sc->gp);
-
-	return err;
+	/* sigcontext is laid out the same as the start of pt_regs */
+	return __copy_to_user(sc, regs, sizeof(*sc));
 }
 
 static inline void __user *get_sigframe(struct ksignal *ksig,
@@ -169,9 +129,9 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	 */
 	regs->epc = (unsigned long)ksig->ka.sa.sa_handler;
 	regs->sp = (unsigned long)frame;
-	regs->a[0] = ksig->sig;                     /* a0: signal number */
-	regs->a[1] = (unsigned long)(&frame->info); /* a1: siginfo pointer */
-	regs->a[2] = (unsigned long)(&frame->uc);   /* a2: ucontext pointer */
+	regs->a0 = ksig->sig;                     /* a0: signal number */
+	regs->a1 = (unsigned long)(&frame->info); /* a1: siginfo pointer */
+	regs->a2 = (unsigned long)(&frame->uc);   /* a2: ucontext pointer */
 
 #if DEBUG_SIG
 	pr_info("SIG deliver (%s:%d): sig=%d pc=%p ra=%p sp=%p\n",
@@ -190,20 +150,20 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 	/* Are we from a system call? */
 	if (regs->cause == EXC_SYSCALL) {
 		/* If so, check system call restarting.. */
-		switch (regs->v[0]) {
+		switch (regs->a0) {
 		case -ERESTART_RESTARTBLOCK:
 		case -ERESTARTNOHAND:
-			regs->v[0] = -EINTR;
+			regs->a0 = -EINTR;
 			break;
 
 		case -ERESTARTSYS:
 			if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
-				regs->v[0] = -EINTR;
+				regs->a0 = -EINTR;
 				break;
 			}
 			/* fallthrough */
 		case -ERESTARTNOINTR:
-			regs->v[0] = regs->syscallno;
+			regs->a7 = regs->syscallno;
 			regs->epc -= 0x4;
 			break;
 		}
@@ -228,15 +188,15 @@ static void do_signal(struct pt_regs *regs)
 	/* Did we come from a system call? */
 	if (regs->cause == EXC_SYSCALL) {
 		/* Restart the system call - no handlers present */
-		switch (regs->v[0]) {
+		switch (regs->a0) {
 		case -ERESTARTNOHAND:
 		case -ERESTARTSYS:
 		case -ERESTARTNOINTR:
-			regs->v[0] = regs->syscallno;
+			regs->a7 = regs->syscallno;
 			regs->epc -= 0x4;
 			break;
 		case -ERESTART_RESTARTBLOCK:
-			regs->v[0] = __NR_restart_syscall;
+			regs->a7 = __NR_restart_syscall;
 			regs->epc -= 0x4;
 			break;
 		}

@@ -2,6 +2,8 @@
 #include <linux/linkage.h>
 
 #include <asm/csr.h>
+#include <asm/unistd.h>
+#include <asm/errno.h>
 #include <asm/thread_info.h>
 #include <asm/asm-offsets.h>
 
@@ -28,35 +30,35 @@ _restore_kernel_sp:
 _save_context:
 	addi sp, sp, -(PT_SIZE)
 	sd x1,  PT_RA(sp)
-	sd x2,  PT_S0(sp)
-	sd x3,  PT_S1(sp)
-	sd x4,  PT_S2(sp)
-	sd x5,  PT_S3(sp)
-	sd x6,  PT_S4(sp)
-	sd x7,  PT_S5(sp)
-	sd x8,  PT_S6(sp)
-	sd x9,  PT_S7(sp)
-	sd x10, PT_S8(sp)
-	sd x11, PT_S9(sp)
-	sd x12, PT_S10(sp)
-	sd x13, PT_S11(sp)
-	sd x15, PT_TP(sp)
-	sd x16, PT_V0(sp)
-	sd x17, PT_V1(sp)
-	sd x18, PT_A0(sp)
-	sd x19, PT_A1(sp)
-	sd x20, PT_A2(sp)
-	sd x21, PT_A3(sp)
-	sd x22, PT_A4(sp)
-	sd x23, PT_A5(sp)
-	sd x24, PT_A6(sp)
-	sd x25, PT_A7(sp)
-	sd x26, PT_T0(sp)
-	sd x27, PT_T1(sp)
-	sd x28, PT_T2(sp)
-	sd x29, PT_T3(sp)
-	sd x30, PT_T4(sp)
-	sd x31, PT_GP(sp)
+	sd x3,  PT_GP(sp)
+	sd x4,  PT_TP(sp)
+	sd x5,  PT_T0(sp)
+	sd x6,  PT_T1(sp)
+	sd x7,  PT_T2(sp)
+	sd x8,  PT_S0(sp)
+	sd x9,  PT_S1(sp)
+	sd x10, PT_A0(sp)
+	sd x11, PT_A1(sp)
+	sd x12, PT_A2(sp)
+	sd x13, PT_A3(sp)
+	sd x14, PT_A4(sp)
+	sd x15, PT_A5(sp)
+	sd x16, PT_A6(sp)
+	sd x17, PT_A7(sp)
+	sd x18, PT_S2(sp)
+	sd x19, PT_S3(sp)
+	sd x20, PT_S4(sp)
+	sd x21, PT_S5(sp)
+	sd x22, PT_S6(sp)
+	sd x23, PT_S7(sp)
+	sd x24, PT_S8(sp)
+	sd x25, PT_S9(sp)
+	sd x26, PT_S10(sp)
+	sd x27, PT_S11(sp)
+	sd x28, PT_T3(sp)
+	sd x29, PT_T4(sp)
+	sd x30, PT_T5(sp)
+	sd x31, PT_T6(sp)
 
 	csrr s0, sup1
 	csrr s1, status
@@ -71,57 +73,57 @@ _save_context:
 	.endm
 
 	.macro RESTORE_ALL
-	csrrc v1, status, SR_EI
-	ld v0, PT_STATUS(sp)
+	csrrc a1, status, SR_EI
+	ld a0, PT_STATUS(sp)
 	li s0, ~(SR_IM | SR_EI)
+	ld a2, PT_EPC(sp)
+	csrr a3, sup0
 	li s1, (SR_IM)
-	and v0, v0, s0
-	and v1, v1, s1
+	and a0, a0, s0
+	and a1, a1, s1
 	/* Retain current IM field */
-	or v0, v0, v1
-	csrw status, v0
+	or a0, a0, a1
+	csrw status, a0
 
 	/* Save unwound kernel stack pointer
 	   into current->thread.sp */
 	addi s0, sp, PT_SIZE
-	csrr v0, sup0
-	sd s0, THREAD_SP(v0)
+	sd s0, THREAD_SP(a3)
 
-	ld v0, PT_EPC(sp)
-	csrw epc, v0
+	csrw epc, a2
 
 	ld x1,  PT_RA(sp)
-	ld x2,  PT_S0(sp)
-	ld x3,  PT_S1(sp)
-	ld x4,  PT_S2(sp)
-	ld x5,  PT_S3(sp)
-	ld x6,  PT_S4(sp)
-	ld x7,  PT_S5(sp)
-	ld x8,  PT_S6(sp)
-	ld x9,  PT_S7(sp)
-	ld x10, PT_S8(sp)
-	ld x11, PT_S9(sp)
-	ld x12, PT_S10(sp)
-	ld x13, PT_S11(sp)
-	ld x15, PT_TP(sp)
-	ld x16, PT_V0(sp)
-	ld x17, PT_V1(sp)
-	ld x18, PT_A0(sp)
-	ld x19, PT_A1(sp)
-	ld x20, PT_A2(sp)
-	ld x21, PT_A3(sp)
-	ld x22, PT_A4(sp)
-	ld x23, PT_A5(sp)
-	ld x24, PT_A6(sp)
-	ld x25, PT_A7(sp)
-	ld x26, PT_T0(sp)
-	ld x27, PT_T1(sp)
-	ld x28, PT_T2(sp)
-	ld x29, PT_T3(sp)
-	ld x30, PT_T4(sp)
-	ld x31, PT_GP(sp)
+	ld x3,  PT_GP(sp)
+	ld x4,  PT_TP(sp)
+	ld x5,  PT_T0(sp)
+	ld x6,  PT_T1(sp)
+	ld x7,  PT_T2(sp)
+	ld x8,  PT_S0(sp)
+	ld x9,  PT_S1(sp)
+	ld x10, PT_A0(sp)
+	ld x11, PT_A1(sp)
+	ld x12, PT_A2(sp)
+	ld x13, PT_A3(sp)
+	ld x14, PT_A4(sp)
+	ld x15, PT_A5(sp)
+	ld x16, PT_A6(sp)
+	ld x17, PT_A7(sp)
+	ld x18, PT_S2(sp)
+	ld x19, PT_S3(sp)
+	ld x20, PT_S4(sp)
+	ld x21, PT_S5(sp)
+	ld x22, PT_S6(sp)
+	ld x23, PT_S7(sp)
+	ld x24, PT_S8(sp)
+	ld x25, PT_S9(sp)
+	ld x26, PT_S10(sp)
+	ld x27, PT_S11(sp)
+	ld x28, PT_T3(sp)
+	ld x29, PT_T4(sp)
+	ld x30, PT_T5(sp)
+	ld x31, PT_T6(sp)
 
-	ld x14, PT_SP(sp)
+	ld x2,  PT_SP(sp)
 	.endm
 
 ENTRY(handle_exception)
@@ -158,26 +160,25 @@ ENTRY(handle_exception)
 	jump handle_fault_unknown
 
 handle_syscall:
-	/* System calls run with interrupts enabled */
-	csrs status, SR_EI
 	/* Advance EPC to avoid executing the original
 	   scall instruction on sret */
-	ld s0, PT_EPC(sp)
+	addi s2, s2, 0x4
+	sd s2, PT_EPC(sp)
+	/* System calls run with interrupts enabled */
+	csrs status, SR_EI
 	li t0, __NR_syscalls
-	addi s0, s0, 0x4
-	sd s0, PT_EPC(sp)
-	bge v0, t0, bad_syscall_number
+	/* Syscall number held in a7 */
+	bge a7, t0, bad_syscall_number
 	la s0, sys_call_table
-	/* Syscall number held in v0 */
-	sd v0, PT_SYSCALLNO(sp) /* save in case of restart */
-	slli v0, v0, 3
-	add s0, s0, v0
+	slli t0, a7, 3
+	add s0, s0, t0
 	ld s0, 0(s0)
+	sd a7, PT_SYSCALLNO(sp) /* save in case of restart */
 	jalr s0
 
 ret_from_syscall:
-	/* Set user v0 to kernel v0 */
-	sd v0, PT_V0(sp)
+	/* Set user a0 to kernel a0 */
+	sd a0, PT_A0(sp)
 
 ret_from_exception:
 	ld s0, PT_STATUS(sp)
@@ -212,7 +213,7 @@ work_resched:
 	jump schedule
 
 bad_syscall_number:
-	li v0, -ENOSYS
+	li a0, -ENOSYS
 	j ret_from_syscall
 END(handle_exception)
 
@@ -270,7 +271,6 @@ ENTRY(__switch_to)
 	ld s11, THREAD_S11(a1)
 	ld sp,  THREAD_SP(a1)
 	csrw sup0, a1 /* Next current pointer */
-	move v0, a0   /* Preserve reference */
 	ret
 ENDPROC(__switch_to)
 

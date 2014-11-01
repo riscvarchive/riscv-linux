@@ -5,8 +5,6 @@
 #include <asm/pgtable.h>
 #include <asm/csr.h>
 
-#define __va(x) ((x) + PAGE_OFFSET)
-
 #define PGDIR_SHIFT 33
 #define PMDIR_SHIFT 23
 #define VPN_MASK    (0x3ff)
@@ -83,13 +81,12 @@ ENTRY(_start)
 	add gp, gp, s0
 
 	/* Initialize stack pointer */
-	la sp, __va(init_thread_union) + THREAD_SIZE
+	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current thread_struct pointer */
-	la s0, __va(init_task)
+	la s0, init_task
 	csrw sup0, s0
 
-	la s0, __va(start_kernel)
-	jr s0
+	jump start_kernel
 
 END(_start)
 
