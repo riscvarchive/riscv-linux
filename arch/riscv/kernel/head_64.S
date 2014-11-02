@@ -78,7 +78,10 @@ ENTRY(_start)
 
 	/* Relocate to kernel mapping */
 	li s0, PAGE_OFFSET
-	add gp, gp, s0
+1:	auipc t0, %pcrel_hi(1f)
+	add t0, t0, s0
+	jr t0, %pcrel_lo(1b)
+1:	add gp, gp, s0
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
