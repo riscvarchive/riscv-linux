@@ -1,0 +1,33 @@
+menu "IP cores"
+
+config RISCV_TEMAC
+	tristate "Xilinx TEMAC support"
+	default n
+	depends on NETDEVICES
+	depends on ETHERNET
+
+if RISCV_TEMAC
+
+config RISCV_TEMAC_IRQ
+	int "TEMAC IRQ"
+	default 4
+
+config RISCV_TEMAC_CSR_TXD
+	hex "TEMAC Tx data CSR"
+	default 0x520
+
+config RISCV_TEMAC_CSR_RXD
+	hex "TEMAC Rx data CSR"
+	default 0x521
+
+config RISCV_TEMAC_CSR_CFGA
+	hex "TEMAC configuration address CSR"
+	default 0x522
+
+config RISCV_TEMAC_CSR_CFGD
+	hex "TEMAC configuration value CSR"
+	default 0x523
+
+endif # RISCV_TEMAC
+
+endmenu

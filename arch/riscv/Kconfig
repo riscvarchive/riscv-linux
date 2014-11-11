@@ -92,6 +92,8 @@ config HTIF_RFB
 
 endif # HTIF
 
+source "arch/riscv/platform/Kconfig"
+
 endmenu
 
 menu "Kernel type"

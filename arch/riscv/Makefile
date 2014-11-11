@@ -44,5 +44,6 @@ core-y += arch/riscv/kernel/ arch/riscv/mm/
 libs-y += arch/riscv/lib/
 
 drivers-$(CONFIG_HTIF) += arch/riscv/htif/
+drivers-y += arch/riscv/platform/
 
 all: vmlinux

@@ -28,6 +28,8 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/stringify.h>
+
 #define CSR_ZIMM(val) \
 	(__builtin_constant_p(val) && ((unsigned long)(val) < 0x20))
 
@@ -36,11 +38,11 @@
 	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) { 					\
 		__asm__ __volatile__ (				\
-			"csrrw %0, " #csr ", %1"		\
+			"csrrw %0, " __stringify(csr) ", %1"	\
 			: "=r" (__v) : "i" (__v));		\
 	} else {						\
 		__asm__ __volatile__ (				\
-			"csrrw %0, " #csr ", %1"		\
+			"csrrw %0, " __stringify(csr) ", %1"	\
 			: "=r" (__v) : "r" (__v));		\
 	}							\
 	__v;							\
@@ -50,7 +52,7 @@
 ({								\
 	register unsigned long __v;				\
 	__asm__ __volatile__ (					\
-		"csrr %0, " #csr : "=r" (__v));			\
+		"csrr %0, " __stringify(csr) : "=r" (__v));	\
 	__v;							\
 })
 
@@ -59,10 +61,12 @@
 	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
-			"csrw " #csr ", %0" : : "i" (__v));	\
+			"csrw " __stringify(csr) ", %0"		\
+			: : "i" (__v));				\
 	} else {						\
 		__asm__ __volatile__ (				\
-			"csrw " #csr ", %0" : : "r" (__v));	\
+			"csrw " __stringify(csr) ", %0"		\
+			: : "r" (__v));				\
 	}							\
 })
 
@@ -71,11 +75,11 @@
 	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(val)) {					\
 		__asm__ __volatile__ (				\
-			"csrrs %0, " #csr ", %1"		\
+			"csrrs %0, " __stringify(csr) ", %1"	\
 			: "=r" (__v) : "i" (__v));		\
 	} else {						\
 		__asm__ __volatile__ (				\
-			"csrrs %0, " #csr ", %1"		\
+			"csrrs %0, " __stringify(csr) ", %1"	\
 			: "=r" (__v) : "r" (__v));		\
 	}							\
 	__v;							\
@@ -86,10 +90,12 @@
 	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
-			"csrs " #csr ", %0" : : "i" (__v));	\
+			"csrs " __stringify(csr) ", %0"		\
+			: : "i" (__v));				\
 	} else {						\
 		__asm__ __volatile__ (				\
-			"csrs " #csr ", %0" : : "r" (__v));	\
+			"csrs " __stringify(csr) ", %0"		\
+			: : "r" (__v));				\
 	}							\
 })
 
@@ -98,11 +104,11 @@
 	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
-			"csrrc %0, " #csr ", %1"		\
+			"csrrc %0, " __stringify(csr) ", %1"	\
 			: "=r" (__v) : "i" (__v));		\
 	} else {						\
 		__asm__ __volatile__ (				\
-			"csrrc %0, " #csr ", %1"		\
+			"csrrc %0, " __stringify(csr) ", %1"	\
 			: "=r" (__v) : "r" (__v));		\
 	}							\
 	__v;							\
@@ -113,10 +119,12 @@
 	unsigned long __v = (unsigned long)(val);		\
 	if (CSR_ZIMM(__v)) {					\
 		__asm__ __volatile__ (				\
-			"csrc " #csr ", %0" : : "i" (__v));	\
+			"csrc " __stringify(csr) ", %0"		\
+			: : "i" (__v));				\
 	} else {						\
 		__asm__ __volatile__ (				\
-			"csrc " #csr ", %0" : : "r" (__v));	\
+			"csrc " __stringify(csr) ", %0"		\
+			: : "r" (__v));				\
 	}							\
 })
 
