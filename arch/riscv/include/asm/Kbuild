@@ -57,6 +57,5 @@ generic-y += types.h
 generic-y += ucontext.h
 generic-y += unaligned.h
 generic-y += user.h
-generic-y += vga.h
 generic-y += vmlinux.lds.h
 generic-y += xor.h
