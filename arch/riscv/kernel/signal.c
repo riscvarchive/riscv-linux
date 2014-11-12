@@ -21,7 +21,7 @@ static long restore_sigcontext(struct pt_regs *regs,
 	/* Disable sys_rt_sigreturn() restarting */
 	regs->syscallno = ~0UL;
 	/* sigcontext is laid out the same as the start of pt_regs */
-	return __copy_from_user(regs, sc, sizeof(*sc));
+	return __copy_from_user(regs, &sc->sc_regs, sizeof(sc->sc_regs));
 }
 
 SYSCALL_DEFINE0(rt_sigreturn)
@@ -68,7 +68,7 @@ static long setup_sigcontext(struct sigcontext __user *sc,
 	struct pt_regs *regs)
 {
 	/* sigcontext is laid out the same as the start of pt_regs */
-	return __copy_to_user(sc, regs, sizeof(*sc));
+	return __copy_to_user(&sc->sc_regs, regs, sizeof(sc->sc_regs));
 }
 
 static inline void __user *get_sigframe(struct ksignal *ksig,
