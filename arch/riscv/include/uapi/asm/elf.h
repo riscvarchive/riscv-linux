@@ -63,6 +63,13 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
  */
 #define ELF_ARCH	EM_RISCV
 #define ELF_CLASS	ELFCLASS64
+
+#if defined(__RISCVEL__)
+#define ELF_DATA	ELFDATA2LSB
+#elif defined(__RISCVEB__)
 #define ELF_DATA	ELFDATA2MSB
+#else
+#error "Unknown endianness"
+#endif
 
 #endif /* _UAPI_ASM_RISCV_ELF_H */
