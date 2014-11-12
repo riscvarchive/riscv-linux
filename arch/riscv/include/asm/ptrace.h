@@ -1,6 +1,7 @@
 #ifndef _ASM_RISCV_PTRACE_H
 #define _ASM_RISCV_PTRACE_H
 
+#include <uapi/asm/ptrace.h>
 #include <asm/csr.h>
 
 #ifndef __ASSEMBLY__
