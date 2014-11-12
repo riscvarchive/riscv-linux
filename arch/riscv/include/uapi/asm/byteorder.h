@@ -1,5 +1,5 @@
-#ifndef _ASM_RISCV_BYTEORDER_H
-#define _ASM_RISCV_BYTEORDER_H
+#ifndef _UAPI_ASM_RISCV_BYTEORDER_H
+#define _UAPI_ASM_RISCV_BYTEORDER_H
 
 #if defined(__RISCVEL__)
 #include <linux/byteorder/little_endian.h>
@@ -9,4 +9,4 @@
 #error "Unknown endianness"
 #endif
 
-#endif /* _ASM_RISCV_BYTEORDER_H */
+#endif /* _UAPI_ASM_RISCV_BYTEORDER_H */
