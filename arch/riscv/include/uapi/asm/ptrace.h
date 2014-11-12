@@ -1,5 +1,5 @@
-#ifndef _ASM_RISCV_USER_H
-#define _ASM_RISCV_USER_H
+#ifndef _UAPI_ASM_RISCV_PTRACE_H
+#define _UAPI_ASM_RISCV_PTRACE_H
 
 /* Mirror pt_regs from ptrace.h */
 
@@ -16,4 +16,4 @@ typedef struct user_regs_struct {
 	unsigned long status;
 } user_regs_struct;
 
-#endif /* _ASM_RISCV_USER_H */
+#endif /* _UAPI_ASM_RISCV_PTRACE_H */
