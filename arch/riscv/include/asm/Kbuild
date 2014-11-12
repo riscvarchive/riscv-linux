@@ -62,6 +62,7 @@ generic-y += trace_clock.h
 generic-y += types.h
 generic-y += ucontext.h
 generic-y += unaligned.h
+generic-y += user.h
 generic-y += vmlinux.lds.h
 
 header-y += asm-offsets.h
