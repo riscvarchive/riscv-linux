@@ -9,4 +9,6 @@ typedef struct {
 
 #endif /* __ASSEMBLY__ */
 
+#include <asm-generic/memory_model.h>
+
 #endif /* _ASM_RISCV_MMU_H */
