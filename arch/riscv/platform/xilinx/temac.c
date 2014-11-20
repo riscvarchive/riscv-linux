@@ -54,18 +54,92 @@
 #define XTE_ABLE_ADDR		0x4fc /* Ability register */
 
 
-static inline unsigned long temac_cfg_read(unsigned long reg)
-{
-	csr_write(CONFIG_RISCV_TEMAC_CSR_CFGA, reg);
-	return csr_read(CONFIG_RISCV_TEMAC_CSR_CFGD);
+// read/write values are 32 bits wide, CFGD
+// reads will clear CFGD first
+// writes will set data 
+//
+// writes to CFGD do nothing special
+// reads from CFGD do nothing special
+// writes to CFGA issue the read/write request based on CFGD[32]
+// the csr_write to CFGA will stall until the cpu until 
+// 1) the axi write is ack'd
+// 2) the read data is available in CFGD for csr_read to read plainly
+
+
+static inline void lots_of_nops(void) {
+    int i;
+    for (i = 0; i < 100; i++) {
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+    }
 }
 
-static inline void temac_cfg_set(unsigned long reg, unsigned long val)
+static inline void mediums_of_nops(void) {
+    int i;
+    for (i = 0; i < 10; i++) {
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+        __asm__ __volatile__("nop");
+    }
+}
+
+static inline void some_nops(void) {
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+    __asm__ __volatile__("nop");
+}
+
+
+static inline unsigned long temac_cfg_read(unsigned long reg)
+{
+	csr_write(CONFIG_RISCV_TEMAC_CSR_CFGD, 0);
+	csr_write(CONFIG_RISCV_TEMAC_CSR_CFGA, reg); // doing the "work"
+    // TODO INSERT NOPS HERE
+    lots_of_nops();
+    return csr_read(CONFIG_RISCV_TEMAC_CSR_CFGD);
+}
+
+static inline void temac_cfg_write(unsigned long reg, unsigned long val)
+{
+	csr_write(CONFIG_RISCV_TEMAC_CSR_CFGD, val | (((unsigned long)0x1) << 32));
+    csr_write(CONFIG_RISCV_TEMAC_CSR_CFGA, reg); // doing the "work"
+    // TODO INSERT NOPS HERE
+    lots_of_nops();
+}
+
+// remove this
+/*static inline void temac_cfg_set(unsigned long reg, unsigned long val)
 {
 	csr_write(CONFIG_RISCV_TEMAC_CSR_CFGA, reg);
 	csr_set(CONFIG_RISCV_TEMAC_CSR_CFGD, val);
-}
+}*/
 
+// remove this
 static inline void temac_cfg_clear(unsigned long reg, unsigned long val)
 {
 	csr_write(CONFIG_RISCV_TEMAC_CSR_CFGA, reg);
@@ -77,6 +151,9 @@ static int temac_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 	const unsigned char *ptr;
 	const unsigned char *end;
 
+//    printk(KERN_ERR	"Running temac_start_xmit----------------------------------\n");
+//    printk(KERN_ERR "Attempting to send %llu bytes\n", skb->len);
+
 	ndev->trans_start = jiffies;
 	skb_tx_timestamp(skb);
 
@@ -86,6 +163,7 @@ static int temac_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 		if (ptr == end)
 			data |= TRXD_LAST_MASK;
 		csr_write(CONFIG_RISCV_TEMAC_CSR_TXD, data);
+        mediums_of_nops();
 	}
 
 	ndev->stats.tx_packets++;
@@ -98,16 +176,38 @@ static irqreturn_t temac_irq(int irq, void *dev)
 	struct net_device *ndev = dev;
 	struct sk_buff *skb;
 	unsigned long v;
+    int firstround;
+
+    firstround = 1;
+
+//    printk(KERN_ERR	"Running temac_irq----------------------------------\n");
 
 	skb = netdev_alloc_skb_ip_align(ndev, XTE_MAX_FRAME_SIZE);
 	if (!skb)
 		return IRQ_NONE;
+
+//    printk(KERN_ERR "GOT BYTES: ");
+
 	do {
 		unsigned char *p;
 		v = csr_read(CONFIG_RISCV_TEMAC_CSR_RXD);
+/*        if (firstround && ((v & 0xFF) == 0)) {
+            firstround = 0;
+    		csr_write(CONFIG_RISCV_TEMAC_CSR_RXD, (unsigned long)0);
+            some_nops();
+            continue;
+        }*/
+//        printk(KERN_ERR "0x%llx ", v & 0xFF);
+        // this will clear the valid and cause the next packet to be pulled in
+		csr_write(CONFIG_RISCV_TEMAC_CSR_RXD, (unsigned long)0);
+        // TODO: might need NOPS here
+        some_nops();
 		p = skb_put(skb, 1);
 		*p = v;
+        firstround = 0;
 	} while(!(v & TRXD_LAST_MASK));
+
+//    printk(KERN_ERR "\n");
 
 	skb->dev = dev;
 	skb->protocol = eth_type_trans(skb, ndev);
@@ -121,8 +221,59 @@ static irqreturn_t temac_irq(int irq, void *dev)
 static void temac_reset(struct net_device *ndev)
 {
 	unsigned int timeout;
+    long testresult;
+    int i;
+    printk(KERN_ERR	"Running temac_reset----------------------------------\n");
+    for (i = 0x400; i < 0x41c; i += 4) {
+        testresult = temac_cfg_read(i);
+        printk(KERN_ERR "TEMAC Register 0x%llx contains the value 0x%llx\n", i, testresult);
+    }
 
-	temac_cfg_set(XTE_RXC1_ADDR, XTE_RXC1_RST_MASK);
+
+    // attempt to init the sfp
+    // start the MDIO interface and set MDIO clock
+    temac_cfg_write(0x500, 0x4A);
+    temac_cfg_write(0x504, 0x06008800);
+    testresult = temac_cfg_read(0x504);
+    printk(KERN_ERR "TEMAC MDIO control word contains the value 0x%llx\n", testresult);
+    testresult = temac_cfg_read(0x50C);
+    printk(KERN_ERR "TEMAC MDIO Read data contains the value 0x%llx\n", testresult);
+    testresult &= 0xFFFF;
+
+    testresult |= 0x8000;
+    temac_cfg_write(0x508, testresult); // write reset for pcs/pma
+    temac_cfg_write(0x504, 0x06004800); // issue MDIO write
+
+    temac_cfg_write(0x504, 0x06008800);
+    testresult = temac_cfg_read(0x50C);
+    printk(KERN_ERR "After reset, TEMAC MDIO Read data contains the value 0x%llx\n", testresult);
+
+    testresult &= 0xFBFF; // clear isolate bit
+    printk(KERN_ERR "TESTRESULT SHOULD BE: 0x%llx\n", testresult);
+
+    temac_cfg_write(0x508, testresult); // clear isolate for pcs/pma
+    temac_cfg_write(0x504, 0x06004800); // issue MDIO write
+ 
+    temac_cfg_write(0x504, 0x06008800);
+    testresult = temac_cfg_read(0x50C);
+    printk(KERN_ERR "After clearing isolate, TEMAC MDIO Read data contains the value 0x%llx\n", testresult);
+
+    testresult &= 0xFBFF; // clear isolate bit
+    printk(KERN_ERR "TESTRESULT SHOULD BE: 0x%llx\n", testresult);
+
+    temac_cfg_write(0x508, testresult); // clear isolate for pcs/pma
+    temac_cfg_write(0x504, 0x06004800); // issue MDIO write
+
+
+    for (i = 0; i < 10; i++) {
+        lots_of_nops();
+    }
+
+    temac_cfg_write(0x504, 0x06008800);
+    testresult = temac_cfg_read(0x50C);
+    printk(KERN_ERR "After clearing isolate, TEMAC MDIO Read data contains the value 0x%llx\n", testresult);
+
+	temac_cfg_write(XTE_RXC1_ADDR, XTE_RXC1_RST_MASK);
 	timeout = 100;
 	while (temac_cfg_read(XTE_RXC1_ADDR) & XTE_RXC1_RST_MASK) {
 		udelay(1);
@@ -132,7 +283,7 @@ static void temac_reset(struct net_device *ndev)
 		}
 	}
 
-	temac_cfg_set(XTE_TXC_ADDR, XTE_TXC_RST_MASK);
+	temac_cfg_write(XTE_TXC_ADDR, XTE_TXC_RST_MASK);
 	timeout = 100;
 	while (temac_cfg_read(XTE_TXC_ADDR) & XTE_TXC_RST_MASK) {
 		udelay(1);
@@ -141,6 +292,14 @@ static void temac_reset(struct net_device *ndev)
 			break;
 		}
 	}
+
+    temac_cfg_write(0x404, 0x10000000);
+    temac_cfg_write(0x408, 0x10000000);
+
+    for (i = 0x400; i < 0x41c; i += 4) {
+        testresult = temac_cfg_read(i);
+        printk(KERN_ERR "TEMAC Register 0x%llx contains the value 0x%llx\n", i, testresult);
+    }
 }
 
 static int temac_open(struct net_device *ndev)
@@ -158,6 +317,7 @@ static int temac_open(struct net_device *ndev)
 
 static int temac_stop(struct net_device *ndev)
 {
+    // TODO FIX
 	free_irq(CONFIG_RISCV_TEMAC_IRQ, ndev);
 	temac_cfg_clear(XTE_RXC1_ADDR, XTE_RXC1_RXEN_MASK);
 	temac_cfg_clear(XTE_TXC_ADDR, XTE_TXC_TXEN_MASK);
