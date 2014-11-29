@@ -93,6 +93,7 @@ static inline unsigned long temac_cfg_read(unsigned long reg)
 
 static inline void temac_cfg_write(unsigned long reg, unsigned long val)
 {
+    // make bit 33 the sfp_tx_disable reset
     csr_write(CONFIG_RISCV_TEMAC_CSR_CFGD, val | (((unsigned long)0x1) << 32));
     csr_write(CONFIG_RISCV_TEMAC_CSR_CFGA, reg); // doing the "work"
     lots_of_nops();
@@ -166,11 +167,6 @@ static void temac_reset(struct net_device *ndev)
     long testresult;
     int i;
     printk(KERN_ERR "Running temac_reset----------------------------------\n");
-    for (i = 0x400; i < 0x41c; i += 4) {
-        testresult = temac_cfg_read(i);
-        printk(KERN_ERR "TEMAC Register 0x%llx contains the value 0x%llx\n", i, testresult);
-    }
-
 
     // attempt to init the sfp
     // start the MDIO interface and set MDIO clock
@@ -194,27 +190,30 @@ static void temac_reset(struct net_device *ndev)
     printk(KERN_ERR "TESTRESULT SHOULD BE: 0x%llx\n", testresult);
 
     temac_cfg_write(0x508, testresult); // clear isolate for pcs/pma
-    temac_cfg_write(0x504, 0x06004800); // issue MDIO write
- 
+
+    // now, issue MDIO write, 0x1 << 33 is to trigger sfp_tx_disable on/off
+    temac_cfg_write(0x504, 0x06004800 | (((unsigned long)0x1) << 33));
+
+    // issue read to check
     temac_cfg_write(0x504, 0x06008800);
     testresult = temac_cfg_read(0x50C);
     printk(KERN_ERR "After clearing isolate, TEMAC MDIO Read data contains the value 0x%llx\n", testresult);
 
-    testresult &= 0xFBFF; // clear isolate bit
+/*    testresult &= 0xFBFF; // clear isolate bit
     printk(KERN_ERR "TESTRESULT SHOULD BE: 0x%llx\n", testresult);
 
     temac_cfg_write(0x508, testresult); // clear isolate for pcs/pma
-    temac_cfg_write(0x504, 0x06004800); // issue MDIO write
+    temac_cfg_write(0x504, 0x06004800); // issue MDIO write*/
 
 
     for (i = 0; i < 10; i++) {
         lots_of_nops();
     }
 
-    temac_cfg_write(0x504, 0x06008800);
+/*    temac_cfg_write(0x504, 0x06008800);
     testresult = temac_cfg_read(0x50C);
     printk(KERN_ERR "After clearing isolate, TEMAC MDIO Read data contains the value 0x%llx\n", testresult);
-
+*/
     temac_cfg_write(XTE_RXC1_ADDR, XTE_RXC1_RST_MASK);
     timeout = 100;
     while (temac_cfg_read(XTE_RXC1_ADDR) & XTE_RXC1_RST_MASK) {
@@ -237,11 +236,6 @@ static void temac_reset(struct net_device *ndev)
 
     temac_cfg_write(0x404, 0x10000000);
     temac_cfg_write(0x408, 0x10000000);
-
-    for (i = 0x400; i < 0x41c; i += 4) {
-        testresult = temac_cfg_read(i);
-        printk(KERN_ERR "TEMAC Register 0x%llx contains the value 0x%llx\n", i, testresult);
-    }
 }
 
 static int temac_open(struct net_device *ndev)
