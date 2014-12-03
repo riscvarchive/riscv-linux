@@ -12,11 +12,10 @@
 #include <asm/page.h>
 #include <linux/mm_types.h>
 
-#ifdef CONFIG_32BIT
-#include <asm/pgtable-32.h>
-#endif /* CONFIG_32BIT */
 #ifdef CONFIG_64BIT
 #include <asm/pgtable-64.h>
+#else
+#include <asm/pgtable-32.h>
 #endif /* CONFIG_64BIT */
 
 /* Number of entries in the page global directory */
@@ -321,7 +320,12 @@ extern pmd_t kern_pm_dir[PTRS_PER_PMD];
 
 #endif /* !__ASSEMBLY__ */
 
+#ifdef CONFIG_64BIT
 #define VMALLOC_START    _AC(0xfffffffff8000000,UL)
 #define VMALLOC_END      _AC(0xffffffffffffffff,UL)
+#else
+#define VMALLOC_START    _AC(0xf8000000,UL)
+#define VMALLOC_END      _AC(0xffffffff,UL)
+#endif
 
 #endif /* _ASM_RISCV_PGTABLE_H */
