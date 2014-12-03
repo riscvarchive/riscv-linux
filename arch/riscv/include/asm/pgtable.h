@@ -13,6 +13,7 @@
 #include <linux/mm_types.h>
 
 #ifdef CONFIG_32BIT
+#include <asm-generic/pgtable-nopmd.h>
 #include <asm/pgtable-32.h>
 #endif /* CONFIG_32BIT */
 #ifdef CONFIG_64BIT
@@ -321,7 +322,12 @@ extern pmd_t kern_pm_dir[PTRS_PER_PMD];
 
 #endif /* !__ASSEMBLY__ */
 
+#if defined(CONFIG_64BIT)
 #define VMALLOC_START    _AC(0xfffffffff8000000,UL)
 #define VMALLOC_END      _AC(0xffffffffffffffff,UL)
+#else
+#define VMALLOC_START    _AC(0xf8000000,UL)
+#define VMALLOC_END      _AC(0xffffffff,UL)
+#endif
 
 #endif /* _ASM_RISCV_PGTABLE_H */
