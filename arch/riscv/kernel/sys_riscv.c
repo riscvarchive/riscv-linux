@@ -10,6 +10,17 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
 }
 
+#if !defined(CONFIG_64BIT)
+SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+	unsigned long, prot, unsigned long, flags,
+	unsigned long, fd, off_t, offset)
+{
+	if (unlikely(offset & (~PAGE_MASK)))
+		return -EINVAL;
+	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> (PAGE_SHIFT - 12));
+}
+#endif
+
 #ifdef CONFIG_RV_SYSRISCV_ATOMIC
 SYSCALL_DEFINE4(sysriscv, unsigned long, cmd, unsigned long, arg1,
 	unsigned long, arg2, unsigned long, arg3)
