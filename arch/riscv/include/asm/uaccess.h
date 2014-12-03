@@ -120,6 +120,49 @@ extern int fixup_exception(struct pt_regs *);
 		: "r" (ptr))
 #endif /* CONFIG_MMU */
 
+#ifdef CONFIG_64BIT
+#define __get_user_8(x, ptr, err) __get_user_asm("ld", x, ptr, err)
+#else /* !CONFIG_64BIT */
+#ifdef CONFIG_MMU
+#define __get_user_8(x, ptr, err)				\
+	({							\
+		unsigned int __lo, __hi;			\
+		__asm__ __volatile__ (				\
+			"1:\n"					\
+			"	lw %1, 0(%3)\n"			\
+			"2:\n"					\
+			"	lw %2, 4(%3)\n"			\
+			"3:\n"					\
+			"	.section .fixup,\"ax\"\n"	\
+			"	.balign 4\n"			\
+			"4:\n"					\
+			"	li %0, %4\n"			\
+			"	li %1, 0\n"			\
+			"	jump 3b\n"			\
+			"	.previous\n"			\
+			"	.section __ex_table,\"a\"\n"	\
+			"	.balign 4\n"			\
+			"	.dword 1b, 4b\n"		\
+			"	.dword 2b, 4b\n"		\
+			"	.previous"			\
+			: "+r" (err), "=r" (__lo), "=&r" (__hi) \
+			: "r" (ptr), "i" (-EFAULT));		\
+		(x) = (__typeof(x))(__typeof((x)-(x)))		\
+			(((u64)__hi << 32) | __lo);		\
+	})
+#else /* !CONFIG_MMU */
+#define __get_user_8(x, ptr, err)				\
+	({							\
+		unsigned int __lo, __hi;			\
+		__asm__ __volatile__ (				\
+			"lw %0, 0(%2)\n"			\
+			"lw %1, 4(%2)\n"			\
+			: "=r" (x)				\
+			: "r" (ptr));				\
+	})
+#endif /* CONFIG_MMU */
+#endif
+
 /**
  * __get_user: - Get a simple variable from user space, with less checking.
  * @x:   Variable to store result.
@@ -156,7 +199,7 @@ extern int fixup_exception(struct pt_regs *);
 		__get_user_asm("lw", (x), __gu_ptr, __gu_err);	\
 		break;						\
 	case 8:							\
-		__get_user_asm("ld", (x), __gu_ptr, __gu_err);	\
+		__get_user_8((x), __gu_ptr, __gu_err);		\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
@@ -219,6 +262,51 @@ extern int fixup_exception(struct pt_regs *);
 		: "memory" )
 #endif /* CONFIG_MMU */
 
+#ifdef CONFIG_64BIT
+#define __put_user_8(x, ptr, err) __put_user_asm("sd", x, ptr, err)
+#else /* !CONFIG_64BIT */
+#ifdef CONFIG_MMU
+#define __put_user_8(x, ptr, err)				\
+	({							\
+		u64 __x = (__typeof((x)-(x)))(x);		\
+		int __lo = (int) __x, __hi = (int) (__x >> 32); \
+		__asm__ __volatile__ (				\
+			"1:\n"					\
+			"	sw %2, 0(%1)\n"			\
+			"2:\n"					\
+			"	sw %3, 4(%1)\n"			\
+			"3:\n"					\
+			"	.section .fixup,\"ax\"\n"	\
+			"	.balign 4\n"			\
+			"4:\n"					\
+			"	li %0, %4\n"			\
+			"	jump 3b\n"			\
+			"	.previous\n"			\
+			"	.section __ex_table,\"a\"\n"	\
+			"	.balign 4\n"			\
+			"	.dword 1b, 4b\n"		\
+			"	.dword 2b, 4b\n"		\
+			"	.previous"			\
+			: "+r" (err)				\
+			: "r" (ptr), "r" (__lo), "r" (__hi),	\
+			"i" (-EFAULT)				\
+			: "memory" );				\
+	})
+#else /* !CONFIG_MMU */
+#define __put_user_8(x, ptr, err)				\
+	({							\
+		u64 __x = (__typeof((x)-(x)))(x);		\
+		int __lo = (int) __x, __hi = (int) (__x >> 32); \
+		__asm__ __volatile__ (				\
+			"sw %1, 0(%0)\n"			\
+			"sw %2, 4(%0)\n"			\
+			: /* no outputs */			\
+			: "r" (ptr), "r" (__lo), "r" (__hi)	\
+			: "memory" );				\
+	})
+#endif /* CONFIG_MMU */
+#endif
+
 /**
  * __put_user: - Write a simple value into user space, with less checking.
  * @x:   Value to copy to user space.
@@ -254,7 +342,7 @@ extern int fixup_exception(struct pt_regs *);
 		__put_user_asm("sw", (x), __gu_ptr, __pu_err);	\
 		break;						\
 	case 8:							\
-		__put_user_asm("sd", (x), __gu_ptr, __pu_err);	\
+		__put_user_8((x), __gu_ptr, __pu_err);		\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
