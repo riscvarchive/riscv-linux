@@ -12,6 +12,7 @@
 #define SR_U64  _AC(0x00000020,UL) /* RV64 user mode */
 #define SR_S64  _AC(0x00000040,UL) /* RV64 supervisor mode */
 #define SR_VM   _AC(0x00000080,UL) /* Enable virtual memory */
+#define SR_ER   _AC(0x00000100,UL) /* Enable RoCC */
 #define SR_IM   _AC(0x00FF0000,UL) /* Interrupt mask */
 #define SR_IP   _AC(0xFF000000,UL) /* Pending interrupts */
 

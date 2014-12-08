@@ -77,7 +77,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 		const register unsigned long gp __asm__ ("gp");
 		memset(childregs, 0, sizeof(struct pt_regs));
 		childregs->gp = gp;
-		childregs->status = (/*SR_IM |*/ SR_VM | SR_S64 | SR_U64 | SR_EF | SR_PEI | SR_PS | SR_S);
+		childregs->status = (/*SR_IM |*/ SR_ER | SR_VM | SR_S64 | SR_U64 | SR_EF | SR_PEI | SR_PS | SR_S);
 
 		p->thread.ra = (unsigned long)ret_from_kernel_thread;
 		p->thread.s[0] = usp; /* fn */
