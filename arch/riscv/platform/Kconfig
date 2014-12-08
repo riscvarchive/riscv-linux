@@ -8,25 +8,13 @@ config RISCV_TEMAC
 
 if RISCV_TEMAC
 
-config RISCV_TEMAC_IRQ
-	int "TEMAC IRQ"
-	default 4
-
-config RISCV_TEMAC_CSR_TXD
-	hex "TEMAC Tx data CSR"
-	default 0x520
-
-config RISCV_TEMAC_CSR_RXD
-	hex "TEMAC Rx data CSR"
-	default 0x521
-
 config RISCV_TEMAC_CSR_CFGA
 	hex "TEMAC configuration address CSR"
-	default 0x522
+	default 0x520
 
 config RISCV_TEMAC_CSR_CFGD
 	hex "TEMAC configuration value CSR"
-	default 0x523
+	default 0x521
 
 endif # RISCV_TEMAC
 
