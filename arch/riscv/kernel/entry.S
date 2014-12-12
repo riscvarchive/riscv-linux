@@ -168,7 +168,7 @@ handle_syscall:
 	csrs status, SR_EI
 	li t0, __NR_syscalls
 	/* Syscall number held in a7 */
-	bge a7, t0, bad_syscall_number
+	bgeu a7, t0, bad_syscall_number
 	la s0, sys_call_table
 	slli t0, a7, 3
 	add s0, s0, t0
