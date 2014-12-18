@@ -25,9 +25,11 @@ export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
 	KBUILD_CFLAGS += -m64
+	KBUILD_AFLAGS += -m64
 else
 	BITS := 32
 	KBUILD_CFLAGS += -m32
+	KBUILD_AFLAGS += -m32
 endif
 
 ifeq ($(CONFIG_RV_ATOMIC),)

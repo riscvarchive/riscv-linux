@@ -2,8 +2,6 @@
 
 /* void *memset(void *, int, size_t) */
 
-#ifdef CONFIG_64BIT
-
 ENTRY(memset)
 	move t0, a0  /* Preserve return value */
 
@@ -100,8 +98,3 @@ ENTRY(memset)
 6:
 	ret
 END(memset)
-
-#else
-#error RV32 memset unimplemented
-#endif /* CONFIG_64BIT */
-

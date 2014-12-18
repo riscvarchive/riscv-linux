@@ -6,8 +6,13 @@
 
 #include <asm/csr.h>
 
+#if defined(CONFIG_64BIT)
 #define HTIF_DEV_SHIFT      (56)
 #define HTIF_CMD_SHIFT      (48)
+#else
+#define HTIF_DEV_SHIFT      (24)
+#define HTIF_CMD_SHIFT      (16)
+#endif
 
 #define HTIF_CMD_READ       (0x00UL)
 #define HTIF_CMD_WRITE      (0x01UL)
