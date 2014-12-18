@@ -2,8 +2,6 @@
 
 /* void *memcpy(void *, const void *, size_t) */
 
-#ifdef CONFIG_64BIT
-
 ENTRY(memcpy)
 	move t6, a0  /* Preserve return value */
 
@@ -85,8 +83,3 @@ ENTRY(memcpy)
 6:
 	ret
 END(memcpy)
-
-#else
-#error RV32 memcpy unimplemented
-#endif /* CONFIG_64BIT */
-
