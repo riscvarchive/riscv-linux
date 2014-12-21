@@ -139,7 +139,7 @@ ENTRY(handle_exception)
 	slli a0, s0, 1
 	srli a0, a0, 1
 	move a1, sp
-	jump do_IRQ
+	tail do_IRQ
 1:
 	/* Handle syscalls */
 	li s1, EXC_SYSCALL
@@ -157,7 +157,7 @@ ENTRY(handle_exception)
 	ld s1, 0(s1)
 	jr s1
 1:
-	jump handle_fault_unknown
+	tail handle_fault_unknown
 
 handle_syscall:
 	/* Advance EPC to avoid executing the original
@@ -208,9 +208,9 @@ work_notifysig:
 	csrs status, SR_EI /* Enable interrupts for do_notify_resume() */
 	move a0, sp /* pt_regs */
 	move a1, s0 /* current_thread_info->flags */
-	jump do_notify_resume
+	tail do_notify_resume
 work_resched:
-	jump schedule
+	tail schedule
 
 bad_syscall_number:
 	li a0, -ENOSYS
@@ -220,7 +220,7 @@ END(handle_exception)
 
 ENTRY(ret_from_fork)
 	la ra, restore_all
-	jump schedule_tail
+	tail schedule_tail
 ENDPROC(ret_from_fork)
 
 ENTRY(ret_from_kernel_thread)

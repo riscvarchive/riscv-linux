@@ -43,7 +43,7 @@ ENTRY(__copy_user)
 	addi a1, a1, 1
 	addi a0, a0, 1
 	bltu a1, t0, 3b
-	jump 1b
+	j 1b
 4: /* Edge case: remainder */
 	fixup lbu, t2, (a1), 10f
 	fixup sb, t2, (a0), 10f
@@ -78,7 +78,7 @@ ENTRY(__clear_user)
 	fixup sb, zero, (a0), 10f
 	addi a0, a0, 1
 	bltu a0, t0, 3b
-	jump 1b
+	j 1b
 4: /* Edge case: remainder */
 	fixup sb, zero, (a0), 10f
 	bltu a0, a3, 4b

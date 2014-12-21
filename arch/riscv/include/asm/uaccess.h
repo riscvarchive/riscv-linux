@@ -95,23 +95,26 @@ extern int fixup_exception(struct pt_regs *);
 
 #ifdef CONFIG_MMU
 #define __get_user_asm(insn, x, ptr, err)			\
-	__asm__ __volatile__ (					\
-		"1:\n"						\
-		"	" insn " %1, (%2)\n"			\
-		"2:\n"						\
-		"	.section .fixup,\"ax\"\n"		\
-		"	.balign 4\n"				\
-		"3:\n"						\
-		"	li %0, %3\n"				\
-		"	li %1, 0\n"				\
-		"	jump 2b\n"				\
-		"	.previous\n"				\
-		"	.section __ex_table,\"a\"\n"		\
-		"	.balign 8\n"				\
-		"	.quad 1b, 3b\n"				\
-		"	.previous"				\
-		: "+r" (err), "=&r" (x)				\
-		: "r" (ptr), "i" (-EFAULT))
+	do {							\
+		uintptr_t __tmp;				\
+		__asm__ __volatile__ (				\
+			"1:\n"					\
+			"	" insn " %1, (%3)\n"		\
+			"2:\n"					\
+			"	.section .fixup,\"ax\"\n"	\
+			"	.balign 4\n"			\
+			"3:\n"					\
+			"	li %0, %4\n"			\
+			"	li %1, 0\n"			\
+			"	jump 2b, %2\n"			\
+			"	.previous\n"			\
+			"	.section __ex_table,\"a\"\n"	\
+			"	.balign 8\n"			\
+			"	.quad 1b, 3b\n"			\
+			"	.previous"			\
+			: "+r" (err), "=&r" (x), "=r" (__tmp)	\
+			: "r" (ptr), "i" (-EFAULT));		\
+	} while (0)
 #else /* !CONFIG_MMU */
 #define __get_user_asm(insn, x, ptr, err)			\
 	__asm__ __volatile__ (					\
@@ -193,23 +196,26 @@ extern int fixup_exception(struct pt_regs *);
 
 #ifdef CONFIG_MMU
 #define __put_user_asm(insn, x, ptr, err)			\
-	__asm__ __volatile__ (					\
-		"1:\n"						\
-		"	" insn " %1, (%2)\n"			\
-		"2:\n"						\
-		"	.section .fixup,\"ax\"\n"		\
-		"	.balign 4\n"				\
-		"3:\n"						\
-		"	li %0, %3\n"				\
-		"	jump 2b\n"				\
-		"	.previous\n"				\
-		"	.section __ex_table,\"a\"\n"		\
-		"	.balign 8\n"				\
-		"	.quad 1b, 3b\n"				\
-		"	.previous"				\
-		: "+r" (err)					\
-		: "r" (x), "r" (ptr), "i" (-EFAULT)		\
-		: "memory" )
+	do {							\
+		uintptr_t __tmp;				\
+		__asm__ __volatile__ (				\
+			"1:\n"					\
+			"	" insn " %2, (%3)\n"		\
+			"2:\n"					\
+			"	.section .fixup,\"ax\"\n"	\
+			"	.balign 4\n"			\
+			"3:\n"					\
+			"	li %0, %4\n"			\
+			"	jump 2b, %1\n"			\
+			"	.previous\n"			\
+			"	.section __ex_table,\"a\"\n"	\
+			"	.balign 8\n"			\
+			"	.quad 1b, 3b\n"			\
+			"	.previous"			\
+			: "+r" (err), "=r" (__tmp)		\
+			: "r" (x), "r" (ptr), "i" (-EFAULT)	\
+			: "memory" );				\
+	} while (0)
 #else /* !CONFIG_MMU */
 #define __put_user_asm(insn, x, ptr, err)			\
 	__asm__ __volatile__ (					\
