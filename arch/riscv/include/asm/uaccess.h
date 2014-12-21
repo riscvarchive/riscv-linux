@@ -99,7 +99,7 @@ extern int fixup_exception(struct pt_regs *);
 		uintptr_t __tmp;				\
 		__asm__ __volatile__ (				\
 			"1:\n"					\
-			"	" insn " %1, (%3)\n"		\
+			"	" insn " %1, %3\n"		\
 			"2:\n"					\
 			"	.section .fixup,\"ax\"\n"	\
 			"	.balign 4\n"			\
@@ -113,14 +113,14 @@ extern int fixup_exception(struct pt_regs *);
 			"	.quad 1b, 3b\n"			\
 			"	.previous"			\
 			: "+r" (err), "=&r" (x), "=r" (__tmp)	\
-			: "r" (ptr), "i" (-EFAULT));		\
+			: "m" (*(ptr)), "i" (-EFAULT));		\
 	} while (0)
 #else /* !CONFIG_MMU */
 #define __get_user_asm(insn, x, ptr, err)			\
 	__asm__ __volatile__ (					\
-		insn " %0, (%1)\n"				\
+		insn " %0, %1\n"				\
 		: "=r" (x)					\
-		: "r" (ptr))
+		: "m" (*(ptr)))
 #endif /* CONFIG_MMU */
 
 /**
@@ -195,34 +195,32 @@ extern int fixup_exception(struct pt_regs *);
 
 
 #ifdef CONFIG_MMU
-#define __put_user_asm(insn, x, ptr, err)			\
-	do {							\
-		uintptr_t __tmp;				\
-		__asm__ __volatile__ (				\
-			"1:\n"					\
-			"	" insn " %2, (%3)\n"		\
-			"2:\n"					\
-			"	.section .fixup,\"ax\"\n"	\
-			"	.balign 4\n"			\
-			"3:\n"					\
-			"	li %0, %4\n"			\
-			"	jump 2b, %1\n"			\
-			"	.previous\n"			\
-			"	.section __ex_table,\"a\"\n"	\
-			"	.balign 8\n"			\
-			"	.quad 1b, 3b\n"			\
-			"	.previous"			\
-			: "+r" (err), "=r" (__tmp)		\
-			: "r" (x), "r" (ptr), "i" (-EFAULT)	\
-			: "memory" );				\
+#define __put_user_asm(insn, x, ptr, err)				\
+	do {								\
+		uintptr_t __tmp;					\
+		__asm__ __volatile__ (					\
+			"1:\n"						\
+			"	" insn " %3, %2\n"			\
+			"2:\n"						\
+			"	.section .fixup,\"ax\"\n"		\
+			"	.balign 4\n"				\
+			"3:\n"						\
+			"	li %0, %4\n"				\
+			"	jump 2b, %1\n"				\
+			"	.previous\n"				\
+			"	.section __ex_table,\"a\"\n"		\
+			"	.balign 8\n"				\
+			"	.quad 1b, 3b\n"				\
+			"	.previous"				\
+			: "+r" (err), "=r" (__tmp), "=m" (*(ptr))	\
+			: "r" (x), "i" (-EFAULT));			\
 	} while (0)
 #else /* !CONFIG_MMU */
 #define __put_user_asm(insn, x, ptr, err)			\
 	__asm__ __volatile__ (					\
-		insn " %0, (%1)\n"				\
-		: /* no outputs */				\
-		: "r" (x), "r" (ptr)				\
-		: "memory" )
+		insn " %1, %0\n"				\
+		: "=m" (*(ptr))					\
+		: "r" (x))
 #endif /* CONFIG_MMU */
 
 /**
