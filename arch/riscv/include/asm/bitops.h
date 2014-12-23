@@ -112,10 +112,9 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
 	p = addr + LONG_WORD(nr);
 
 	__asm__ __volatile__ (
-		"amoor.d %0, %2, 0(%1)"
-		: "=r" (res)
-		: "r" (p), "r" (mask)
-		: "memory");
+		"amoor.d %0, %2, %1"
+		: "=r" (res), "+A" (*p)
+		: "r" (mask));
 
 	return ((res & mask) != 0);
 }
@@ -139,10 +138,9 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 	p = addr + LONG_WORD(nr);
 
 	__asm__ __volatile__ (
-		"amoand.d %0, %2, 0(%1)"
-		: "=r" (res)
-		: "r" (p), "r" (~mask)
-		: "memory");
+		"amoand.d %0, %2, %1"
+		: "=r" (res), "+A" (*p)
+		: "r" (~mask));
 
 	return ((res & mask) != 0);
 }
@@ -165,10 +163,9 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 	p = addr + LONG_WORD(nr);
 
 	__asm__ __volatile__ (
-		"amoxor.d %0, %2, 0(%1)"
-		: "=r" (res)
-		: "r" (p), "r" (~mask)
-		: "memory");
+		"amoxor.d %0, %2, %1"
+		: "=r" (res), "+A" (*p)
+		: "r" (mask));
 
 	return ((res & mask) != 0);
 }

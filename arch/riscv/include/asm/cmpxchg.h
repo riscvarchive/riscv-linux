@@ -15,17 +15,15 @@
 	switch (size) {						\
 	case 4:							\
 		__asm__ __volatile__ (				\
-			"amoswap.w %0, %1, 0(%2)"		\
-			: "=r" (__ret)				\
-			: "r" (__new), "r" (__ptr)		\
-			: "memory");				\
+			"amoswap.w %0, %2, %1"			\
+			: "=r" (__ret), "+A" (*__ptr)		\
+			: "r" (__new));				\
 		break;						\
 	case 8:							\
 		__asm__ __volatile__ (				\
-			"amoswap.d %0, %1, 0(%2)"		\
-			: "=r" (__ret)				\
-			: "r" (__new), "r" (__ptr)		\
-			: "memory");				\
+			"amoswap.d %0, %2, %1"			\
+			: "=r" (__ret), "+A" (*__ptr)		\
+			: "r" (__new));				\
 		break;						\
 	default:						\
 		BUILD_BUG();					\

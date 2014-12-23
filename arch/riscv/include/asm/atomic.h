@@ -28,11 +28,7 @@ static inline int atomic_read(const atomic_t *v)
  */
 static inline void atomic_set(atomic_t *v, int i)
 {
-	__asm__ __volatile__ (
-		"amoswap.w zero, %0, 0(%1)"
-		:
-		: "r" (i), "r" (&(v->counter))
-		: "memory");
+	v->counter = i;
 }
 
 /**
@@ -45,10 +41,9 @@ static inline void atomic_set(atomic_t *v, int i)
 static inline void atomic_add(int i, atomic_t *v)
 {
 	__asm__ __volatile__ (
-		"amoadd.w zero, %0, 0(%1)"
-		:
-		: "r" (i), "r" (&(v->counter))
-		: "memory");
+		"amoadd.w zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (i));
 }
 
 /**
@@ -74,10 +69,9 @@ static inline int atomic_add_return(int i, atomic_t *v)
 {
 	register int c;
 	__asm__ __volatile__ (
-		"amoadd.w %0, %1, 0(%2)"
-		: "=r" (c)
-		: "r" (i), "r" (&(v->counter))
-		: "memory");
+		"amoadd.w %0, %2, %1"
+		: "=r" (c), "+A" (v->counter)
+		: "r" (i));
 	return (c + i);
 }
 
@@ -184,10 +178,9 @@ static inline int atomic_xchg(atomic_t *v, int n)
 {
 	register int c;
 	__asm__ __volatile__ (
-		"amoswap.w %0, %1, 0(%2)"
-		: "=r" (c)
-		: "r" (n), "r" (&(v->counter))
-		: "memory");
+		"amoswap.w %0, %2, %1"
+		: "=r" (c), "+A" (v->counter)
+		: "r" (n));
 	return c;
 }
 
@@ -235,10 +228,9 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
 {
 	__asm__ __volatile__ (
-		"amoand.w zero, %0, 0(%1)"
-		:
-		: "r" (~mask), "r" (&(v->counter))
-		: "memory");
+		"amoand.w zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (~mask));
 }
 
 /**
@@ -251,10 +243,9 @@ static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
 static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
 {
 	__asm__ __volatile__ (
-		"amoor.w zero, %0, 0(%1)"
-		:
-		: "r" (mask), "r" (&(v->counter))
-		: "memory");
+		"amoor.w zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (mask));
 }
 
 /* Assume that atomic operations are already serializing */
