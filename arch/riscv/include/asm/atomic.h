@@ -193,18 +193,7 @@ static inline int atomic_xchg(atomic_t *v, int n)
 
 static inline int atomic_cmpxchg(atomic_t *v, int o, int n)
 {
-	register int prev, rc;
-	__asm__ __volatile__ (
-	"0:"
-		"lr.w %0, 0(%2)\n"
-		"bne  %0, %3, 1f\n"
-		"sc.w %1, %4, 0(%2)\n"
-		"bnez %1, 0b\n"
-	"1:"
-		: "=&r" (prev), "=&r" (rc)
-		: "r" (&(v->counter)), "r" (o), "r" (n)
-		: "memory");
-	return prev;
+	return cmpxchg(&(v->counter), o, n);
 }
 
 /**
@@ -221,19 +210,18 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 	register int prev, rc;
 	__asm__ __volatile__ (
 	"0:"
-		"lr.w %0, 0(%3)\n"
+		"lr.w %0, %2\n"
 		"beq  %0, %4, 1f\n"
 #ifdef CONFIG_64BIT
-		"addw %1, %0, %2\n"
+		"addw %1, %0, %3\n"
 #else
-		"add  %1, %0, %2\n"
+		"add  %1, %0, %3\n"
 #endif /* CONFIG_64BIT */
-		"sc.w %1, %1, 0(%3)\n"
+		"sc.w %1, %1, %2\n"
 		"bnez %1, 0b\n"
 	"1:"
-		: "=&r" (prev), "=&r" (rc)
-		: "r" (a), "r" (&(v->counter)), "r" (u)
-		: "memory");
+		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
+		: "r" (a), "r" (u));
 	return prev;
 }
 
