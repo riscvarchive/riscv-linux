@@ -29,11 +29,24 @@ static inline s64 atomic64_read(const atomic64_t *v)
  */
 static inline void atomic64_set(atomic64_t *v, s64 i)
 {
-	__asm__ __volatile__ (
-		"amoswap.d zero, %0, 0(%1)"
-		:
-		: "r" (i), "r" (&(v->counter))
-		: "memory");
+	v->counter = i;
+}
+
+/**
+ * atomic64_add_return - add and return
+ * @i: integer value to add
+ * @v: pointer to type atomic64_t
+ *
+ * Atomically adds @i to @v and returns @i + @v
+ */
+static inline s64 atomic64_add_return(s64 a, atomic64_t *v)
+{
+	return __atomic_fetch_add(&(v->counter), a, 0) + a;
+}
+
+static inline s64 atomic64_sub_return(s64 a, atomic64_t *v)
+{
+	return atomic64_add_return(-a, v);
 }
 
 /**
@@ -45,11 +58,7 @@ static inline void atomic64_set(atomic64_t *v, s64 i)
  */
 static inline void atomic64_add(s64 a, atomic64_t *v)
 {
-	__asm__ __volatile__ (
-		"amoadd.d zero, %0, 0(%1)"
-		:
-		: "r" (a), "r" (&(v->counter))
-		: "memory");
+	(void) atomic64_add_return(a, v);
 }
 
 /**
@@ -62,29 +71,6 @@ static inline void atomic64_add(s64 a, atomic64_t *v)
 static inline void atomic64_sub(s64 a, atomic64_t *v)
 {
 	atomic64_add(-a, v);
-}
-
-/**
- * atomic64_add_return - add and return
- * @i: integer value to add
- * @v: pointer to type atomic64_t
- *
- * Atomically adds @i to @v and returns @i + @v
- */
-static inline s64 atomic64_add_return(s64 a, atomic64_t *v)
-{
-	register s64 c;
-	__asm__ __volatile__ (
-		"amoadd.d %0, %1, 0(%2)"
-		: "=r" (c)
-		: "r" (a), "r" (&(v->counter))
-		: "memory");
-	return (c + a);
-}
-
-static inline s64 atomic64_sub_return(s64 a, atomic64_t *v)
-{
-	return atomic64_add_return(-a, v);
 }
 
 /**
@@ -176,13 +162,7 @@ static inline int atomic64_add_negative(s64 a, atomic64_t *v)
 
 static inline s64 atomic64_xchg(atomic64_t *v, s64 n)
 {
-	register s64 c;
-	__asm__ __volatile__ (
-		"amoswap.d %0, %1, 0(%2)"
-		: "=r" (c)
-		: "r" (n), "r" (&(v->counter))
-		: "memory");
-	return c;
+	return xchg(&(v->counter), n);
 }
 
 static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)

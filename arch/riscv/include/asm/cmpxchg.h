@@ -14,18 +14,8 @@
 	__typeof__(*(ptr)) __ret;				\
 	switch (size) {						\
 	case 4:							\
-		__asm__ __volatile__ (				\
-			"amoswap.w %0, %1, 0(%2)"		\
-			: "=r" (__ret)				\
-			: "r" (__new), "r" (__ptr)		\
-			: "memory");				\
-		break;						\
 	case 8:							\
-		__asm__ __volatile__ (				\
-			"amoswap.d %0, %1, 0(%2)"		\
-			: "=r" (__ret)				\
-			: "r" (__new), "r" (__ptr)		\
-			: "memory");				\
+		__atomic_exchange(__ptr, &__new, &__ret, 0);	\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
