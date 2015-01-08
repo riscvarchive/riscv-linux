@@ -10,17 +10,11 @@
 #include <asm/pgtable.h>
 #include <asm/io.h>
 
-#ifdef CONFIG_64BIT
 static void __init pagetable_init(void)
 {
 	/* Remove identity mapping to catch NULL pointer dereferences */
 	swapper_pg_dir[0] = __pgd(0);
 }
-#else
-static void __init pagetable_init(void)
-{
-}
-#endif /* CONFIG_64BIT */
 
 #ifdef CONFIG_NUMA
 static void __init zone_sizes_init(void)
