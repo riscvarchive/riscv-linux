@@ -1,13 +1,11 @@
 #include <linux/delay.h>
-
-#include <asm/timex.h>
-
-#define LOOPS_PER_JIFFY 1337
+#include <linux/param.h>
+#include <linux/timex.h>
 
 inline void __const_udelay(unsigned long xloops)
 {
-	unsigned long loops;
-	loops = xloops * LOOPS_PER_JIFFY * CONFIG_HZ;
+	u64 loops;
+	loops = (u64)xloops * loops_per_jiffy * HZ;
 	__delay(loops >> 32);
 }
 
