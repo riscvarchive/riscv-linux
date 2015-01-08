@@ -53,7 +53,7 @@ static void __init setup_bootmem(void)
 	unsigned long start_pfn, end_pfn;
 	unsigned long mem_size, bootmap_size;
 
-	mem_size = MEMORY_SIZE;
+	mem_size = min(PHYSMEM_SIZE, PHYSMEM_MAX) << PHYSMEM_SHIFT;
 	printk(KERN_INFO "Detected 0x%lx bytes of physical memory\n", mem_size);
 	end_pfn = PFN_DOWN(min(VMALLOC_START - PAGE_OFFSET, mem_size));
 
