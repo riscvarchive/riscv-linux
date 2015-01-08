@@ -7,6 +7,8 @@
 #include <linux/errno.h>
 #include <linux/compiler.h>
 #include <linux/thread_info.h>
+#include <asm/byteorder.h>
+#include <asm/asm.h>
 
 /*
  * The fs value determines whether argument validity checking should be
@@ -87,6 +89,16 @@ struct exception_table_entry {
 
 extern int fixup_exception(struct pt_regs *);
 
+#if defined(__LITTLE_ENDIAN)
+#define __MSW	1
+#define __LSW	0
+#elif defined(__BIG_ENDIAN)
+#define __MSW	0
+#define	__LSW	1
+#else
+#error "Unknown endianness"
+#endif
+
 /*
  * The "__xxx" versions of the user access functions do not verify the address
  * space - it must have been done previously with a separate "access_ok()"
@@ -109,8 +121,8 @@ do {								\
 		"	jump 2b, %2\n"				\
 		"	.previous\n"				\
 		"	.section __ex_table,\"a\"\n"		\
-		"	.balign 8\n"				\
-		"	.quad 1b, 3b\n"				\
+		"	.balign " SZPTR "\n"			\
+		"	" PTR " 1b, 3b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=&r" (x), "=r" (__tmp)		\
 		: "m" (*(ptr)), "i" (-EFAULT));			\
@@ -118,10 +130,54 @@ do {								\
 #else /* !CONFIG_MMU */
 #define __get_user_asm(insn, x, ptr, err)			\
 	__asm__ __volatile__ (					\
-		insn " %0, %1\n"				\
+		insn " %0, %1"					\
 		: "=r" (x)					\
 		: "m" (*(ptr)))
 #endif /* CONFIG_MMU */
+
+
+#ifdef CONFIG_64BIT
+#define __get_user_8(x, ptr, err) \
+	__get_user_asm("ld", x, ptr, err)
+#else /* !CONFIG_64BIT */
+#ifdef CONFIG_MMU
+#define __get_user_8(x, ptr, err)				\
+do {								\
+	u32 __user *__ptr = (u32 __user *)(ptr);		\
+	u32 __lo, __hi;						\
+	uintptr_t __tmp;					\
+	__asm__ __volatile__ (					\
+		"1:\n"						\
+		"	lw %1, %4\n"				\
+		"2:\n"						\
+		"	lw %2, %5\n"				\
+		"3:\n"						\
+		"	.section .fixup,\"ax\"\n"		\
+		"	.balign 4\n"				\
+		"4:\n"						\
+		"	li %0, %6\n"				\
+		"	li %1, 0\n"				\
+		"	li %2, 0\n"				\
+		"	jump 3b, %3\n"				\
+		"	.previous\n"				\
+		"	.section __ex_table,\"a\"\n"		\
+		"	.balign " SZPTR "\n"			\
+		"	" PTR " 1b, 4b\n"			\
+		"	" PTR " 2b, 4b\n"			\
+		"	.previous"				\
+		: "+r" (err), "=&r" (__lo), "=r" (__hi),	\
+			"=r" (__tmp)				\
+		: "m" (__ptr[__LSW]), "m" (__ptr[__MSW]),	\
+			"i" (-EFAULT));				\
+	(x) = (__typeof__(x))((__typeof__((x)-(x)))(		\
+		(((u64)__hi << 32) | __lo)));			\
+} while (0)
+#else /* !CONFIG_MMU */
+#define __get_user_8(x, ptr, err) \
+	(x) = (__typeof__(x))(*((u64 __user *)(ptr)))
+#endif /* CONFIG_MMU */
+#endif /* CONFIG_64BIT */
+
 
 /**
  * __get_user: - Get a simple variable from user space, with less checking.
@@ -159,7 +215,7 @@ do {								\
 		__get_user_asm("lw", (x), __gu_ptr, __gu_err);	\
 		break;						\
 	case 8:							\
-		__get_user_asm("ld", (x), __gu_ptr, __gu_err);	\
+		__get_user_8((x), __gu_ptr, __gu_err);	\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
@@ -200,7 +256,7 @@ do {								\
 	uintptr_t __tmp;					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
-		"	" insn " %3, %2\n"			\
+		"	" insn " %z3, %2\n"			\
 		"2:\n"						\
 		"	.section .fixup,\"ax\"\n"		\
 		"	.balign 4\n"				\
@@ -209,19 +265,59 @@ do {								\
 		"	jump 2b, %1\n"				\
 		"	.previous\n"				\
 		"	.section __ex_table,\"a\"\n"		\
-		"	.balign 8\n"				\
-		"	.quad 1b, 3b\n"				\
+		"	.balign " SZPTR "\n"			\
+		"	" PTR " 1b, 3b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=r" (__tmp), "=m" (*(ptr))	\
-		: "r" (x), "i" (-EFAULT));			\
+		: "rJ" (x), "i" (-EFAULT));			\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __put_user_asm(insn, x, ptr, err)			\
 	__asm__ __volatile__ (					\
-		insn " %1, %0\n"				\
+		insn " %z1, %0"					\
 		: "=m" (*(ptr))					\
-		: "r" (x))
+		: "rJ" (x))
 #endif /* CONFIG_MMU */
+
+
+#ifdef CONFIG_64BIT
+#define __put_user_8(x, ptr, err) \
+	__put_user_asm("sd", x, ptr, err)
+#else /* !CONFIG_64BIT */
+#ifdef CONFIG_MMU
+#define __put_user_8(x, ptr, err)				\
+do {								\
+	u32 __user *__ptr = (u32 __user *)(ptr);		\
+	u64 __x = (__typeof__((x)-(x)))(x);	 		\
+	uintptr_t __tmp;					\
+	__asm__ __volatile__ (					\
+		"1:\n"						\
+		"	sw %z4, %2\n"				\
+		"2:\n"						\
+		"	sw %z5, %3\n"				\
+		"3:\n"						\
+		"	.section .fixup,\"ax\"\n"		\
+		"	.balign 4\n"				\
+		"4:\n"						\
+		"	li %0, %6\n"				\
+		"	jump 2b, %1\n"				\
+		"	.previous\n"				\
+		"	.section __ex_table,\"a\"\n"		\
+		"	.balign " SZPTR "\n"			\
+		"	" PTR " 1b, 4b\n"			\
+		"	" PTR " 2b, 4b\n"			\
+		"	.previous"				\
+		: "+r" (err), "=r" (__tmp),			\
+			"=m" (__ptr[__LSW]),			\
+			"=m" (__ptr[__MSW])			\
+		: "rJ" (__x), "rJ" (__x >> 32), "i" (-EFAULT));	\
+} while (0)
+#else /* !CONFIG_MMU */
+#define __put_user_8(x, ptr, err)				\
+	*((u64 __user *)(ptr)) = (u64)(x)
+#endif /* CONFIG_MMU */
+#endif /* CONFIG_64BIT */
+
 
 /**
  * __put_user: - Write a simple value into user space, with less checking.
@@ -258,7 +354,7 @@ do {								\
 		__put_user_asm("sw", (x), __gu_ptr, __pu_err);	\
 		break;						\
 	case 8:							\
-		__put_user_asm("sd", (x), __gu_ptr, __pu_err);	\
+		__put_user_8((x), __gu_ptr, __pu_err);	\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
