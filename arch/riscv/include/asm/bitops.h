@@ -14,13 +14,6 @@
 
 #ifdef CONFIG_RV_ATOMIC
 
-#define LONG_MASK(nr) (1UL << ((nr) & (BITS_PER_LONG - 1)))
-#ifdef CONFIG_64BIT
-#define LONG_WORD(nr) ((nr) >> 6)
-#else
-#define LONG_WORD(nr) ((nr) >> 5)
-#endif /* CONFIG_64BIT */
-
 #ifndef smp_mb__before_clear_bit
 #define smp_mb__before_clear_bit()  smp_mb()
 #define smp_mb__after_clear_bit()   smp_mb()
@@ -93,6 +86,35 @@ static __always_inline int ffs(int x)
 
 #include <asm-generic/bitops/hweight.h>
 
+#if (BITS_PER_LONG == 64)
+#define __AMO(op)	"amo" #op ".d"
+#elif (BITS_PER_LONG == 32)
+#define __AMO(op)	"amo" #op ".w"
+#else
+#error "Unexpected BITS_PER_LONG"
+#endif
+
+#define __test_and_op_bit(op, mod, nr, addr)			\
+({								\
+	unsigned long __res, __mask;				\
+	__mask = BIT_MASK(nr);					\
+	__asm__ __volatile__ (					\
+		__AMO(op) " %0, %2, %1"				\
+		: "=r" (__res), "+A" (addr[BIT_WORD(nr)])	\
+		: "r" (mod(__mask)));				\
+	((__res & __mask) != 0);				\
+})
+
+#define __op_bit(op, mod, nr, addr)				\
+	__asm__ __volatile__ (					\
+		__AMO(op) " zero, %1, %0"			\
+		: "+A" (addr[BIT_WORD(nr)])			\
+		: "r" (mod(BIT_MASK(nr))))
+
+/* Bitmask modifiers */
+#define __NOP(x)	(x)
+#define __NOT(x)	(~(x))
+
 /**
  * test_and_set_bit - Set a bit and return its old value
  * @nr: Bit to set
@@ -104,19 +126,7 @@ static __always_inline int ffs(int x)
  */
 static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
 {
-	unsigned long res;
-	unsigned long mask;
-	volatile unsigned long *p;
-
-	mask = LONG_MASK(nr);
-	p = addr + LONG_WORD(nr);
-
-	__asm__ __volatile__ (
-		"amoor.d %0, %2, %1"
-		: "=r" (res), "+A" (*p)
-		: "r" (mask));
-
-	return ((res & mask) != 0);
+	return __test_and_op_bit(or, __NOP, nr, addr);
 }
 
 /**
@@ -130,19 +140,7 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
  */
 static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
 {
-	unsigned long res;
-	unsigned long mask;
-	volatile unsigned long *p;
-
-	mask = LONG_MASK(nr);
-	p = addr + LONG_WORD(nr);
-
-	__asm__ __volatile__ (
-		"amoand.d %0, %2, %1"
-		: "=r" (res), "+A" (*p)
-		: "r" (~mask));
-
-	return ((res & mask) != 0);
+	return __test_and_op_bit(and, __NOT, nr, addr);
 }
 
 /**
@@ -155,19 +153,7 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
  */
 static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
 {
-	unsigned long res;
-	unsigned long mask;
-	volatile unsigned long *p;
-
-	mask = LONG_MASK(nr);
-	p = addr + LONG_WORD(nr);
-
-	__asm__ __volatile__ (
-		"amoxor.d %0, %2, %1"
-		: "=r" (res), "+A" (*p)
-		: "r" (mask));
-
-	return ((res & mask) != 0);
+	return __test_and_op_bit(xor, __NOP, nr, addr);
 }
 
 /**
@@ -187,7 +173,7 @@ static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
  */
 static inline void set_bit(int nr, volatile unsigned long *addr)
 {
-	(void)test_and_set_bit(nr, addr);
+	__op_bit(or, __NOP, nr, addr);
 }
 
 /**
@@ -202,7 +188,7 @@ static inline void set_bit(int nr, volatile unsigned long *addr)
  */
 static inline void clear_bit(int nr, volatile unsigned long *addr)
 {
-	(void)test_and_clear_bit(nr, addr);
+	__op_bit(and, __NOT, nr, addr);
 }
 
 /**
@@ -217,7 +203,7 @@ static inline void clear_bit(int nr, volatile unsigned long *addr)
  */
 static inline void change_bit(int nr, volatile unsigned long *addr)
 {
-	(void)test_and_change_bit(nr, addr);
+	__op_bit(xor, __NOP, nr, addr);
 }
 
 /**
@@ -264,8 +250,11 @@ static inline void __clear_bit_unlock(
 	clear_bit(nr, addr);
 }
 
-#undef LONG_MASK
-#undef LONG_WORD
+#undef __test_and_op_bit
+#undef __op_bit
+#undef __NOP
+#undef __NOT
+#undef __AMO
 
 #include <asm-generic/bitops/non-atomic.h>
 #include <asm-generic/bitops/le.h>
