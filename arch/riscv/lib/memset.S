@@ -1,9 +1,7 @@
 #include <linux/linkage.h>
+#include <asm/asm.h>
 
 /* void *memset(void *, int, size_t) */
-
-#ifdef CONFIG_64BIT
-
 ENTRY(memset)
 	move t0, a0  /* Preserve return value */
 
@@ -11,10 +9,10 @@ ENTRY(memset)
 	sltiu a3, a2, 16
 	bnez a3, 4f
 
-	/* Round to nearest double word-aligned address
+	/* Round to nearest XLEN-aligned address
 	   greater than or equal to start address */
-	addi a3, t0, 0x7
-	andi a3, a3, ~(0x7)
+	addi a3, t0, SZREG-1
+	andi a3, a3, ~(SZREG-1)
 	beq a3, t0, 2f  /* Skip if already aligned */
 	/* Handle initial misalignment */
 	sub a4, a3, t0
@@ -24,24 +22,26 @@ ENTRY(memset)
 	bltu t0, a3, 1b
 	sub a2, a2, a4  /* Update count */
 
-2: /* Duff's device with 32 double-word stores per iteration */
-	/* Broadcast value into all 8 bytes */
+2: /* Duff's device with 32 XLEN stores per iteration */
+	/* Broadcast value into all bytes */
 	andi a1, a1, 0xff
 	slli a3, a1, 8
 	or a1, a3, a1
 	slli a3, a1, 16
 	or a1, a3, a1
+#ifdef CONFIG_64BIT
 	slli a3, a1, 32
 	or a1, a3, a1
+#endif
 
 	/* Calculate end address */
-	andi a4, a2, ~(0x7)
+	andi a4, a2, ~(SZREG-1)
 	add a3, t0, a4
 
-	andi a4, a4, 0xf8   /* Calculate remainder */
-	beqz a4, 3f         /* Shortcut if no remainder */
-	sub a4, zero, a4
-	addi a4, a4, 0x100  /* Calculate initial offset */
+	andi a4, a4, 31*SZREG  /* Calculate remainder */
+	beqz a4, 3f            /* Shortcut if no remainder */
+	neg a4, a4
+	addi a4, a4, 32*SZREG  /* Calculate initial offset */
 
 	/* Adjust start address with offset */
 	sub t0, t0, a4
@@ -49,45 +49,47 @@ ENTRY(memset)
 	/* Jump into loop body */
 	/* Assumes 32-bit instruction lengths */
 	la a5, 3f
+#ifdef CONFIG_64BIT
 	srli a4, a4, 1
+#endif
 	add a5, a5, a4
 	jr a5
 3:
-	sd a1, 0x00(t0)
-	sd a1, 0x08(t0)
-	sd a1, 0x10(t0)
-	sd a1, 0x18(t0)
-	sd a1, 0x20(t0)
-	sd a1, 0x28(t0)
-	sd a1, 0x30(t0)
-	sd a1, 0x38(t0)
-	sd a1, 0x40(t0)
-	sd a1, 0x48(t0)
-	sd a1, 0x50(t0)
-	sd a1, 0x58(t0)
-	sd a1, 0x60(t0)
-	sd a1, 0x68(t0)
-	sd a1, 0x70(t0)
-	sd a1, 0x78(t0)
-	sd a1, 0x80(t0)
-	sd a1, 0x88(t0)
-	sd a1, 0x90(t0)
-	sd a1, 0x98(t0)
-	sd a1, 0xa0(t0)
-	sd a1, 0xa8(t0)
-	sd a1, 0xb0(t0)
-	sd a1, 0xb8(t0)
-	sd a1, 0xc0(t0)
-	sd a1, 0xc8(t0)
-	sd a1, 0xd0(t0)
-	sd a1, 0xd8(t0)
-	sd a1, 0xe0(t0)
-	sd a1, 0xe8(t0)
-	sd a1, 0xf0(t0)
-	sd a1, 0xf8(t0)
-	addi t0, t0, 0x100
+	REG_S a1,        0(t0)
+	REG_S a1,    SZREG(t0)
+	REG_S a1,  2*SZREG(t0)
+	REG_S a1,  3*SZREG(t0)
+	REG_S a1,  4*SZREG(t0)
+	REG_S a1,  5*SZREG(t0)
+	REG_S a1,  6*SZREG(t0)
+	REG_S a1,  7*SZREG(t0)
+	REG_S a1,  8*SZREG(t0)
+	REG_S a1,  9*SZREG(t0)
+	REG_S a1, 10*SZREG(t0)
+	REG_S a1, 11*SZREG(t0)
+	REG_S a1, 12*SZREG(t0)
+	REG_S a1, 13*SZREG(t0)
+	REG_S a1, 14*SZREG(t0)
+	REG_S a1, 15*SZREG(t0)
+	REG_S a1, 16*SZREG(t0)
+	REG_S a1, 17*SZREG(t0)
+	REG_S a1, 18*SZREG(t0)
+	REG_S a1, 19*SZREG(t0)
+	REG_S a1, 20*SZREG(t0)
+	REG_S a1, 21*SZREG(t0)
+	REG_S a1, 22*SZREG(t0)
+	REG_S a1, 23*SZREG(t0)
+	REG_S a1, 24*SZREG(t0)
+	REG_S a1, 25*SZREG(t0)
+	REG_S a1, 26*SZREG(t0)
+	REG_S a1, 27*SZREG(t0)
+	REG_S a1, 28*SZREG(t0)
+	REG_S a1, 29*SZREG(t0)
+	REG_S a1, 30*SZREG(t0)
+	REG_S a1, 31*SZREG(t0)
+	addi t0, t0, 32*SZREG
 	bltu t0, a3, 3b
-	andi a2, a2, 0x7  /* Update count */
+	andi a2, a2, SZREG-1  /* Update count */
 
 4:
 	/* Handle trailing misalignment */
@@ -100,8 +102,3 @@ ENTRY(memset)
 6:
 	ret
 END(memset)
-
-#else
-#error RV32 memset unimplemented
-#endif /* CONFIG_64BIT */
-
