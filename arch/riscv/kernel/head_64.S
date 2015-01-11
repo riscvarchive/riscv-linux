@@ -89,7 +89,7 @@ ENTRY(_start)
 	la s0, init_task
 	csrw sup0, s0
 
-	jump start_kernel
+	tail start_kernel
 
 END(_start)
 
