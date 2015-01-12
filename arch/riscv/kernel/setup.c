@@ -3,6 +3,7 @@
 #include <linux/bootmem.h>
 #include <linux/sched.h>
 #include <linux/initrd.h>
+#include <linux/cpu.h>
 
 #include <asm/setup.h>
 #include <asm/sections.h>
@@ -94,3 +95,17 @@ void __init setup_arch(char **cmdline_p)
 	setup_bootmem();
 	paging_init();
 }
+
+static struct cpu cpu_devices[NR_CPUS];
+
+static int __init topology_init(void)
+{
+	int i;
+
+	for_each_present_cpu(i) {
+		register_cpu(&cpu_devices[i], i);
+	}
+
+	return 0;
+}
+subsys_initcall(topology_init);
