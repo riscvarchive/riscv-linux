@@ -57,6 +57,7 @@ static void __handle_misaligned_addr(struct pt_regs *regs,
 		info.si_code = BUS_ADRALN;
 		info.si_addr = (void *)addr;
 		force_sig_info(SIGBUS, &info, current);
+                printk("epc: %016lx badvaddr: %016lx\n", regs->epc, regs->badvaddr);
 	} else { /* Kernel mode */
 		die("SIGBUS", regs, 0);
 	}

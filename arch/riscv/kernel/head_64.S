@@ -16,6 +16,9 @@
 
 __INIT
 ENTRY(_start)
+	csrr a0, hartid
+	div a1, a1, x0
+	1: bnez a0, 1b
 
 	/* Enable RV64 mode; temporarily disable virtual memory */
 	li s0, (SR_S64 | SR_U64)
