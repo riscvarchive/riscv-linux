@@ -15,7 +15,7 @@ Building the kernel image
         $ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.15.tar.xz | tar -xJ
         $ cd linux-3.14.15
         $ git init
-        $ git remote add origin git@github.com:ucb-bar/riscv-linux.git
+        $ git remote add origin https://github.com/ucb-bar/riscv-linux.git
         $ git fetch
         $ git checkout -f -t origin/master
 
