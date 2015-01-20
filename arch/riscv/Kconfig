@@ -66,31 +66,7 @@ config RV_SYSRISCV_ATOMIC
 
 	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
 
-menuconfig HTIF
-	bool "HTIF"
-	default y
-	help
-	  Host-Target Interface
-if HTIF
-
-config HTIF_CONSOLE
-	tristate "HTIF console support"
-	default y
-
-config HTIF_BLK_DEV
-	tristate "HTIF block device support"
-	depends on BLOCK
-	default y
-
-config HTIF_RFB
-	tristate "HTIF remote framebuffer"
-	depends on FB
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	default y
-
-endif # HTIF
+source "arch/riscv/htif/Kconfig"
 
 endmenu
 
