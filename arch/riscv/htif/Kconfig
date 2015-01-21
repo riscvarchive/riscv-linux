@@ -1,5 +1,6 @@
 menuconfig HTIF
 	bool "HTIF"
+	depends on 64BIT
 	default y
 	help
 	  Host-Target Interface
