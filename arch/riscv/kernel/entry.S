@@ -151,7 +151,7 @@ ENTRY(handle_exception)
 1:
 	la s1, excp_vect_table
 	la s2, excp_vect_table_end
-	slli s0, s0, 3
+	slli s0, s0, LGPTR
 	add s1, s1, s0
 	/* Check if exception code lies within bounds */
 	bgeu s1, s2, 1f
@@ -171,7 +171,7 @@ handle_syscall:
 	/* Syscall number held in a7 */
 	bgeu a7, t0, bad_syscall_number
 	la s0, sys_call_table
-	slli t0, a7, 3
+	slli t0, a7, LGPTR
 	add s0, s0, t0
 	REG_L s0, 0(s0)
 	REG_S a7, PT_SYSCALLNO(sp) /* save in case of restart */
