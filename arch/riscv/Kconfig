@@ -12,6 +12,7 @@ config RISCV
 	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
 	select RV_ATOMIC if SMP
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
+	select SYSCTL_EXCEPTION_TRACE
 
 config MMU
 	def_bool y

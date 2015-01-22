@@ -8,9 +8,36 @@
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
 
+extern void die(char *, struct pt_regs *, long);
+
+/*
+ * Print out info about fatal segfaults, if the show_unhandled_signals
+ * sysctl is set:
+ */
 int show_unhandled_signals = 1;
 
-extern void die(char *, struct pt_regs *, long);
+static inline void
+show_signal_msg(struct pt_regs *regs, unsigned long error_code,
+		unsigned long address, struct task_struct *tsk)
+{
+	if (unlikely(show_unhandled_signals != 1))
+		return;
+
+	if (!unhandled_signal(tsk, SIGSEGV))
+		return;
+
+	if (!printk_ratelimit())
+		return;
+
+	printk("%s%s[%d]: segfault at %lx ip %p sp %p error %lx",
+		task_pid_nr(tsk) > 1 ? KERN_INFO : KERN_EMERG,
+		tsk->comm, task_pid_nr(tsk), address,
+		(void *)regs->epc, (void *)regs->sp, error_code);
+
+	print_vma_addr(KERN_CONT " in ", regs->epc);
+
+	printk(KERN_CONT "\n");
+}
 
 asmlinkage void do_page_fault(struct pt_regs *regs)
 {
@@ -135,6 +162,7 @@ bad_area:
 		/* info.si_code has been set above */
 		info.si_addr = (void __user *)addr;
 		force_sig_info(SIGSEGV, &info, tsk);
+		show_signal_msg(regs, write, addr, tsk);
 		return;
 	}
 
