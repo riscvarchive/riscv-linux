@@ -143,8 +143,8 @@ no_context:
 	if (fixup_exception(regs)) {
 		return;
 	}
-	printk(KERN_ALERT "Unable to handle kernel paging request at "
-		"virtual address 0x%016lx, epc=0x%016lx", addr, epc);
+	pr_alert("Unable to handle kernel paging request at virtual "
+		"address " REG_FMT " epc=" REG_FMT, addr, epc);
 	die("Oops", regs, 0);
 
 out_of_memory:

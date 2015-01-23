@@ -40,7 +40,7 @@ asmlinkage void handle_fault_unknown(struct pt_regs *regs)
 		info.si_addr = (void *)(regs->epc);
 		force_sig_info(SIGILL, &info, current);
 	} else { /* Kernel mode */
-		panic("unknown exception %ld: epc=0x%016lx badvaddr=0x%016lx",
+		panic("unknown exception %ld: epc=" REG_FMT " badvaddr=" REG_FMT,
 			regs->cause, regs->epc, regs->badvaddr);
 	}
 }
