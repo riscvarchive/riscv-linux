@@ -47,6 +47,12 @@ typedef struct pt_regs {
 	unsigned long syscallno;
 } pt_regs;
 
+#ifdef CONFIG_64BIT
+#define REG_FMT "%016lx"
+#else
+#define REG_FMT "%08lx"
+#endif
+
 #define user_mode(regs) (((regs)->status & SR_PS) == 0)
 
 

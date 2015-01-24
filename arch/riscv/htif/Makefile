@@ -1,4 +1,4 @@
-obj-y				+= htif.o
-obj-$(CONFIG_HTIF_CONSOLE)	+= htifcons.o
-obj-$(CONFIG_HTIF_BLK_DEV)	+= htifbd.o
-obj-$(CONFIG_HTIF_RFB)		+= htifrfb.o
+obj-$(CONFIG_HTIF)		+= htif.o htif-drv.o
+obj-$(CONFIG_HTIF_CONSOLE)	+= htif-con.o
+obj-$(CONFIG_HTIF_BLOCK)	+= htif-blk.o
+obj-$(CONFIG_HTIF_RFB)		+= htif-rfb.o

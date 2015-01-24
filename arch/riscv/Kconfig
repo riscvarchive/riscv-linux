@@ -7,11 +7,13 @@ config RISCV
 	def_bool y
 	select ARCH_WANT_FRAME_POINTERS
 	select CLONE_BACKWARDS
+	select GENERIC_CPU_DEVICES
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
 	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
 	select RV_ATOMIC if SMP
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
+	select SYSCTL_EXCEPTION_TRACE
 
 config MMU
 	def_bool y
@@ -66,31 +68,7 @@ config RV_SYSRISCV_ATOMIC
 
 	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
 
-menuconfig HTIF
-	bool "HTIF"
-	default y
-	help
-	  Host-Target Interface
-if HTIF
-
-config HTIF_CONSOLE
-	tristate "HTIF console support"
-	default y
-
-config HTIF_BLK_DEV
-	tristate "HTIF block device support"
-	depends on BLOCK
-	default y
-
-config HTIF_RFB
-	tristate "HTIF remote framebuffer"
-	depends on FB
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	default y
-
-endif # HTIF
+source "arch/riscv/htif/Kconfig"
 
 endmenu
 

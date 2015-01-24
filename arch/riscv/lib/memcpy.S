@@ -1,9 +1,7 @@
 #include <linux/linkage.h>
+#include <asm/asm.h>
 
 /* void *memcpy(void *, const void *, size_t) */
-
-#ifdef CONFIG_64BIT
-
 ENTRY(memcpy)
 	move t6, a0  /* Preserve return value */
 
@@ -11,15 +9,15 @@ ENTRY(memcpy)
 	sltiu a3, a2, 128
 	bnez a3, 4f
 	/* Use word-oriented copy only if low-order bits match */
-	andi a3, t6, 0x7
-	andi a4, a1, 0x7
+	andi a3, t6, SZREG-1
+	andi a4, a1, SZREG-1
 	bne a3, a4, 4f
 
 	beqz a3, 2f  /* Skip if already aligned */
 	/* Round to nearest double word-aligned address
 	   greater than or equal to start address */
-	andi a3, a1, ~(0x7)
-	addi a3, a3, 0x8
+	andi a3, a1, ~(SZREG-1)
+	addi a3, a3, SZREG
 	/* Handle initial misalignment */
 	sub a4, a3, a1
 1:
@@ -31,46 +29,46 @@ ENTRY(memcpy)
 	sub a2, a2, a4  /* Update count */
 
 2:
-	andi a4, a2, ~(0x7f)
+	andi a4, a2, ~((16*SZREG)-1)
 	beqz a4, 4f
 	add a3, a1, a4
 3:
-	ld a4, 0x00(a1)
-	ld a5, 0x08(a1)
-	ld a6, 0x10(a1)
-	ld a7, 0x18(a1)
-	ld t0, 0x20(a1)
-	ld t1, 0x28(a1)
-	ld t2, 0x30(a1)
-	ld t3, 0x38(a1)
-	ld t4, 0x40(a1)
-	ld t5, 0x48(a1)
-	sd a4, 0x00(t6)
-	sd a5, 0x08(t6)
-	sd a6, 0x10(t6)
-	sd a7, 0x18(t6)
-	sd t0, 0x20(t6)
-	sd t1, 0x28(t6)
-	sd t2, 0x30(t6)
-	sd t3, 0x38(t6)
-	sd t4, 0x40(t6)
-	sd t5, 0x48(t6)
-	ld a4, 0x50(a1)
-	ld a5, 0x58(a1)
-	ld a6, 0x60(a1)
-	ld a7, 0x68(a1)
-	ld t0, 0x70(a1)
-	ld t1, 0x78(a1)
-	addi a1, a1, 0x80
-	sd a4, 0x50(t6)
-	sd a5, 0x58(t6)
-	sd a6, 0x60(t6)
-	sd a7, 0x68(t6)
-	sd t0, 0x70(t6)
-	sd t1, 0x78(t6)
-	addi t6, t6, 0x80
+	REG_L a4,       0(a1)
+	REG_L a5,   SZREG(a1)
+	REG_L a6, 2*SZREG(a1)
+	REG_L a7, 3*SZREG(a1)
+	REG_L t0, 4*SZREG(a1)
+	REG_L t1, 5*SZREG(a1)
+	REG_L t2, 6*SZREG(a1)
+	REG_L t3, 7*SZREG(a1)
+	REG_L t4, 8*SZREG(a1)
+	REG_L t5, 9*SZREG(a1)
+	REG_S a4,       0(t6)
+	REG_S a5,   SZREG(t6)
+	REG_S a6, 2*SZREG(t6)
+	REG_S a7, 3*SZREG(t6)
+	REG_S t0, 4*SZREG(t6)
+	REG_S t1, 5*SZREG(t6)
+	REG_S t2, 6*SZREG(t6)
+	REG_S t3, 7*SZREG(t6)
+	REG_S t4, 8*SZREG(t6)
+	REG_S t5, 9*SZREG(t6)
+	REG_L a4, 10*SZREG(a1)
+	REG_L a5, 11*SZREG(a1)
+	REG_L a6, 12*SZREG(a1)
+	REG_L a7, 13*SZREG(a1)
+	REG_L t0, 14*SZREG(a1)
+	REG_L t1, 15*SZREG(a1)
+	addi a1, a1, 16*SZREG
+	REG_S a4, 10*SZREG(t6)
+	REG_S a5, 11*SZREG(t6)
+	REG_S a6, 12*SZREG(t6)
+	REG_S a7, 13*SZREG(t6)
+	REG_S t0, 14*SZREG(t6)
+	REG_S t1, 15*SZREG(t6)
+	addi t6, t6, 16*SZREG
 	bltu a1, a3, 3b
-	andi a2, a2, 0x7f  /* Update count */
+	andi a2, a2, (16*SZREG)-1  /* Update count */
 
 4:
 	/* Handle trailing misalignment */
@@ -85,8 +83,3 @@ ENTRY(memcpy)
 6:
 	ret
 END(memcpy)
-
-#else
-#error RV32 memcpy unimplemented
-#endif /* CONFIG_64BIT */
-

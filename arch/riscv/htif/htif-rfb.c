@@ -1,9 +1,12 @@
-#include <linux/kernel.h>
 #include <linux/fb.h>
+#include <linux/module.h>
 
 #include <asm/htif.h>
 
 #define DRIVER_NAME "htifrfb"
+
+#define HTIF_CMD_RFB_CONF (0x00UL)
+#define HTIF_CMD_RFB_ADDR (0x01UL)
 
 #define RFB_XRES	(1024UL)
 #define RFB_YRES	(768UL)
@@ -67,13 +70,13 @@ static struct fb_fix_screeninfo htifrfb_fix = {
 
 static int htifrfb_probe(struct device *dev)
 {
-	struct htif_dev *htif_dev;
+	struct htif_device *htif_dev;
 	struct fb_info *info;
 	unsigned long flags;
 	int ret;
 
+	dev_info(dev, "detected framebuffer\n");
 	htif_dev = to_htif_dev(dev);
-	pr_info(DRIVER_NAME ": detected framebuffer at ID %u\n", htif_dev->minor);
 
 	info = framebuffer_alloc(0, dev);
 	if (unlikely(info == NULL))
@@ -97,16 +100,18 @@ static int htifrfb_probe(struct device *dev)
 	if (unlikely(ret))
 		goto err_reg_fb;
 
-	/* FIXME: The HTIF acknowledgement from the host never appears to be
-	   received if the wait is disturbed by an interrupt; consequently,
-	   htif_fromhost() spins indefinitely. */
+	/* Disable interrupts and poll for HTIF acknowledgement */
 	local_irq_save(flags);
-	htif_tohost(htif_dev->minor, 0, (RFB_BPP << 32) | (RFB_YRES << 16) | RFB_XRES);
-	htif_fromhost();
-	htif_tohost(htif_dev->minor, 1, info->fix.smem_start);
-	htif_fromhost();
-	local_irq_restore(flags);
 
+	htif_tohost(htif_dev->index, HTIF_CMD_RFB_CONF,
+		(RFB_BPP << 32) | (RFB_YRES << 16) | RFB_XRES);
+	htif_fromhost();
+
+	htif_tohost(htif_dev->index, HTIF_CMD_RFB_ADDR,
+		info->fix.smem_start);
+	htif_fromhost();
+
+	local_irq_restore(flags);
 	return 0;
 
 err_reg_fb:
@@ -127,9 +132,18 @@ static struct htif_driver htifrfb_driver = {
 	},
 };
 
-static int __init riscvfb_init(void)
+static int __init htifrfb_init(void)
 {
 	return htif_register_driver(&htifrfb_driver);
 }
-module_init(riscvfb_init);
 
+static void __exit htifrfb_exit(void)
+{
+	htif_unregister_driver(&htifrfb_driver);
+}
+
+module_init(htifrfb_init);
+module_exit(htifrfb_exit);
+
+MODULE_DESCRIPTION("HTIF block driver");
+MODULE_LICENSE("GPL");

@@ -8,10 +8,6 @@
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
 
-int show_unhandled_signals = 1;
-
-extern void die(char *, struct pt_regs *, long);
-
 asmlinkage void do_page_fault(struct pt_regs *regs)
 {
 	struct task_struct *tsk;
@@ -19,7 +15,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	struct mm_struct *mm;
 	unsigned long addr, epc, cause, fault;
 	unsigned int write, flags;
-	siginfo_t info;
+	int sicode;
 
 	cause = regs->cause;
 	write = (cause == EXC_STORE_ACCESS);
@@ -28,7 +24,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	epc = regs->epc;
 	addr = (cause == EXC_INST_ACCESS) ? epc : regs->badvaddr;
 
-	info.si_code = SEGV_MAPERR;
+	sicode = SEGV_MAPERR;
 
 	tsk = current;
 	mm = tsk->mm;
@@ -71,7 +67,7 @@ retry:
 		goto bad_area;
 
 good_area:
-	info.si_code = SEGV_ACCERR;
+	sicode = SEGV_ACCERR;
 
 	if (unlikely(write && (!(vma->vm_flags & VM_WRITE)))) {
 		goto bad_area;
@@ -130,11 +126,7 @@ bad_area:
 	up_read(&mm->mmap_sem);
 	/* User mode accesses cause a SIGSEGV */
 	if (user_mode(regs)) {
-		info.si_signo = SIGSEGV;
-		info.si_errno = 0;
-		/* info.si_code has been set above */
-		info.si_addr = (void __user *)addr;
-		force_sig_info(SIGSEGV, &info, tsk);
+		do_trap(regs, SIGSEGV, sicode, addr, tsk);
 		return;
 	}
 
@@ -143,8 +135,8 @@ no_context:
 	if (fixup_exception(regs)) {
 		return;
 	}
-	printk(KERN_ALERT "Unable to handle kernel paging request at "
-		"virtual address 0x%016lx, epc=0x%016lx", addr, epc);
+	pr_alert("Unable to handle kernel paging request at virtual "
+		"address " REG_FMT " epc=" REG_FMT, addr, epc);
 	die("Oops", regs, 0);
 
 out_of_memory:
@@ -156,14 +148,9 @@ out_of_memory:
 
 do_sigbus:
 	up_read(&mm->mmap_sem);
-	/* Send a SIGBUS regardless of kernel or user mode */
-	info.si_signo = SIGBUS;
-	info.si_errno = 0;
-	info.si_code = BUS_ADRERR;
-	info.si_addr = (void __user *)addr;
-	force_sig_info(SIGBUS, &info, current);
 	if (!user_mode(regs))
 		goto no_context;
+	do_trap(regs, SIGBUS, BUS_ADRERR, addr, tsk);
 	return;
 
 vmalloc_fault:

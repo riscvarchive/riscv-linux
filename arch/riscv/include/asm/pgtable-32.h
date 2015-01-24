@@ -4,7 +4,7 @@
 #include <asm-generic/pgtable-nopmd.h>
 
 /* Size of region mapped by a page global directory */
-#define PGDIR_SHIFT     33
+#define PGDIR_SHIFT     22
 #define PGDIR_SIZE      (1UL << PGDIR_SHIFT)
 #define PGDIR_MASK      (~(PGDIR_SIZE - 1))
 

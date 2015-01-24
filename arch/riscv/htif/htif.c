@@ -1,122 +1,168 @@
 #include <linux/kernel.h>
 #include <linux/device.h>
 #include <linux/slab.h>
+#include <linux/spinlock.h>
+#include <linux/interrupt.h>
 #include <linux/export.h>
 
-#include <asm/page.h>
-#include <asm/barrier.h>
 #include <asm/htif.h>
 
-
-struct device htif_bus = {
-	.init_name = "htif",
+struct htif_desc {
+	struct htif_device *dev;
+	htif_irq_handler_t handler;
 };
 
-static int htif_bus_match(struct device *dev, struct device_driver *drv)
-{
-	return !strcmp(to_htif_dev(dev)->type, to_htif_driver(drv)->type);
-}
-
-struct bus_type htif_bus_type = {
-	.name = "htif",
-	.match = htif_bus_match,
+struct htif_bus {
+	struct device dev;
+	struct htif_desc *desc;
+	unsigned int count;
 };
 
-int htif_register_driver(struct htif_driver *drv)
-{
-	drv->driver.bus = &htif_bus_type;
-	return driver_register(&drv->driver);
-}
-EXPORT_SYMBOL(htif_register_driver);
+static struct htif_bus bus = {
+	.desc = NULL,
+	.count = 0,
+};
+static DEFINE_SPINLOCK(bus_lock);
 
-void htif_unregister_driver(struct htif_driver *drv)
+int htif_request_irq(struct htif_device *dev, htif_irq_handler_t handler)
 {
-	drv->driver.bus = &htif_bus_type;
-	driver_unregister(&drv->driver);
-}
-EXPORT_SYMBOL(htif_unregister_driver);
+	int ret = -EINVAL;
 
+	if (!WARN_ON(dev->index >= bus.count)) {
+		struct htif_desc *desc;
+		unsigned long flags;
+
+		desc = bus.desc + dev->index;
+		spin_lock_irqsave(&bus_lock, flags);
+		if (!WARN_ON(desc->dev != dev)) {
+			desc->handler = handler;
+			ret = 0;
+		}
+		spin_unlock_irqrestore(&bus_lock, flags);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL(htif_request_irq);
+
+void htif_free_irq(struct htif_device *dev)
+{
+	htif_request_irq(dev, NULL);
+}
+EXPORT_SYMBOL(htif_free_irq);
+
+static irqreturn_t htif_isr(int irq, void *dev_id)
+{
+	unsigned long data;
+	irqreturn_t ret;
+
+	ret = IRQ_NONE;
+	while ((data = __htif_fromhost())) {
+		struct htif_desc *desc;
+		struct htif_device *dev;
+		htif_irq_handler_t handler;
+		unsigned int index;
+
+		index = (data >> HTIF_DEV_SHIFT);
+		desc = bus.desc + index;
+		handler = NULL;
+
+		spin_lock(&bus_lock);
+		if (!WARN_ON(index >= bus.count)) {
+			dev = desc->dev;
+			handler = desc->handler;
+		}
+		spin_unlock(&bus_lock);
+
+		if (likely(handler != NULL))
+			ret |= handler(dev, data);
+	}
+	return ret;
+}
 
 static void htif_dev_release(struct device *dev)
 {
-	kfree(to_htif_dev(dev));
-}
+	struct htif_device *htif_dev = to_htif_dev(dev);
 
-static int htif_dev_register(struct htif_dev *dev)
-{
-	dev->dev.parent = &htif_bus;
-	dev->dev.bus = &htif_bus_type;
-	dev->dev.release = &htif_dev_release;
-	dev_set_name(&dev->dev, "htif%u", dev->minor);
-	return device_register(&dev->dev);
-}
+	if (!WARN_ON(htif_dev->index >= bus.count)) {
+		struct htif_desc *desc;
+		unsigned long flags;
 
-static inline void htif_dev_add(unsigned int minor, const char *id, size_t len)
-{
-	struct htif_dev *dev;
-	char *s;
-	size_t n;
-
-	/* Parse identity string */
-	s = strnchr(id, len, ' ');
-	if (s == id)
-		return;
-	n = (s != NULL) ? (s - id) : len;
-	s = kmalloc(len + 1, GFP_KERNEL);
-	if (s == NULL)
-		return;
-	memcpy(s, id, len);
-	s[len] = '\0';
-	if (n < len)
-		s[n++] = '\0';
-
-	dev = kzalloc(sizeof(struct htif_dev), GFP_KERNEL);
-	if (dev == NULL)
-		goto err_dev_alloc;
-	dev->minor = minor;
-	dev->type = s;
-	dev->spec = s + n;
-	if (htif_dev_register(dev))
-		goto err_dev_reg;
-	return;
-
-err_dev_reg:
-	put_device(&dev->dev);
-err_dev_alloc:
-	kfree(s);
-	return;
-}
-
-static int htif_bus_enumerate(void)
-{
-	char buf[64] __attribute__((aligned(64)));
-	unsigned int minor;
-
-	for (minor = 0; minor < HTIF_NR_DEV; minor++) {
-		mb();
-		htif_tohost(minor, HTIF_CMD_IDENTITY, (__pa(buf) << 8) | 0xFF);
-		htif_fromhost();
-		mb();
-
-		if (buf[0] != '\0')
-			htif_dev_add(minor, buf, strnlen(buf, sizeof(buf)));
+		desc = bus.desc + htif_dev->index;
+		spin_lock_irqsave(&bus_lock, flags);
+		WARN_ON(htif_dev != desc->dev);
+		desc->dev = NULL;
+		desc->handler = NULL;
+		spin_unlock_irqrestore(&bus_lock, flags);
 	}
-	return 0;
+
+	kfree(htif_dev);
 }
 
-static int __init htif_bus_init(void)
+static int __init htif_init(void)
 {
+	unsigned int i;
 	int ret;
-	ret = bus_register(&htif_bus_type);
-	if (ret)
-		return ret;
-	ret = device_register(&htif_bus);
-	if (ret) {
-		bus_unregister(&htif_bus_type);
+
+	dev_set_name(&bus.dev, htif_bus_type.name);
+	ret = device_register(&bus.dev);
+	if (unlikely(ret)) {
+		dev_err(&bus.dev, "error registering bus: %d\n", ret);
 		return ret;
 	}
-	htif_bus_enumerate();
-	return 0;
-}
-early_initcall(htif_bus_init);
 
+	/* Enumerate devices */
+	for (i = 0; i < HTIF_MAX_DEV; i++) {
+		char id[HTIF_MAX_ID] __aligned(HTIF_ALIGN);
+		struct htif_device *dev;
+		size_t len;
+
+		rmb();
+		htif_tohost(i, HTIF_CMD_IDENTIFY, (__pa(id) << 8) | 0xFF);
+		htif_fromhost();
+		wmb();
+
+		len = strnlen(id, sizeof(id));
+		if (len <= 0)
+			break;
+
+		dev = kzalloc(sizeof(struct htif_device) + len + 1, GFP_KERNEL);
+		if (unlikely(dev == NULL))
+			return -ENOMEM;
+
+		if (i >= bus.count) {
+			struct htif_desc *desc;
+			unsigned int count;
+
+			count = bus.count + 8;
+			desc = krealloc(bus.desc,
+				sizeof(struct htif_desc) * count, GFP_KERNEL);
+			if (unlikely(desc == NULL)) {
+				kfree(dev);
+				return -ENOMEM;
+			}
+			memset(desc + bus.count, 0, sizeof(struct htif_desc) * 8);
+			bus.desc = desc;
+			bus.count = count;
+		}
+		bus.desc[i].dev = dev;
+
+		memcpy(dev->id, id, len);
+		dev->id[len] = '\0';
+		dev->index = i;
+		dev->dev.parent = &bus.dev;
+		dev->dev.bus = &htif_bus_type;
+		dev->dev.release = &htif_dev_release;
+		dev_set_name(&dev->dev, "htif%u", i);
+
+		ret = device_register(&dev->dev);
+		if (unlikely(ret)) {
+			dev_err(&bus.dev, "error registering device %s: %d\n",
+				dev_name(&dev->dev), ret);
+			put_device(&dev->dev);
+		}
+	}
+
+	return request_irq(IRQ_HOST, htif_isr, 0, dev_name(&bus.dev), NULL);
+}
+subsys_initcall(htif_init);

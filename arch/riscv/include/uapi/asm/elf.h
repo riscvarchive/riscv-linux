@@ -62,7 +62,11 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
  * These are used to set parameters in the core dumps.
  */
 #define ELF_ARCH	EM_RISCV
+#ifdef __riscv64
 #define ELF_CLASS	ELFCLASS64
+#else
+#define ELF_CLASS	ELFCLASS32
+#endif
 
 #if defined(__RISCVEL__)
 #define ELF_DATA	ELFDATA2LSB

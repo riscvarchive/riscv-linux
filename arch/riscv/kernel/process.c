@@ -26,30 +26,30 @@ void show_regs(struct pt_regs *regs)
 {
 	show_regs_print_info(KERN_DEFAULT);
 
-	printk("epc: %016lx ra : %016lx sp : %016lx\n",
+	printk("epc: " REG_FMT " ra : " REG_FMT " sp : " REG_FMT "\n",
 		regs->epc, regs->ra, regs->sp);
-	printk("gp : %016lx tp : %016lx t0 : %016lx\n",
+	printk("gp : " REG_FMT " tp : " REG_FMT " t0 : " REG_FMT "\n",
 		regs->gp, regs->tp, regs->t0);
-	printk("t1 : %016lx t2 : %016lx s0 : %016lx\n",
+	printk("t1 : " REG_FMT " t2 : " REG_FMT " s0 : " REG_FMT "\n",
 		regs->t1, regs->t2, regs->s0);
-	printk("s1 : %016lx a0 : %016lx a1 : %016lx\n",
+	printk("s1 : " REG_FMT " a0 : " REG_FMT " a1 : " REG_FMT "\n",
 		regs->s1, regs->a0, regs->a1);
-	printk("a2 : %016lx a3 : %016lx a4 : %016lx\n",
+	printk("a2 : " REG_FMT " a3 : " REG_FMT " a4 : " REG_FMT "\n",
 		regs->a2, regs->a3, regs->a4);
-	printk("a5 : %016lx a6 : %016lx a7 : %016lx\n",
+	printk("a5 : " REG_FMT " a6 : " REG_FMT " a7 : " REG_FMT "\n",
 		regs->a5, regs->a6, regs->a7);
-	printk("s2 : %016lx s3 : %016lx s4 : %016lx\n",
+	printk("s2 : " REG_FMT " s3 : " REG_FMT " s4 : " REG_FMT "\n",
 		regs->s2, regs->s3, regs->s4);
-	printk("s5 : %016lx s6 : %016lx s7 : %016lx\n",
+	printk("s5 : " REG_FMT " s6 : " REG_FMT " s7 : " REG_FMT "\n",
 		regs->s5, regs->s6, regs->s7);
-	printk("s8 : %016lx s9 : %016lx s10: %016lx\n",
+	printk("s8 : " REG_FMT " s9 : " REG_FMT " s10: " REG_FMT "\n",
 		regs->s8, regs->s9, regs->s10);
-	printk("s11: %016lx t3 : %016lx t4 : %016lx\n",
+	printk("s11: " REG_FMT " t3 : " REG_FMT " t4 : " REG_FMT "\n",
 		regs->s11, regs->t3, regs->t4);
-	printk("t5 : %016lx t6 : %016lx\n",
+	printk("t5 : " REG_FMT " t6 : " REG_FMT "\n",
 		regs->t5, regs->t6);
 
-	printk("status: %016lx badvaddr: %016lx cause: %016lx\n",
+	printk("status: " REG_FMT " badvaddr: " REG_FMT " cause: " REG_FMT "\n",
 		regs->status, regs->badvaddr, regs->cause);
 }
 
