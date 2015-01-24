@@ -1,12 +1,16 @@
 #include <linux/kernel.h>
-#include <linux/export.h>
-#include <linux/syscalls.h>
-#include <linux/kdebug.h>
 #include <linux/init.h>
+#include <linux/sched.h>
+#include <linux/signal.h>
+#include <linux/kdebug.h>
+#include <linux/mm.h>
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
+#include <asm/uaccess.h>
 #include <asm/csr.h>
+
+int show_unhandled_signals = 1;
 
 extern asmlinkage void handle_exception(void);
 
@@ -27,95 +31,70 @@ void die(const char *str, struct pt_regs *regs, long err)
 		do_exit(SIGSEGV);
 }
 
-
-asmlinkage void handle_fault_unknown(struct pt_regs *regs)
+static inline void do_trap_siginfo(int signo, int code,
+	unsigned long addr, struct task_struct *tsk)
 {
 	siginfo_t info;
 
-	if (user_mode(regs)) {
-		/* Send a SIGILL */
-		info.si_signo = SIGILL;
-		info.si_errno = 0;
-		info.si_code = ILL_ILLTRP;
-		info.si_addr = (void *)(regs->epc);
-		force_sig_info(SIGILL, &info, current);
-	} else { /* Kernel mode */
-		panic("unknown exception %ld: epc=" REG_FMT " badvaddr=" REG_FMT,
-			regs->cause, regs->epc, regs->badvaddr);
-	}
-}
-
-static void __handle_misaligned_addr(struct pt_regs *regs,
-	unsigned long addr)
-{
-	siginfo_t info;
-
-	if (user_mode(regs)) {
-		/* Send a SIGBUS */
-		info.si_signo = SIGBUS;
-		info.si_errno = 0;
-		info.si_code = BUS_ADRALN;
-		info.si_addr = (void *)addr;
-		force_sig_info(SIGBUS, &info, current);
-	} else { /* Kernel mode */
-		die("SIGBUS", regs, 0);
-	}
-}
-
-asmlinkage void handle_misaligned_insn(struct pt_regs *regs)
-{
-	__handle_misaligned_addr(regs, regs->epc);
-}
-
-asmlinkage void handle_misaligned_data(struct pt_regs *regs)
-{
-	__handle_misaligned_addr(regs, regs->badvaddr);
-}
-
-asmlinkage void handle_break(struct pt_regs *regs)
-{
-	siginfo_t info;
-
-	info.si_signo = SIGTRAP;
+	info.si_signo = signo;
 	info.si_errno = 0;
-	info.si_code = TRAP_BRKPT;
-	info.si_addr = (void *)(regs->epc);
-	force_sig_info(SIGTRAP, &info, current);
+	info.si_code = code;
+	info.si_addr = (void __user *)addr;
+	force_sig_info(signo, &info, tsk);
+}
 
+void do_trap(struct pt_regs *regs, int signo, int code,
+	unsigned long addr, struct task_struct *tsk)
+{
+	if (show_unhandled_signals && unhandled_signal(tsk, signo)
+	    && printk_ratelimit()) {
+		pr_info("%s[%d]: unhandled signal %d code 0x%x at 0x" REG_FMT,
+			tsk->comm, task_pid_nr(tsk), signo, code, addr);
+		print_vma_addr(KERN_CONT " in ", GET_IP(regs));
+		pr_cont("\n");
+		show_regs(regs);
+	}
+
+	do_trap_siginfo(signo, code, addr, tsk);
+}
+
+static void do_trap_error(struct pt_regs *regs, int signo, int code,
+	unsigned long addr, const char *str)
+{
+	if (user_mode(regs)) {
+		do_trap(regs, signo, code, addr, current);
+	} else {
+		if (!fixup_exception(regs))
+			die(str, regs, 0);
+	}
+}
+
+#define DO_ERROR_INFO(name, signo, code, addr, str)			\
+asmlinkage void name(struct pt_regs *regs)				\
+{									\
+	do_trap_error(regs, signo, code, addr(regs), "Oops - " str);	\
+}
+
+#define GET_EPC(regs)		((regs)->epc)
+#define GET_BADVADDR(regs)	((regs)->badvaddr)
+
+DO_ERROR_INFO(do_trap_unknown,
+	SIGILL, ILL_ILLTRP, GET_EPC, "unknown exception");
+DO_ERROR_INFO(do_trap_insn_misaligned,
+	SIGBUS, BUS_ADRALN, GET_EPC, "instruction address misaligned");
+DO_ERROR_INFO(do_trap_insn_illegal,
+	SIGILL, ILL_ILLOPC, GET_EPC, "illegal instruction");
+DO_ERROR_INFO(do_trap_insn_privileged,
+	SIGILL, ILL_PRVOPC, GET_EPC, "privileged instruction");
+DO_ERROR_INFO(do_trap_load_misaligned,
+	SIGBUS, BUS_ADRALN, GET_BADVADDR, "load address misaligned");
+DO_ERROR_INFO(do_trap_store_misaligned,
+	SIGBUS, BUS_ADRALN, GET_BADVADDR, "store address misaligned");
+
+asmlinkage void do_trap_break(struct pt_regs *regs)
+{
+	do_trap_siginfo(SIGTRAP, TRAP_BRKPT, regs->epc, current);
 	regs->epc += 0x4;
-}
-
-asmlinkage void handle_privileged_insn(struct pt_regs *regs)
-{
-	siginfo_t info;
-
-	if (user_mode(regs)) {
-		/* Send a SIGILL */
-		info.si_signo = SIGILL;
-		info.si_errno = 0;
-		info.si_code = ILL_PRVOPC;
-		info.si_addr = (void *)(regs->epc);
-		force_sig_info(SIGILL, &info, current);
-	} else { /* Kernel mode */
-		die("SIGILL", regs, 0);
-	}
-
-}
-
-asmlinkage void handle_illegal_insn(struct pt_regs *regs)
-{
-	siginfo_t info;
-
-	if (user_mode(regs)) {
-		/* Send a SIGILL */
-		info.si_signo = SIGILL;
-		info.si_errno = 0;
-		info.si_code = ILL_ILLOPC;
-		info.si_addr = (void *)(regs->epc);
-		force_sig_info(SIGILL, &info, current);
-	} else { /* Kernel mode */
-		die("SIGILL", regs, 0);
-	}
 }
 
 void __init trap_init(void)

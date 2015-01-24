@@ -2,7 +2,6 @@ include include/asm-generic/Kbuild.asm
 
 generic-y += auxvec.h
 generic-y += bitopts.h
-generic-y += bug.h
 generic-y += bugs.h
 generic-y += cacheflush.h
 generic-y += checksum.h

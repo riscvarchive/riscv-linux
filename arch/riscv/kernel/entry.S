@@ -158,7 +158,7 @@ ENTRY(handle_exception)
 	REG_L s1, 0(s1)
 	jr s1
 1:
-	tail handle_fault_unknown
+	tail do_trap_unknown
 
 handle_syscall:
 	/* Advance EPC to avoid executing the original
@@ -279,16 +279,16 @@ ENDPROC(__switch_to)
 	.section ".rodata"
 	/* Exception vector table */
 ENTRY(excp_vect_table)
-	PTR handle_misaligned_insn
+	PTR do_trap_insn_misaligned
 	PTR do_page_fault
-	PTR handle_illegal_insn
-	PTR handle_privileged_insn
-	PTR handle_privileged_insn
-	PTR handle_fault_unknown
+	PTR do_trap_insn_illegal
+	PTR do_trap_insn_privileged
+	PTR do_trap_insn_illegal
+	PTR do_trap_unknown
 	PTR 0 /* handle_syscall */
-	PTR handle_fault_unknown
-	PTR handle_misaligned_data
-	PTR handle_misaligned_data
+	PTR do_trap_break
+	PTR do_trap_load_misaligned
+	PTR do_trap_store_misaligned
 	PTR do_page_fault
 	PTR do_page_fault
 excp_vect_table_end:
