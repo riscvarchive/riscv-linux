@@ -42,8 +42,6 @@ typedef struct pt_regs {
 	unsigned long status;
 	unsigned long badvaddr;
 	unsigned long cause;
-	/* For restarting system calls */
-	unsigned long syscallno;
 } pt_regs;
 
 #ifdef CONFIG_64BIT

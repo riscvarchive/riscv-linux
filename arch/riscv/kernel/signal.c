@@ -18,8 +18,6 @@ struct rt_sigframe {
 static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
-	/* Disable sys_rt_sigreturn() restarting */
-	regs->syscallno = ~0UL;
 	/* sigcontext is laid out the same as the start of pt_regs */
 	return __copy_from_user(regs, sc, sizeof(*sc));
 }
@@ -163,7 +161,6 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 			}
 			/* fallthrough */
 		case -ERESTARTNOINTR:
-			regs->a7 = regs->syscallno;
 			regs->epc -= 0x4;
 			break;
 		}
@@ -192,7 +189,6 @@ static void do_signal(struct pt_regs *regs)
 		case -ERESTARTNOHAND:
 		case -ERESTARTSYS:
 		case -ERESTARTNOINTR:
-			regs->a7 = regs->syscallno;
 			regs->epc -= 0x4;
 			break;
 		case -ERESTART_RESTARTBLOCK:

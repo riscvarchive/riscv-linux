@@ -174,7 +174,6 @@ handle_syscall:
 	slli t0, a7, LGPTR
 	add s0, s0, t0
 	REG_L s0, 0(s0)
-	REG_S a7, PT_SYSCALLNO(sp) /* save in case of restart */
 	jalr s0
 
 ret_from_syscall:
