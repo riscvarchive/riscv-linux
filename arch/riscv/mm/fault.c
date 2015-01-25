@@ -137,7 +137,7 @@ no_context:
 	}
 	pr_alert("Unable to handle kernel paging request at virtual "
 		"address " REG_FMT " epc=" REG_FMT, addr, epc);
-	die("Oops", regs, 0);
+	die(regs, "Oops");
 
 out_of_memory:
 	up_read(&mm->mmap_sem);

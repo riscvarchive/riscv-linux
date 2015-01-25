@@ -4,6 +4,7 @@
 #include <linux/signal.h>
 #include <linux/kdebug.h>
 #include <linux/mm.h>
+#include <linux/module.h>
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
@@ -14,13 +15,28 @@ int show_unhandled_signals = 1;
 
 extern asmlinkage void handle_exception(void);
 
-void die(const char *str, struct pt_regs *regs, long err)
+static DEFINE_SPINLOCK(die_lock);
+
+void die(struct pt_regs *regs, const char *str)
 {
+	static int die_counter;
 	int ret;
 
 	oops_enter();
+
+	spin_lock_irq(&die_lock);
 	console_verbose();
-	ret = notify_die(DIE_OOPS, str, regs, err, 0, SIGSEGV);
+	bust_spinlocks(1);
+
+	pr_emerg("%s [#%d]\n", str, ++die_counter);
+	print_modules();
+	show_regs(regs);
+
+	ret = notify_die(DIE_OOPS, str, regs, 0, regs->cause, SIGSEGV);
+
+	bust_spinlocks(0);
+	add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
+	spin_unlock_irq(&die_lock);
 	oops_exit();
 
 	if (in_interrupt())
@@ -65,7 +81,7 @@ static void do_trap_error(struct pt_regs *regs, int signo, int code,
 		do_trap(regs, signo, code, addr, current);
 	} else {
 		if (!fixup_exception(regs))
-			die(str, regs, 0);
+			die(regs, str);
 	}
 }
 
