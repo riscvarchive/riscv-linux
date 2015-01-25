@@ -8,23 +8,21 @@
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
 
+/*
+ * This routine handles page faults.  It determines the address and the
+ * problem, and then passes it off to one of the appropriate routines.
+ */
 asmlinkage void do_page_fault(struct pt_regs *regs)
 {
 	struct task_struct *tsk;
 	struct vm_area_struct *vma;
 	struct mm_struct *mm;
-	unsigned long addr, epc, cause, fault;
-	unsigned int write, flags;
-	int sicode;
+	unsigned long addr, cause;
+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
+	int fault, code = SEGV_MAPERR;
 
 	cause = regs->cause;
-	write = (cause == EXC_STORE_ACCESS);
-	flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE
-		| (write ? FAULT_FLAG_WRITE : 0);
-	epc = regs->epc;
-	addr = (cause == EXC_INST_ACCESS) ? epc : regs->badvaddr;
-
-	sicode = SEGV_MAPERR;
+	addr = (cause == EXC_INST_ACCESS) ? regs->epc : regs->badvaddr;
 
 	tsk = current;
 	mm = tsk->mm;
@@ -41,18 +39,21 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	if (unlikely((addr >= VMALLOC_START) && (addr <= VMALLOC_END)))
 		goto vmalloc_fault;
 
-	 /* Enable interrupts if they were previously enabled in the
-	    parent context */
+	/* Enable interrupts if they were enabled in the parent context. */
 	if (likely(regs->status & SR_PEI))
 		local_irq_enable();
 
-	/* Do not take the fault if within an interrupt
-	   or if lacking a user context */
-	if (!mm || in_atomic())
+	/*
+	 * If we're in an interrupt, have no user context, or are running
+	 * in an atomic region, then we must not take the fault.
+	 */
+	if (unlikely(in_atomic() || !mm))
 		goto no_context;
 
 	if (user_mode(regs))
 		flags |= FAULT_FLAG_USER;
+
+	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
 
 retry:
 	down_read(&mm->mmap_sem);
@@ -66,15 +67,29 @@ retry:
 	if (unlikely(expand_stack(vma, addr)))
 		goto bad_area;
 
+	/*
+	 * Ok, we have a good vm_area for this memory access, so
+	 * we can handle it.
+	 */
 good_area:
-	sicode = SEGV_ACCERR;
+	code = SEGV_ACCERR;
 
-	if (unlikely(write && (!(vma->vm_flags & VM_WRITE)))) {
-		goto bad_area;
-	}
-	if (unlikely((cause == EXC_INST_ACCESS)
-		&& (!(vma->vm_flags & VM_EXEC)))) {
-		goto bad_area;
+	switch (cause) {
+	case EXC_INST_ACCESS:
+		if (!(vma->vm_flags & VM_EXEC))
+			goto bad_area;
+		break;
+	case EXC_LOAD_ACCESS:
+		if (!(vma->vm_flags & VM_READ))
+			goto bad_area;
+		break;
+	case EXC_STORE_ACCESS:
+		if (!(vma->vm_flags & VM_WRITE))
+			goto bad_area;
+		flags |= FAULT_FLAG_WRITE;
+		break;
+	default:
+		panic("%s: unhandled cause %lu", __func__, cause);
 	}
 
 	/*
@@ -84,31 +99,42 @@ good_area:
 	 */
 	fault = handle_mm_fault(mm, vma, addr, flags);
 
+	/*
+	 * If we need to retry but a fatal signal is pending, handle the
+	 * signal first. We do not need to release the mmap_sem because it
+	 * would already be released in __lock_page_or_retry in mm/filemap.c.
+	 */
 	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(tsk))
 		return;
 
-
-	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
 	if (unlikely(fault & VM_FAULT_ERROR)) {
-		if (fault & VM_FAULT_OOM) {
+		if (fault & VM_FAULT_OOM)
 			goto out_of_memory;
-		} else if (fault & VM_FAULT_SIGBUS) {
+		else if (fault & VM_FAULT_SIGBUS)
 			goto do_sigbus;
-		}
 		BUG();
 	}
 
+	/*
+	 * Major/minor page fault accounting is only done on the
+	 * initial attempt. If we go through a retry, it is extremely
+	 * likely that the page will be found in page cache at that point.
+	 */
 	if (flags & FAULT_FLAG_ALLOW_RETRY) {
 		if (fault & VM_FAULT_MAJOR) {
-			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs, addr);
 			tsk->maj_flt++;
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs, addr);
 		} else {
-			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs, addr);
 			tsk->min_flt++;
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs, addr);
 		}
 		if (fault & VM_FAULT_RETRY) {
+			/*
+			 * Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk
+			 * of starvation.
+			 */
 			flags &= ~(FAULT_FLAG_ALLOW_RETRY);
-//			flags |= FAULT_FLAG_TRIED;
+			flags |= FAULT_FLAG_TRIED;
 
 			/*
 			 * No need to up_read(&mm->mmap_sem) as we would
@@ -122,23 +148,39 @@ good_area:
 	up_read(&mm->mmap_sem);
 	return;
 
+	/*
+	 * Something tried to access memory that isn't in our memory map.
+	 * Fix it, but check if it's kernel or user first.
+	 */
 bad_area:
 	up_read(&mm->mmap_sem);
-	/* User mode accesses cause a SIGSEGV */
+	/* User mode accesses just cause a SIGSEGV */
 	if (user_mode(regs)) {
-		do_trap(regs, SIGSEGV, sicode, addr, tsk);
+		do_trap(regs, SIGSEGV, code, addr, tsk);
 		return;
 	}
 
 no_context:
-	/* Are we prepared to handle this fault as an exception? */
+	/* Are we prepared to handle this kernel fault? */
 	if (fixup_exception(regs)) {
 		return;
 	}
-	pr_alert("Unable to handle kernel paging request at virtual "
-		"address " REG_FMT " epc=" REG_FMT, addr, epc);
-	die(regs, "Oops");
 
+	/*
+	 * Oops. The kernel tried to access some bad page. We'll have to
+	 * terminate things with extreme prejudice.
+	 */
+	bust_spinlocks(1);
+	pr_alert("Unable to handle kernel %s at virtual address " REG_FMT "\n",
+		(addr < PAGE_SIZE) ? "NULL pointer dereference" :
+		"paging request", addr);
+	die(regs, "Oops");
+	do_exit(SIGKILL);
+
+	/*
+	 * We ran out of memory, call the OOM killer, and return the userspace
+	 * (which will retry the fault, or kill us if we got oom-killed).
+	 */
 out_of_memory:
 	up_read(&mm->mmap_sem);
 	if (!user_mode(regs))
@@ -148,6 +190,7 @@ out_of_memory:
 
 do_sigbus:
 	up_read(&mm->mmap_sem);
+	/* Kernel mode? Handle exceptions or die */
 	if (!user_mode(regs))
 		goto no_context;
 	do_trap(regs, SIGBUS, BUS_ADRERR, addr, tsk);
