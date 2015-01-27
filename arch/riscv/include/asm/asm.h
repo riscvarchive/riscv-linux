@@ -30,4 +30,20 @@
 #define SZPTR		__PTR_SEL(8, 4)
 #define LGPTR		__PTR_SEL(3, 2)
 
+#if (__SIZEOF_INT__ == 4)
+#define INT		__ASM_STR(.word)
+#define SZINT		__ASM_STR(4)
+#define LGINT		__ASM_STR(2)
+#else
+#error "Unexpected __SIZEOF_INT__"
+#endif
+
+#if (__SIZEOF_SHORT__ == 2)
+#define SHORT		__ASM_STR(.half)
+#define SZSHORT		__ASM_STR(2)
+#define LGSHORT		__ASM_STR(1)
+#else
+#error "Unexpected __SIZEOF_SHORT__"
+#endif
+
 #endif /* _ASM_RISCV_ASM_H */

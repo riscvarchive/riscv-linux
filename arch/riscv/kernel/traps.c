@@ -3,12 +3,12 @@
 #include <linux/sched.h>
 #include <linux/signal.h>
 #include <linux/kdebug.h>
+#include <linux/uaccess.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
-#include <asm/uaccess.h>
 #include <asm/csr.h>
 
 int show_unhandled_signals = 1;
@@ -109,9 +109,39 @@ DO_ERROR_INFO(do_trap_store_misaligned,
 
 asmlinkage void do_trap_break(struct pt_regs *regs)
 {
+#ifdef CONFIG_GENERIC_BUG
+	if (!user_mode(regs)) {
+		enum bug_trap_type type;
+
+		type = report_bug(regs->epc, regs);
+		switch (type) {
+		case BUG_TRAP_TYPE_NONE:
+			break;
+		case BUG_TRAP_TYPE_WARN:
+			regs->epc += sizeof(bug_insn_t);
+			return;
+		case BUG_TRAP_TYPE_BUG:
+			die(regs, "Kernel BUG");
+		}
+	}
+#endif /* CONFIG_GENERIC_BUG */
+
 	do_trap_siginfo(SIGTRAP, TRAP_BRKPT, regs->epc, current);
 	regs->epc += 0x4;
 }
+
+#ifdef CONFIG_GENERIC_BUG
+int is_valid_bugaddr(unsigned long pc)
+{
+	bug_insn_t insn;
+
+	if (pc < PAGE_OFFSET)
+		return 0;
+	if (probe_kernel_address((bug_insn_t __user *)pc, insn))
+		return 0;
+	return (insn == __BUG_INSN);
+}
+#endif /* CONFIG_GENERIC_BUG */
 
 void __init trap_init(void)
 {
