@@ -1,9 +1,6 @@
 #ifndef _ASM_RISCV_PGTABLE_BITS_H
 #define _ASM_RISCV_PGTABLE_BITS_H
 
-#define PTE_PFN_SHIFT   (PAGE_SHIFT)
-/* Extracts the PFN from a pgd/pud/pmd/pte */
-#define PTE_PFN_MASK    (PAGE_MASK)
 /*
  * RV32Sv32 page table entry:
  * | 31 22  | 21  12 | 11  9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
@@ -34,10 +31,14 @@
 #define _PAGE_PRESENT   _PAGE_V
 #define _PAGE_ACCESSED  _PAGE_SOFT1
 #define _PAGE_DIRTY     _PAGE_SOFT2
-#define _PAGE_FILE      _PAGE_DIRTY /* when !present: non-linear file mapping */
+#define _PAGE_SPECIAL   _PAGE_SOFT3
+#define _PAGE_FILE      _PAGE_T /* when !present: non-linear file mapping */
 
-/* Set of bits to retain in pte_modify() */
+/* Set of bits to preserve across pte_modify() */
 #define _PAGE_CHG_MASK  (~(_PAGE_SR | _PAGE_SW | _PAGE_SX | \
                            _PAGE_UR | _PAGE_UW | _PAGE_UX))
+
+/* Advertise support for _PAGE_SPECIAL */
+#define __HAVE_ARCH_PTE_SPECIAL
 
 #endif /* _ASM_RISCV_PGTABLE_BITS_H */

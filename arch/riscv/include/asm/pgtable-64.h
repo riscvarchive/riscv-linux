@@ -48,7 +48,7 @@ static inline void pud_clear(pud_t *pudp)
 
 static inline unsigned long pud_page_vaddr(pud_t pud)
 {
-	return (unsigned long)__va(pud_val(pud) & PTE_PFN_MASK);
+	return (unsigned long)__va(pud_val(pud) & PAGE_MASK);
 }
 
 #define pmd_index(addr) (((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
@@ -59,6 +59,6 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
 }
 
 #define pmd_ERROR(e) \
-	printk("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
+	pr_err("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
 
 #endif /* _ASM_RISCV_PGTABLE_64_H */
