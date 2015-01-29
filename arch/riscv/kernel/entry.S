@@ -4,7 +4,6 @@
 #include <asm/asm.h>
 #include <asm/csr.h>
 #include <asm/unistd.h>
-#include <asm/errno.h>
 #include <asm/thread_info.h>
 #include <asm/asm-offsets.h>
 
@@ -168,12 +167,14 @@ handle_syscall:
 	/* System calls run with interrupts enabled */
 	csrs status, SR_EI
 	li t0, __NR_syscalls
+	la s0, sys_ni_syscall
 	/* Syscall number held in a7 */
-	bgeu a7, t0, bad_syscall_number
+	bgeu a7, t0, 1f
 	la s0, sys_call_table
 	slli t0, a7, LGPTR
 	add s0, s0, t0
 	REG_L s0, 0(s0)
+1:
 	jalr s0
 
 ret_from_syscall:
@@ -212,9 +213,6 @@ work_notifysig:
 work_resched:
 	tail schedule
 
-bad_syscall_number:
-	li a0, -ENOSYS
-	j ret_from_syscall
 END(handle_exception)
 
 
