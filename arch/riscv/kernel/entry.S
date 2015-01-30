@@ -75,13 +75,21 @@ _save_context:
 	.macro RESTORE_ALL
 	csrrc a1, status, SR_EI
 	ld a0, PT_STATUS(sp)
+#ifdef CONFIG_CPU_RV_QEMU
+	li s0, ~(SR_IP | SR_IM | SR_EI)
+#else
 	li s0, ~(SR_IM | SR_EI)
+#endif
 	ld a2, PT_EPC(sp)
 	csrr a3, sup0
+#ifdef CONFIG_CPU_RV_QEMU
+	li s1, (SR_IP | SR_IM)
+#else
 	li s1, (SR_IM)
+#endif
 	and a0, a0, s0
 	and a1, a1, s1
-	/* Retain current IM field */
+	/* Retain current IM and (on QEMU) IP fields. */
 	or a0, a0, a1
 	csrw status, a0
 
