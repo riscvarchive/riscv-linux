@@ -38,6 +38,11 @@ config CPU_RV_ROCKET
 	bool "Rocket"
 	select CPU_SUPPORTS_64BIT_KERNEL
 
+config CPU_RV_QEMU
+	bool "QEMU"
+	select CPU_SUPPORTS_64BIT_KERNEL
+	select RISCV_QEMU
+
 config CPU_RV_GENERIC
 	bool "Generic RISC-V"
 	select CPU_SUPPORTS_32BIT_KERNEL
