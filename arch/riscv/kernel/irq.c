@@ -33,7 +33,11 @@ static void riscv_irq_unmask(struct irq_data *d)
 struct irq_chip riscv_irq_chip = {
 	.name = "riscv",
 	.irq_mask = riscv_irq_mask,
+#ifdef CONFIG_CPU_RV_QEMU
 	.irq_mask_ack = riscv_irq_mask_ack,
+#else
+	.irq_mask_ack = riscv_irq_mask,
+#endif
 	.irq_unmask = riscv_irq_unmask,
 };
 
