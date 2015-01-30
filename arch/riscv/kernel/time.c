@@ -75,7 +75,11 @@ static struct clocksource riscv_clocksource = {
 void __init time_init(void)
 {
 	u32 freq;
+#ifdef CONFIG_CPU_RV_QEMU
 	freq = 500000000UL;
+#else
+	freq = 100000000UL;
+#endif
 
 	csr_write(count, 0);
 
