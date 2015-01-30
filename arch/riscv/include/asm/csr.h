@@ -18,6 +18,9 @@
 #define SR_IM_SHIFT     16
 #define SR_IM_MASK(n)   ((_AC(1,UL)) << ((n) + SR_IM_SHIFT))
 
+#define SR_IP_SHIFT     24
+#define SR_IP_MASK(n)   ((_AC(1,UL)) << ((n) + SR_IP_SHIFT))
+
 #define EXC_INST_MISALIGNED     0
 #define EXC_INST_ACCESS         1
 #define EXC_SYSCALL             6
