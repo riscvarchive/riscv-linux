@@ -1,5 +1,5 @@
-#ifndef __ASM_RISCV_SIGCONTEXT_H
-#define __ASM_RISCV_SIGCONTEXT_H
+#ifndef _UAPI_ASM_RISCV_SIGCONTEXT_H
+#define _UAPI_ASM_RISCV_SIGCONTEXT_H
 
 /* This struct is saved by setup_frame in signal.c, to keep the current
  * context while a signal handler is executed. It is restored by sys_sigreturn.
@@ -40,4 +40,4 @@ struct sigcontext {
 	unsigned long t6;
 };
 
-#endif /* __ASM_RISCV_SIGCONTEXT_H */
+#endif /* _UAPI_ASM_RISCV_SIGCONTEXT_H */

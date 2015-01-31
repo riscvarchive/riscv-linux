@@ -1,7 +1,3 @@
-include include/asm-generic/Kbuild.asm
-
-generic-y += auxvec.h
-generic-y += bitopts.h
 generic-y += bugs.h
 generic-y += cacheflush.h
 generic-y += checksum.h
@@ -26,6 +22,7 @@ generic-y += ipcbuf.h
 generic-y += irq_regs.h
 generic-y += kdebug.h
 generic-y += kmap_types.h
+generic-y += kvm_para.h
 generic-y += linkage.h
 generic-y += local.h
 generic-y += mman.h
@@ -39,10 +36,8 @@ generic-y += poll.h
 generic-y += posix_types.h
 generic-y += preempt.h
 generic-y += resource.h
-generic-y += rwsem.h
 generic-y += scatterlist.h
 generic-y += sections.h
-generic-y += segment.h
 generic-y += sembuf.h
 generic-y += shmbuf.h
 generic-y += shmparam.h
@@ -61,9 +56,7 @@ generic-y += trace_clock.h
 generic-y += types.h
 generic-y += ucontext.h
 generic-y += unaligned.h
+generic-y += user.h
+generic-y += vga.h
 generic-y += vmlinux.lds.h
-
-header-y += asm-offsets.h
-header-y += csr.h
-header-y += user.h
-header-y += vdso.h
+generic-y += xor.h
