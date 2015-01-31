@@ -58,7 +58,7 @@ CONFIG_TMPFS=y
 # CONFIG_MISC_FILESYSTEMS is not set
 # CONFIG_NETWORK_FILESYSTEMS is not set
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="virtio_mmio.device=0x200@0x400:2 virtio_mmio.device=0x200@0x600:3 virtio_mmio.device=0x200@0x800:4 lpj=100000"
+CONFIG_CMDLINE="virtio_mmio.device=0x200@0x400:1 virtio_mmio.device=0x200@0x600:2 virtio_mmio.device=0x200@0x800:3 lpj=100000"
 CONFIG_CMDLINE_OVERRIDE=y
 CONFIG_PRINTK_TIME=y
 CONFIG_DEBUG_SECTION_MISMATCH=y

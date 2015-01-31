@@ -20,7 +20,7 @@
 
 #define SERIAL_PORT_DFNS \
 	/* UART CLK   PORT IRQ     FLAGS        */ \
-	{ 0, BASE_BAUD, 0x3F8, 1, STD_COM_FLAGS }, /* ttyS0 */
+	{ 0, BASE_BAUD, 0x3F8, 4, STD_COM_FLAGS }, /* ttyS0 */
 
 #endif /* _ASM_RISCV_SERIAL_H */
 
