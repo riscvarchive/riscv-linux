@@ -1,11 +1,12 @@
 #ifndef _ASM_RISCV_PTRACE_H
 #define _ASM_RISCV_PTRACE_H
 
+#include <uapi/asm/ptrace.h>
 #include <asm/csr.h>
 
 #ifndef __ASSEMBLY__
 
-typedef struct pt_regs {
+struct pt_regs {
 	unsigned long sepc;
 	unsigned long ra;
 	unsigned long sp;
@@ -42,7 +43,7 @@ typedef struct pt_regs {
 	unsigned long sstatus;
 	unsigned long sbadaddr;
 	unsigned long scause;
-} pt_regs;
+};
 
 #ifdef CONFIG_64BIT
 #define REG_FMT "%016lx"

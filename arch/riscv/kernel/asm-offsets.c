@@ -7,6 +7,7 @@ void asm_offsets(void)
 {
 	OFFSET(TASK_THREAD_INFO, task_struct, stack);
 	OFFSET(THREAD_RA, task_struct, thread.ra);
+	OFFSET(THREAD_SP, task_struct, thread.sp);
 	OFFSET(THREAD_S0, task_struct, thread.s[0]);
 	OFFSET(THREAD_S1, task_struct, thread.s[1]);
 	OFFSET(THREAD_S2, task_struct, thread.s[2]);

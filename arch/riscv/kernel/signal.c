@@ -18,8 +18,10 @@ struct rt_sigframe {
 static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
-	/* sigcontext is laid out the same as the start of pt_regs */
-	return __copy_from_user(regs, sc, sizeof(*sc));
+	long err;
+	/* sc_regs is structured the same as the start of pt_regs */
+	err = __copy_from_user(regs, &sc->sc_regs, sizeof(sc->sc_regs));
+	return err;
 }
 
 SYSCALL_DEFINE0(rt_sigreturn)
@@ -65,8 +67,10 @@ badframe:
 static long setup_sigcontext(struct sigcontext __user *sc,
 	struct pt_regs *regs)
 {
-	/* sigcontext is laid out the same as the start of pt_regs */
-	return __copy_to_user(sc, regs, sizeof(*sc));
+	long err;
+	/* sc_regs is structured the same as the start of pt_regs */
+	err = __copy_to_user(&sc->sc_regs, regs, sizeof(sc->sc_regs));
+	return err;
 }
 
 static inline void __user *get_sigframe(struct ksignal *ksig,
@@ -97,7 +101,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	struct pt_regs *regs)
 {
 	struct rt_sigframe __user *frame;
-	int err = 0;
+	long err = 0;
 
 	frame = get_sigframe(ksig, regs, sizeof(*frame));
 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))

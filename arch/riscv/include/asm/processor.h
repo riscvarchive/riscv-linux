@@ -29,8 +29,8 @@ struct pt_regs;
 struct thread_struct {
 	/* Callee-saved registers */
 	unsigned long ra;
-	unsigned long s[12];	/* s[0]: frame pointer */
 	unsigned long sp;	/* Kernel mode stack */
+	unsigned long s[12];	/* s[0]: frame pointer */
 };
 
 #define INIT_THREAD {					\
