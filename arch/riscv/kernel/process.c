@@ -57,13 +57,32 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	unsigned long sp)
 {
 	/* Remove supervisor privileges */
-	regs->status &= ~(SR_PS);
+	regs->status &= ~(SR_PS | SR_EF);
 	regs->epc = pc;
 	regs->sp = sp;
 }
 
 void flush_thread(void)
 {
+#ifdef CONFIG_RISCV_FPU
+	/* Reset FPU context
+	 *	frm: round to nearest, ties to even (IEEE default)
+	 *	fflags: accrued exceptions cleared
+	 */
+	memset(&current->thread.fpu, 0,
+		sizeof(struct user_fpregs_struct));
+#endif
+}
+
+int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
+{
+#ifdef CONFIG_RISCV_FPU
+	if (task_pt_regs(src)->status & SR_EF)
+		fpu_save(src);
+#endif
+
+	*dst = *src;
+	return 0;
 }
 
 int copy_thread(unsigned long clone_flags, unsigned long usp,
@@ -77,7 +96,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 		const register unsigned long gp __asm__ ("gp");
 		memset(childregs, 0, sizeof(struct pt_regs));
 		childregs->gp = gp;
-		childregs->status = (/*SR_IM |*/ SR_VM | SR_S64 | SR_U64 | SR_EF | SR_PEI | SR_PS | SR_S);
+		childregs->status = (/*SR_IM |*/ SR_VM | SR_S64 | SR_U64 | SR_PEI | SR_PS | SR_S);
 
 		p->thread.ra = (unsigned long)ret_from_kernel_thread;
 		p->thread.s[0] = usp; /* fn */

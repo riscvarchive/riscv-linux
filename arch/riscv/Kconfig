@@ -77,6 +77,12 @@ config CPU_SUPPORTS_32BIT_KERNEL
 config CPU_SUPPORTS_64BIT_KERNEL
 	bool
 
+config RISCV_FPU
+	bool "Floating-point support (D standard extension)"
+	default y
+	help
+	  Save and restore floating-point registers on context switch.
+
 config RV_ATOMIC
 	bool "Use atomic memory instructions (RV32A or RV64A)"
 	default y

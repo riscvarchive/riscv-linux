@@ -20,9 +20,9 @@ ENTRY(_start)
 #ifdef CONFIG_64BIT
 	li s0, (SR_S64 | SR_U64)
 	csrs status, s0
-#define SR_CLEAR (SR_VM | SR_IM | SR_EI)
+#define SR_CLEAR (SR_VM | SR_IM | SR_EI | SR_EF)
 #else
-#define SR_CLEAR (SR_VM | SR_S64 | SR_U64 | SR_IM | SR_EI)
+#define SR_CLEAR (SR_VM | SR_S64 | SR_U64 | SR_IM | SR_EI | SR_EF)
 #endif
 	li s0, SR_CLEAR
 	csrc status, s0

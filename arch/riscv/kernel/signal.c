@@ -19,8 +19,20 @@ static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
 	long err;
+
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_from_user(regs, &sc->sc_regs, sizeof(sc->sc_regs));
+
+#ifdef CONFIG_RISCV_FPU
+	if (regs->status & SR_EF) {
+		struct task_struct *task = current;
+		err |= __copy_from_user(&task->thread.fpu,
+			&sc->sc_fpregs, sizeof(sc->sc_fpregs));
+		if (likely(!err))
+			fpu_restore(task);
+	}
+#endif /* CONFIG_RISCV_FPU */
+
 	return err;
 }
 
@@ -68,8 +80,19 @@ static long setup_sigcontext(struct sigcontext __user *sc,
 	struct pt_regs *regs)
 {
 	long err;
+
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_to_user(&sc->sc_regs, regs, sizeof(sc->sc_regs));
+
+#ifdef CONFIG_RISCV_FPU
+	if (regs->status & SR_EF) {
+		struct task_struct *task = current;
+		fpu_save(task);
+		err |= __copy_to_user(&sc->sc_fpregs,
+			&task->thread.fpu, sizeof(sc->sc_fpregs));
+	}
+#endif /* CONFIG_RISCV_FPU */
+
 	return err;
 }
 

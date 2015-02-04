@@ -38,6 +38,7 @@ endif
 
 KBUILD_CFLAGS += -Wall
 KBUILD_CFLAGS += -fno-section-anchors
+KBUILD_CFLAGS += -msoft-float
 
 head-y := arch/riscv/kernel/head.o
 

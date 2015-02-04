@@ -3,6 +3,8 @@
 
 #include <linux/const.h>
 
+#include <asm/ptrace.h>
+
 /*
  * User space process size: 2GB (highest virtual address below the
  * sign-extension hole).  This may be hardcoded into a few places,
@@ -38,6 +40,9 @@ struct thread_struct {
 	unsigned long ra;
 	unsigned long sp;	/* Kernel mode stack */
 	unsigned long s[12];	/* s[0]: frame pointer */
+#ifdef CONFIG_RISCV_FPU
+	struct user_fpregs_struct fpu;
+#endif
 };
 
 #define INIT_THREAD {					\
@@ -80,6 +85,11 @@ static inline void cpu_relax(void)
 	__asm__ __volatile__ ("div %0, %0, zero" : "=r" (dummy));
 	barrier();
 }
+
+#ifdef CONFIG_RISCV_FPU
+extern void fpu_save(struct task_struct *);
+extern void fpu_restore(struct task_struct *);
+#endif
 
 #endif /* __ASSEMBLY__ */
 

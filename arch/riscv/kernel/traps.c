@@ -107,6 +107,23 @@ DO_ERROR_INFO(do_trap_load_misaligned,
 DO_ERROR_INFO(do_trap_store_misaligned,
 	SIGBUS, BUS_ADRALN, GET_BADVADDR, "store address misaligned");
 
+#ifdef CONFIG_RISCV_FPU
+asmlinkage void do_trap_fpu_disabled(struct pt_regs *regs)
+{
+	/* Floating point prohibited in kernel space */
+	if (user_mode(regs)) {
+		/* Test for presence of FPU */
+		csr_set(status, SR_EF);
+		if (likely(csr_read_clear(status, SR_EF) & SR_EF)) {
+			fpu_restore(current);
+			regs->status |= SR_EF;
+			return;
+		}
+	}
+	do_trap_insn_illegal(regs);
+}
+#endif /* CONFIG_RISCV_FPU */
+
 asmlinkage void do_trap_break(struct pt_regs *regs)
 {
 #ifdef CONFIG_GENERIC_BUG

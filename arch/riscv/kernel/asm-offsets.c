@@ -22,6 +22,42 @@ void asm_offsets(void)
 	OFFSET(THREAD_S11, task_struct, thread.s[11]);
 	OFFSET(TI_FLAGS, thread_info, flags);
 
+#ifdef CONFIG_RISCV_FPU
+	OFFSET(THREAD_F0,  task_struct, thread.fpu.f[0]);
+	OFFSET(THREAD_F1,  task_struct, thread.fpu.f[1]);
+	OFFSET(THREAD_F2,  task_struct, thread.fpu.f[2]);
+	OFFSET(THREAD_F3,  task_struct, thread.fpu.f[3]);
+	OFFSET(THREAD_F4,  task_struct, thread.fpu.f[4]);
+	OFFSET(THREAD_F5,  task_struct, thread.fpu.f[5]);
+	OFFSET(THREAD_F6,  task_struct, thread.fpu.f[6]);
+	OFFSET(THREAD_F7,  task_struct, thread.fpu.f[7]);
+	OFFSET(THREAD_F8,  task_struct, thread.fpu.f[8]);
+	OFFSET(THREAD_F9,  task_struct, thread.fpu.f[9]);
+	OFFSET(THREAD_F10, task_struct, thread.fpu.f[10]);
+	OFFSET(THREAD_F11, task_struct, thread.fpu.f[11]);
+	OFFSET(THREAD_F12, task_struct, thread.fpu.f[12]);
+	OFFSET(THREAD_F13, task_struct, thread.fpu.f[13]);
+	OFFSET(THREAD_F14, task_struct, thread.fpu.f[14]);
+	OFFSET(THREAD_F15, task_struct, thread.fpu.f[15]);
+	OFFSET(THREAD_F16, task_struct, thread.fpu.f[16]);
+	OFFSET(THREAD_F17, task_struct, thread.fpu.f[17]);
+	OFFSET(THREAD_F18, task_struct, thread.fpu.f[18]);
+	OFFSET(THREAD_F19, task_struct, thread.fpu.f[19]);
+	OFFSET(THREAD_F20, task_struct, thread.fpu.f[20]);
+	OFFSET(THREAD_F21, task_struct, thread.fpu.f[21]);
+	OFFSET(THREAD_F22, task_struct, thread.fpu.f[22]);
+	OFFSET(THREAD_F23, task_struct, thread.fpu.f[23]);
+	OFFSET(THREAD_F24, task_struct, thread.fpu.f[24]);
+	OFFSET(THREAD_F25, task_struct, thread.fpu.f[25]);
+	OFFSET(THREAD_F26, task_struct, thread.fpu.f[26]);
+	OFFSET(THREAD_F27, task_struct, thread.fpu.f[27]);
+	OFFSET(THREAD_F28, task_struct, thread.fpu.f[28]);
+	OFFSET(THREAD_F29, task_struct, thread.fpu.f[29]);
+	OFFSET(THREAD_F30, task_struct, thread.fpu.f[30]);
+	OFFSET(THREAD_F31, task_struct, thread.fpu.f[31]);
+	OFFSET(THREAD_FCSR, task_struct, thread.fpu.fcsr);
+#endif /* CONFIG_RISCV_FPU */
+
 	DEFINE(PT_SIZE, sizeof(struct pt_regs));
 	OFFSET(PT_EPC, pt_regs, epc);
 	OFFSET(PT_RA, pt_regs, ra);

@@ -1,6 +1,8 @@
 #ifndef _UAPI_ASM_RISCV_PTRACE_H
 #define _UAPI_ASM_RISCV_PTRACE_H
 
+#include <linux/types.h>
+
 #ifndef __ASSEMBLY__
 
 /* User-mode register state for core dumps, ptrace, sigcontext
@@ -41,6 +43,11 @@ struct user_regs_struct {
 	unsigned long t4;
 	unsigned long t5;
 	unsigned long t6;
+};
+
+struct user_fpregs_struct {
+	__u64 f[32];
+	__u32 fcsr;
 };
 
 #endif /* __ASSEMBLY__ */
