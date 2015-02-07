@@ -109,9 +109,8 @@ ENTRY(_start)
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
-	/* Initialize current thread_struct pointer */
-	la s0, init_task
-	csrw sup0, s0
+	/* Initialize current task_struct pointer */
+	la tp, init_task
 
 	tail start_kernel
 

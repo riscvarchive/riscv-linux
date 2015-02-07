@@ -147,6 +147,9 @@ void __init trap_init(void)
 {
 	/* Clear the IPI exception that started the processor */
 	csr_write(clear_ipi, 0);
+	/* Set sup0 scratch register to 0, indicating to exception vector
+	   that we are presently executing in the kernel */
+	csr_write(sup0, 0);
 	/* Set the exception vector address */
 	csr_write(evec, &handle_exception);
 }

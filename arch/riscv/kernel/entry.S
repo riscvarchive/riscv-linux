@@ -12,21 +12,14 @@
 	LOCAL _restore_kernel_sp
 	LOCAL _save_context
 
-	/* Save stack pointer */
-	csrw sup1, sp
-	/* Check if originated from user mode */
-	csrr sp, status
-	andi sp, sp, SR_PS
-	bnez sp, _restore_kernel_sp
-
-	/* Switch to kernel mode stack; load stack
-	   pointer from current->thread.sp */
-	csrr sp, sup0
-	REG_L sp, THREAD_SP(sp)
-	j _save_context
+	/* If coming from userspace, preserve the user stack pointer and
+	   load the kernel stack pointer.  If we came from the kernel, sup0
+	   will contain 0, and we should continue on the current stack. */
+	csrrw sp, sup0, sp
+	bnez sp, _save_context
 
 _restore_kernel_sp:
-	csrr sp, sup1
+	csrr sp, sup0
 _save_context:
 	addi sp, sp, -(PT_SIZE)
 	REG_S x1,  PT_RA(sp)
@@ -60,7 +53,7 @@ _save_context:
 	REG_S x30, PT_T5(sp)
 	REG_S x31, PT_T6(sp)
 
-	csrr s0, sup1
+	csrr s0, sup0
 	csrr s1, status
 	csrr s2, epc
 	csrr s3, badvaddr
@@ -77,19 +70,12 @@ _save_context:
 	REG_L a0, PT_STATUS(sp)
 	li s0, ~(SR_IM | SR_EI)
 	REG_L a2, PT_EPC(sp)
-	csrr a3, sup0
 	li s1, (SR_IM)
 	and a0, a0, s0
 	and a1, a1, s1
 	/* Retain current IM field */
 	or a0, a0, a1
 	csrw status, a0
-
-	/* Save unwound kernel stack pointer
-	   into current->thread.sp */
-	addi s0, sp, PT_SIZE
-	REG_S s0, THREAD_SP(a3)
-
 	csrw epc, a2
 
 	REG_L x1,  PT_RA(sp)
@@ -128,6 +114,17 @@ _save_context:
 
 ENTRY(handle_exception)
 	SAVE_ALL
+
+	/* Set sup0 scratch register to 0, so that if a recursive exception
+	   occurs, the exception vector knows it came from the kernel */
+	csrw sup0, x0
+
+	/* Compute address of current thread_info */
+	li tp, ~(THREAD_SIZE-1)
+	and tp, tp, sp
+	/* Set the current thread pointer */
+	REG_L tp, 0(tp)
+
 	csrr s0, cause
 	la gp, _gp
 	la ra, ret_from_exception
@@ -189,12 +186,14 @@ ret_from_exception:
 resume_userspace:
 	csrc status, SR_EI /* Disable interrupts to ensure that thread
 	                      info flags are checked atomically */
-	csrr s0, sup0
-	REG_L s0, TASK_THREAD_INFO(s0)
+	REG_L s0, TASK_THREAD_INFO(tp)
 	REG_L s0, TI_FLAGS(s0) /* current_thread_info->flags */
 	andi s1, s0, _TIF_WORK_MASK
 	bnez s1, work_pending
 
+	/* Save unwound kernel stack pointer in sup0 */
+	addi s0, sp, PT_SIZE
+	csrw sup0, s0
 restore_all:
 	RESTORE_ALL
 	sret
@@ -217,14 +216,14 @@ END(handle_exception)
 
 
 ENTRY(ret_from_fork)
-	la ra, restore_all
+	la ra, ret_from_exception
 	tail schedule_tail
 ENDPROC(ret_from_fork)
 
 ENTRY(ret_from_kernel_thread)
 	call schedule_tail
 	/* Call fn(arg) */
-	la ra, restore_all
+	la ra, ret_from_exception
 	move a0, s1
 	jr s0
 ENDPROC(ret_from_kernel_thread)
@@ -268,7 +267,7 @@ ENTRY(__switch_to)
 	REG_L s10, THREAD_S10(a1)
 	REG_L s11, THREAD_S11(a1)
 	REG_L sp,  THREAD_SP(a1)
-	csrw sup0, a1 /* Next current pointer */
+	mv tp, a1 /* Next current pointer */
 	ret
 ENDPROC(__switch_to)
 
