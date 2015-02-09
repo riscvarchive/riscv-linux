@@ -26,10 +26,12 @@ ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
 	KBUILD_CFLAGS += -m64
 	KBUILD_AFLAGS += -m64
+	LDFLAGS += -melf64lriscv
 else
 	BITS := 32
 	KBUILD_CFLAGS += -m32
 	KBUILD_AFLAGS += -m32
+	LDFLAGS += -melf32lriscv
 endif
 
 ifeq ($(CONFIG_RV_ATOMIC),)
