@@ -7,7 +7,8 @@ struct task_struct;
 
 static inline struct task_struct *get_current(void)
 {
-	return (struct task_struct *)(csr_read(sup0));
+	register struct task_struct * tp asm("tp");
+	return tp;
 }
 
 #define current (get_current())
