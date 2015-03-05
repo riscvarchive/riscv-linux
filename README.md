@@ -12,8 +12,8 @@ Building the kernel image
 1. Fetch upstream sources and overlay the `riscv` architecture-specific
    subtree:
 
-        $ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.29.tar.xz | tar -xJ
-        $ cd linux-3.14.29
+        $ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.32.tar.xz | tar -xJ
+        $ cd linux-3.14.32
         $ git init
         $ git remote add origin https://github.com/riscv/riscv-linux.git
         $ git fetch
