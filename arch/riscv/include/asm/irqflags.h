@@ -7,31 +7,31 @@
 /* read interrupt enabled status */
 static inline unsigned long arch_local_save_flags(void)
 {
-	return csr_read(status);
+	return csr_read(sstatus);
 }
 
 /* unconditionally enable interrupts */
 static inline void arch_local_irq_enable(void)
 {
-	csr_set(status, SR_EI);
+	csr_set(sstatus, SR_IE);
 }
 
 /* unconditionally disable interrupts */
 static inline void arch_local_irq_disable(void)
 {
-	csr_clear(status, SR_EI);
+	csr_clear(sstatus, SR_IE);
 }
 
 /* get status and disable interrupts */
 static inline unsigned long arch_local_irq_save(void)
 {
-	return csr_read_clear(status, SR_EI);
+	return csr_read_clear(sstatus, SR_IE);
 }
 
 /* test flags */
 static inline int arch_irqs_disabled_flags(unsigned long flags)
 {
-	return !(flags & SR_EI);
+	return !(flags & SR_IE);
 }
 
 /* test hardware interrupt enable bit */
@@ -43,7 +43,7 @@ static inline int arch_irqs_disabled(void)
 /* set interrupt enabled status */
 static inline void arch_local_irq_restore(unsigned long flags)
 {
-	csr_set(status, flags & SR_EI);
+	csr_set(sstatus, flags & SR_IE);
 }
 
 #endif /* _ASM_RISCV_IRQFLAGS_H */

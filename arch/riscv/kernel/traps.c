@@ -146,10 +146,10 @@ int is_valid_bugaddr(unsigned long pc)
 void __init trap_init(void)
 {
 	/* Clear the IPI exception that started the processor */
-	csr_write(clear_ipi, 0);
+	csr_clear(sstatus, SR_SIP);
 	/* Set sup0 scratch register to 0, indicating to exception vector
 	   that we are presently executing in the kernel */
-	csr_write(sup0, 0);
+	csr_write(sscratch, 0);
 	/* Set the exception vector address */
-	csr_write(evec, &handle_exception);
+	csr_write(stvec, &handle_exception);
 }

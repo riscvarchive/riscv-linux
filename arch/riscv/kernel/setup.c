@@ -7,11 +7,15 @@
 #include <asm/setup.h>
 #include <asm/sections.h>
 #include <asm/pgtable.h>
+#include <asm/sbi.h>
 
 static char __initdata command_line[COMMAND_LINE_SIZE];
 #ifdef CONFIG_CMDLINE_BOOL
 static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
 #endif /* CONFIG_CMDLINE_BOOL */
+
+unsigned long va_pa_offset;
+unsigned long pfn_base;
 
 #ifdef CONFIG_BLK_DEV_INITRD
 static void __init setup_initrd(void)
@@ -51,14 +55,25 @@ disable:
 static void __init setup_bootmem(void)
 {
 	unsigned long start_pfn, end_pfn;
-	unsigned long mem_size, bootmap_size;
+	unsigned long bootmap_size;
+	unsigned long ret;
+	memory_block_info info;
 
-	mem_size = min(PHYSMEM_SIZE, PHYSMEM_MAX) << PHYSMEM_SHIFT;
-	printk(KERN_INFO "Detected 0x%lx bytes of physical memory\n", mem_size);
-	end_pfn = PFN_DOWN(min(VMALLOC_START - PAGE_OFFSET, mem_size));
+	ret = sbi_query_memory(0, &info);
+	BUG_ON(ret != 0);
+	BUG_ON((info.base & ~PMD_MASK) != 0);
+	BUG_ON((info.size & ~PMD_MASK) != 0);
+	printk(KERN_INFO "Detected 0x%lx bytes of physical memory\n",
+	       info.size);
 
-	/* First page after kernel image */
-	start_pfn = PFN_UP(__pa(&_end));
+	/* The kernel image is mapped at VA=PAGE_OFFSET and PA=info.base */
+	va_pa_offset = PAGE_OFFSET - info.base;
+	pfn_base = PFN_DOWN(info.base);
+	set_max_mapnr(PFN_DOWN(info.size));
+
+	/* The first available page is after the page directory */
+	start_pfn = (csr_read(sptbr) >> PAGE_SHIFT) + 1;
+	end_pfn = PFN_DOWN(info.base + info.size);
 
 	bootmap_size = init_bootmem(start_pfn, end_pfn);
 	free_bootmem(PFN_PHYS(start_pfn), (end_pfn - start_pfn) << PAGE_SHIFT);

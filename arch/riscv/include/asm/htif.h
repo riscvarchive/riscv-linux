@@ -5,9 +5,7 @@
 #include <linux/irqreturn.h>
 
 #include <asm/csr.h>
-
-#define HTIF_DEV_SHIFT      (56)
-#define HTIF_CMD_SHIFT      (48)
+#include <asm/sbi.h>
 
 #define HTIF_CMD_READ       (0x00UL)
 #define HTIF_CMD_WRITE      (0x01UL)
@@ -20,30 +18,18 @@
 
 extern struct bus_type htif_bus_type;
 
-static inline void htif_tohost(unsigned long dev,
-	unsigned long cmd, unsigned long data)
+static inline void htif_tohost(sbi_device_message *message)
 {
-	unsigned long packet;
-
-	packet = (dev << HTIF_DEV_SHIFT) | (cmd << HTIF_CMD_SHIFT) | data;
-	while (csr_swap(tohost, packet)) {
-		cpu_relax();
-	}
+	sbi_send_device_request(__pa(message));
 }
 
-static inline unsigned long __htif_fromhost(void)
+static inline sbi_device_message *htif_fromhost(void)
 {
-	return csr_swap(fromhost, 0);
-}
-
-static inline unsigned long htif_fromhost(void)
-{
-	unsigned long data;
-
-	while (!(data = __htif_fromhost())) {
+	uintptr_t response;
+	while ((response = sbi_receive_device_response()) == 0) {
 		cpu_relax();
 	}
-	return data;
+	return __va(response);
 }
 
 struct htif_device {
@@ -64,7 +50,8 @@ struct htif_driver {
 extern int htif_register_driver(struct htif_driver *drv);
 extern void htif_unregister_driver(struct htif_driver *drv);
 
-typedef irqreturn_t (*htif_irq_handler_t)(struct htif_device *, unsigned long);
+typedef irqreturn_t (*htif_irq_handler_t)(struct htif_device *,
+                                          sbi_device_message *);
 
 extern int htif_request_irq(struct htif_device *dev, htif_irq_handler_t handler);
 extern void htif_free_irq(struct htif_device *dev);

@@ -10,7 +10,7 @@
 /* Flush all TLB entries */
 static inline void flush_tlb_all(void)
 {
-	csr_write(fatc, 0);
+	__asm__ __volatile__ ("sfence.vm");
 }
 
 /* Flush the TLB entries of the specified mm context */

@@ -1,14 +1,16 @@
 #ifndef _ASM_RISCV_PGTABLE_64_H
 #define _ASM_RISCV_PGTABLE_64_H
 
+#include <linux/const.h>
+
 #define PGDIR_SHIFT     33
 /* Size of region mapped by a page global directory */
-#define PGDIR_SIZE      (1UL << PGDIR_SHIFT)
+#define PGDIR_SIZE      (_AC(1,UL) << PGDIR_SHIFT)
 #define PGDIR_MASK      (~(PGDIR_SIZE - 1))
 
 #define PMD_SHIFT       23
 /* Size of region mapped by a page middle directory */
-#define PMD_SIZE        (1UL << PMD_SHIFT)
+#define PMD_SIZE        (_AC(1,UL) << PMD_SHIFT)
 #define PMD_MASK        (~(PMD_SIZE - 1))
 
 /* Page Middle Directory entry */

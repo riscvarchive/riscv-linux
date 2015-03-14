@@ -5,6 +5,7 @@
 
 #include <linux/mm.h>
 #include <linux/sched.h>
+#include <asm/tlbflush.h>
 
 static inline void enter_lazy_tlb(struct mm_struct *mm,
 	struct task_struct *task)
@@ -26,8 +27,8 @@ static inline void switch_mm(struct mm_struct *prev,
 	struct mm_struct *next, struct task_struct *task)
 {
 	if (likely(prev != next)) {
-		csr_write(ptbr, __pa(next->pgd));
-		csr_write(fatc, 0);
+		csr_write(sptbr, __pa(next->pgd));
+		flush_tlb_all();
 	}
 }
 

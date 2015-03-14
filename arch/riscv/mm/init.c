@@ -10,12 +10,6 @@
 #include <asm/pgtable.h>
 #include <asm/io.h>
 
-static void __init pagetable_init(void)
-{
-	/* Remove identity mapping to catch NULL pointer dereferences */
-	swapper_pg_dir[0] = __pgd(0);
-}
-
 #ifdef CONFIG_NUMA
 static void __init zone_sizes_init(void)
 {
@@ -35,7 +29,7 @@ static void __init zone_sizes_init(void)
 			PFN_PHYS(end_pfn - start_pfn), nid);
 	}
 
-	zones_size[ZONE_NORMAL] = max_low_pfn;
+	zones_size[ZONE_NORMAL] = pfn_base + max_mapnr;
 	free_area_init_nodes(zones_size);
 }
 #else
@@ -44,8 +38,8 @@ static void __init zone_sizes_init(void)
 	unsigned long zones_size[MAX_NR_ZONES];
 
 	memset(zones_size, 0, sizeof(zones_size));
-	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0);
-	zones_size[ZONE_NORMAL] = max_low_pfn;
+	memblock_add_node(PFN_PHYS(pfn_base), PFN_PHYS(max_mapnr), 0);
+	zones_size[ZONE_NORMAL] = pfn_base + max_mapnr;
 	free_area_init_nodes(zones_size);
 }
 #endif /* CONFIG_NUMA */
@@ -57,8 +51,9 @@ void setup_zero_page(void)
 
 void __init paging_init(void)
 {
+	init_mm.pgd = (pgd_t *)__va(csr_read(sptbr));
+
 	setup_zero_page();
-	pagetable_init();
 	flush_tlb_all();
 	zone_sizes_init();
 }
@@ -69,7 +64,6 @@ void __init mem_init(void)
 	BUG_ON(!mem_map);
 #endif /* CONFIG_FLATMEM */
 
-	set_max_mapnr(max_low_pfn);
 	high_memory = (void *)(__va(PFN_PHYS(max_low_pfn)));
 	free_all_bootmem();
 

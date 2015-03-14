@@ -40,7 +40,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 		goto vmalloc_fault;
 
 	/* Enable interrupts if they were enabled in the parent context. */
-	if (likely(regs->status & SR_PEI))
+	if (likely(regs->status & SR_PIE))
 		local_irq_enable();
 
 	/*
@@ -216,7 +216,7 @@ vmalloc_fault:
 		 * of a task switch.
 		 */
 		index = pgd_index(addr);
-		pgd = (pgd_t *)__va(csr_read(ptbr)) + index;
+		pgd = (pgd_t *)__va(csr_read(sptbr)) + index;
 		pgd_k = init_mm.pgd + index;
 
 		if (!pgd_present(*pgd_k))

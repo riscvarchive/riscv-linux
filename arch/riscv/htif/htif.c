@@ -53,29 +53,31 @@ EXPORT_SYMBOL(htif_free_irq);
 
 static irqreturn_t htif_isr(int irq, void *dev_id)
 {
-	unsigned long data;
-	irqreturn_t ret;
+	irqreturn_t ret = IRQ_NONE;
+	uintptr_t message_paddr;
 
-	ret = IRQ_NONE;
-	while ((data = __htif_fromhost())) {
+	/* Clear the interrupt. */
+	csr_clear(sstatus, SR_SIP);
+
+	while ((message_paddr = sbi_receive_device_response()) != 0) {
+		sbi_device_message *message;
 		struct htif_desc *desc;
 		struct htif_device *dev;
 		htif_irq_handler_t handler;
-		unsigned int index;
 
-		index = (data >> HTIF_DEV_SHIFT);
-		desc = bus.desc + index;
+		message = __va(message_paddr);
+		desc = bus.desc + message->dev;
 		handler = NULL;
 
 		spin_lock(&bus_lock);
-		if (!WARN_ON(index >= bus.count)) {
+		if (!WARN_ON(message->dev >= bus.count)) {
 			dev = desc->dev;
 			handler = desc->handler;
 		}
 		spin_unlock(&bus_lock);
 
 		if (likely(handler != NULL))
-			ret |= handler(dev, data);
+			ret |= handler(dev, message);
 	}
 	return ret;
 }
@@ -113,14 +115,23 @@ static int __init htif_init(void)
 
 	/* Enumerate devices */
 	for (i = 0; i < HTIF_MAX_DEV; i++) {
+		unsigned long flags;
 		char id[HTIF_MAX_ID] __aligned(HTIF_ALIGN);
 		struct htif_device *dev;
 		size_t len;
+		sbi_device_message request, *response;
 
-		rmb();
-		htif_tohost(i, HTIF_CMD_IDENTIFY, (__pa(id) << 8) | 0xFF);
-		htif_fromhost();
-		wmb();
+		flags = arch_local_irq_save();
+
+		request.dev = i;
+		request.cmd = HTIF_CMD_IDENTIFY;
+		request.data = (__pa(id) << 8) | 0xFF;
+		htif_tohost(&request);
+		response = htif_fromhost();
+		WARN_ON(&request != response);
+
+		csr_clear(sstatus, SR_SIP);
+		arch_local_irq_restore(flags);
 
 		len = strnlen(id, sizeof(id));
 		if (len <= 0)
@@ -163,6 +174,6 @@ static int __init htif_init(void)
 		}
 	}
 
-	return request_irq(IRQ_HOST, htif_isr, 0, dev_name(&bus.dev), NULL);
+	return request_irq(IRQ_SOFTWARE, htif_isr, 0, dev_name(&bus.dev), NULL);
 }
 subsys_initcall(htif_init);

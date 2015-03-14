@@ -71,6 +71,7 @@ static struct fb_fix_screeninfo htifrfb_fix = {
 static int htifrfb_probe(struct device *dev)
 {
 	struct htif_device *htif_dev;
+	sbi_device_message response;
 	struct fb_info *info;
 	unsigned long flags;
 	int ret;
@@ -105,11 +106,11 @@ static int htifrfb_probe(struct device *dev)
 
 	htif_tohost(htif_dev->index, HTIF_CMD_RFB_CONF,
 		(RFB_BPP << 32) | (RFB_YRES << 16) | RFB_XRES);
-	htif_fromhost();
+	htif_fromhost(&response);
 
 	htif_tohost(htif_dev->index, HTIF_CMD_RFB_ADDR,
 		info->fix.smem_start);
-	htif_fromhost();
+	htif_fromhost(&response);
 
 	local_irq_restore(flags);
 	return 0;

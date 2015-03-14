@@ -49,6 +49,8 @@
 
 #define PAGE_KERNEL		__pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_G)
 
+#define swapper_pg_dir NULL
+
 /* MAP_PRIVATE permissions: xwr (copy-on-write) */
 #define __P000	PAGE_NONE
 #define __P001	PAGE_READ
@@ -322,7 +324,6 @@ static inline unsigned long pte_to_pgoff(pte_t pte)
 #define kern_addr_valid(addr)   (1) /* FIXME */
 #endif
 
-extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 extern void paging_init(void);
 
 #ifndef __PAGETABLE_PMD_FOLDED
@@ -337,16 +338,20 @@ static inline void pgtable_cache_init(void)
 
 #endif /* CONFIG_MMU */
 
+#define VMALLOC_SIZE     _AC(0x8000000,UL)
+#define VMALLOC_END      (PAGE_OFFSET - 1)
+#define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
+
+/* Task size is 0x40000000000 for RV64 or 0xb800000 for RV32.
+   Note that PGDIR_SIZE must evenly divide TASK_SIZE. */
+#ifdef CONFIG_64BIT
+#define TASK_SIZE (PGDIR_SIZE * PTRS_PER_PGD / 2)
+#else
+#define TASK_SIZE VMALLOC_START
+#endif
+
 #include <asm-generic/pgtable.h>
 
 #endif /* !__ASSEMBLY__ */
-
-#ifdef CONFIG_64BIT
-#define VMALLOC_START    _AC(0xfffffffff8000000,UL)
-#define VMALLOC_END      _AC(0xffffffffffffffff,UL)
-#else
-#define VMALLOC_START    _AC(0xf8000000,UL)
-#define VMALLOC_END      _AC(0xffffffff,UL)
-#endif
 
 #endif /* _ASM_RISCV_PGTABLE_H */

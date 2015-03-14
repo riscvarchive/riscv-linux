@@ -4,13 +4,6 @@
 #include <linux/const.h>
 
 /*
- * User space process size: 2GB (highest virtual address below the
- * sign-extension hole).  This may be hardcoded into a few places,
- * so don't change it unless you know what you are doing.
- */
-#define TASK_SIZE		_AC(0x80000000,UL)
-
-/*
  * This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */

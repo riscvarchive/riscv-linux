@@ -1,3 +1,8 @@
+dir /bin 755 0 0
+file /bin/busybox tmp/bin/busybox 755 0 0
+dir /etc 755 0 0
+file /etc/inittab tmp/etc/inittab 755 0 0
+
 dir /dev 755 0 0
 nod /dev/console 644 0 0 c 5 1
 nod /dev/null 644 0 0 c 1 3

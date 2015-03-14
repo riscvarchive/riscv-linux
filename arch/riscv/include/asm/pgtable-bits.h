@@ -23,15 +23,14 @@
 #define _PAGE_UW        (1 << 4) /* User write */
 #define _PAGE_UX        (1 << 5) /* User execute */
 
-#define _PAGE_SOFT1     (1 <<  9) /* Reserved for software */
-#define _PAGE_SOFT2     (1 << 10) /* Reserved for software */
-#define _PAGE_SOFT3     (1 << 11) /* Reserved for software */
-#define _PAGE_SOFT4     (1 << 12) /* Reserved for software */
+#define _PAGE_ACCESSED  (1 << 9)  /* Set by hardware on any access */
+#define _PAGE_DIRTY     (1 << 10) /* Set by hardware on any write */
+
+#define _PAGE_SOFT1     (1 << 11) /* Reserved for software */
+#define _PAGE_SOFT2     (1 << 12) /* Reserved for software, RV64 only */
 
 #define _PAGE_PRESENT   _PAGE_V
-#define _PAGE_ACCESSED  _PAGE_SOFT1
-#define _PAGE_DIRTY     _PAGE_SOFT2
-#define _PAGE_SPECIAL   _PAGE_SOFT3
+#define _PAGE_SPECIAL   _PAGE_SOFT1
 #define _PAGE_FILE      _PAGE_T /* when !present: non-linear file mapping */
 
 /* Set of bits to preserve across pte_modify() */

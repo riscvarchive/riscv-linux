@@ -1,10 +1,9 @@
 #ifndef _ASM_RISCV_IRQ_H
 #define _ASM_RISCV_IRQ_H
 
-#define NR_IRQS         8
-#define IRQ_IPI         5
-#define IRQ_HOST        6
-#define IRQ_TIMER       7
+#define NR_IRQS         2
+#define IRQ_TIMER       0
+#define IRQ_SOFTWARE    1
 
 #include <asm-generic/irq.h>
 

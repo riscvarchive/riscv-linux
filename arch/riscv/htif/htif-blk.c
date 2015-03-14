@@ -20,6 +20,7 @@ struct htifblk_device {
 	spinlock_t lock;
 	u64 size;		/* size in bytes */
 	struct request *req;
+	sbi_device_message msg_buf;
 	unsigned int tag;
 };
 
@@ -67,7 +68,10 @@ static int htifblk_segment(struct htifblk_device *dev,
 	}
 
 	dev->req = req;
-	htif_tohost(dev->dev->index, cmd, __pa(&pkt));
+	dev->msg_buf.dev = dev->dev->index;
+	dev->msg_buf.cmd = cmd;
+	dev->msg_buf.data = __pa(&pkt);
+	htif_tohost(&dev->msg_buf);
 	return 0;
 }
 
@@ -103,10 +107,9 @@ out:
 	spin_unlock_irqrestore(q->queue_lock, flags);
 }
 
-static irqreturn_t htifblk_isr(struct htif_device *dev, unsigned long data)
+static irqreturn_t htifblk_isr(struct htif_device *dev, sbi_device_message *msg)
 {
 	struct htifblk_device *htifblk_dev;
-	unsigned int tag;
 	irqreturn_t ret;
 	int err;
 
@@ -120,10 +123,9 @@ static irqreturn_t htifblk_isr(struct htif_device *dev, unsigned long data)
 	}
 
 	err = 0;
-	tag = (data << HTIF_DEV_SHIFT) >> HTIF_DEV_SHIFT;
-	if (unlikely(tag != htifblk_dev->tag)) {
-		dev_err(&dev->dev, "tag mismatch: expected=%u actual=%u\n",
-			htifblk_dev->tag, tag);
+	if (unlikely(msg->data != htifblk_dev->tag)) {
+		dev_err(&dev->dev, "tag mismatch: expected=%u actual=%lu\n",
+			htifblk_dev->tag, msg->data);
 		err = -EIO;
 	}
 

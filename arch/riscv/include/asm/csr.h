@@ -4,26 +4,27 @@
 #include <linux/const.h>
 
 /* Status register flags */
-#define SR_S    _AC(0x00000001,UL) /* Supervisor */
-#define SR_PS   _AC(0x00000002,UL) /* Previous supervisor */
-#define SR_EI   _AC(0x00000004,UL) /* Enable interrupts */
-#define SR_PEI  _AC(0x00000008,UL) /* Previous EI */
-#define SR_EF   _AC(0x00000010,UL) /* Enable floating-point */
-#define SR_U64  _AC(0x00000020,UL) /* RV64 user mode */
-#define SR_S64  _AC(0x00000040,UL) /* RV64 supervisor mode */
-#define SR_VM   _AC(0x00000080,UL) /* Enable virtual memory */
-#define SR_IM   _AC(0x00FF0000,UL) /* Interrupt mask */
-#define SR_IP   _AC(0xFF000000,UL) /* Pending interrupts */
-
-#define SR_IM_SHIFT     16
-#define SR_IM_MASK(n)   ((_AC(1,UL)) << ((n) + SR_IM_SHIFT))
+#define SR_SIP  _AC(0x00000002,UL) /* Software Interrupt Pending */
+#define SR_IE   _AC(0x00000010,UL) /* Interrupt Enable */
+#define SR_PIE  _AC(0x00000080,UL) /* Previous IE */
+#define SR_PS   _AC(0x00000100,UL) /* Previously Supervisor */
+#define SR_UA   _AC(0x000F0000,UL) /* User-mode Architecture */
+#define SR_TIE  _AC(0x01000000,UL) /* Timer Interrupt Enable */
+#define SR_TIP  _AC(0x04000000,UL) /* Timer Interrupt Pending */
+#define SR_FS   _AC(0x18000000,UL) /* Floating-point Status */
+#define SR_XS   _AC(0x60000000,UL) /* Extension Status */
+#ifndef __riscv64
+# define SR_SD  _AC(0x80000000,UL) /* FS/XS dirty */
+#else
+# define SR_SD  _AC(0x8000000000000000,UL) /* FS/XS dirty */
+#endif
 
 #define EXC_INST_MISALIGNED     0
 #define EXC_INST_ACCESS         1
-#define EXC_SYSCALL             6
+#define EXC_SYSCALL             4
 #define EXC_LOAD_MISALIGNED     8
-#define EXC_STORE_MISALIGNED    9
-#define EXC_LOAD_ACCESS         10
+#define EXC_LOAD_ACCESS         9
+#define EXC_STORE_MISALIGNED    10
 #define EXC_STORE_ACCESS        11
 
 #ifndef __ASSEMBLY__

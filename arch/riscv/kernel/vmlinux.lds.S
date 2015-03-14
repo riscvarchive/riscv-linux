@@ -11,15 +11,15 @@ jiffies = jiffies_64;
 SECTIONS
 {
 	/* Beginning of code and text segment */
-	. = LOAD_OFFSET + 0x2000;
-	_start = 0x2000;
+	. = LOAD_OFFSET;
+	_start = .;
 	__init_begin = .;
 	HEAD_TEXT_SECTION
 	INIT_TEXT_SECTION(PAGE_SIZE)
 	INIT_DATA_SECTION(16)
 	__init_end = .;
 
-	.text : AT(ADDR(.text) - LOAD_OFFSET) {
+	.text : {
 		_text = .;
 		_stext = .;
 		TEXT_TEXT

@@ -12,14 +12,14 @@
 	LOCAL _restore_kernel_sp
 	LOCAL _save_context
 
-	/* If coming from userspace, preserve the user stack pointer and
-	   load the kernel stack pointer.  If we came from the kernel, sup0
+	/* If coming from userspace, preserve the user stack pointer and load
+	   the kernel stack pointer.  If we came from the kernel, sscratch
 	   will contain 0, and we should continue on the current stack. */
-	csrrw sp, sup0, sp
+	csrrw sp, sscratch, sp
 	bnez sp, _save_context
 
 _restore_kernel_sp:
-	csrr sp, sup0
+	csrr sp, sscratch
 _save_context:
 	addi sp, sp, -(PT_SIZE)
 	REG_S x1,  PT_RA(sp)
@@ -53,11 +53,11 @@ _save_context:
 	REG_S x30, PT_T5(sp)
 	REG_S x31, PT_T6(sp)
 
-	csrr s0, sup0
-	csrr s1, status
-	csrr s2, epc
-	csrr s3, badvaddr
-	csrr s4, cause
+	csrr s0, sscratch
+	csrr s1, sstatus
+	csrr s2, sepc
+	csrr s3, sbadaddr
+	csrr s4, scause
 	REG_S s0, PT_SP(sp)
 	REG_S s1, PT_STATUS(sp)
 	REG_S s2, PT_EPC(sp)
@@ -66,17 +66,13 @@ _save_context:
 	.endm
 
 	.macro RESTORE_ALL
-	csrrc a1, status, SR_EI
 	REG_L a0, PT_STATUS(sp)
-	li s0, ~(SR_IM | SR_EI)
+	li a1, SR_PS | SR_PIE
 	REG_L a2, PT_EPC(sp)
-	li s1, (SR_IM)
-	and a0, a0, s0
-	and a1, a1, s1
-	/* Retain current IM field */
-	or a0, a0, a1
-	csrw status, a0
-	csrw epc, a2
+	csrc sstatus, a1
+	and a0, a0, a1
+	csrw sepc, a2
+	csrs sstatus, a0
 
 	REG_L x1,  PT_RA(sp)
 	REG_L x3,  PT_GP(sp)
@@ -115,9 +111,9 @@ _save_context:
 ENTRY(handle_exception)
 	SAVE_ALL
 
-	/* Set sup0 scratch register to 0, so that if a recursive exception
+	/* Set sscratch register to 0, so that if a recursive exception
 	   occurs, the exception vector knows it came from the kernel */
-	csrw sup0, x0
+	csrw sscratch, x0
 
 	/* Compute address of current thread_info */
 	li tp, ~(THREAD_SIZE-1)
@@ -125,7 +121,7 @@ ENTRY(handle_exception)
 	/* Set the current thread pointer */
 	REG_L tp, 0(tp)
 
-	csrr s0, cause
+	csrr s0, scause
 	la gp, _gp
 	la ra, ret_from_exception
 	/* MSB of cause differentiates between
@@ -162,7 +158,7 @@ handle_syscall:
 	addi s2, s2, 0x4
 	REG_S s2, PT_EPC(sp)
 	/* System calls run with interrupts enabled */
-	csrs status, SR_EI
+	csrs sstatus, SR_IE
 	li t0, __NR_syscalls
 	la s0, sys_ni_syscall
 	/* Syscall number held in a7 */
@@ -180,32 +176,32 @@ ret_from_syscall:
 
 ret_from_exception:
 	REG_L s0, PT_STATUS(sp)
+	csrc sstatus, SR_IE
 	andi s0, s0, SR_PS
 	bnez s0, restore_all
 
 resume_userspace:
-	csrc status, SR_EI /* Disable interrupts to ensure that thread
-	                      info flags are checked atomically */
+	/* Interrupts must be disabled here so flags are checked atomically */
 	REG_L s0, TASK_THREAD_INFO(tp)
 	REG_L s0, TI_FLAGS(s0) /* current_thread_info->flags */
 	andi s1, s0, _TIF_WORK_MASK
 	bnez s1, work_pending
 
-	/* Save unwound kernel stack pointer in sup0 */
+	/* Save unwound kernel stack pointer in sscratch */
 	addi s0, sp, PT_SIZE
-	csrw sup0, s0
+	csrw sscratch, s0
 restore_all:
 	RESTORE_ALL
 	sret
 
 work_pending:
 	/* Enter slow path for supplementary processing */
-	la ra, resume_userspace
+	la ra, ret_from_exception
 	andi s1, s0, _TIF_NEED_RESCHED
 	bnez s1, work_resched
 work_notifysig:
 	/* Handle pending signals and notify-resume requests */
-	csrs status, SR_EI /* Enable interrupts for do_notify_resume() */
+	csrs sstatus, SR_IE /* Enable interrupts for do_notify_resume() */
 	move a0, sp /* pt_regs */
 	move a1, s0 /* current_thread_info->flags */
 	tail do_notify_resume
@@ -279,13 +275,13 @@ ENTRY(excp_vect_table)
 	PTR do_page_fault
 	PTR do_trap_insn_illegal
 	PTR do_trap_insn_privileged
-	PTR do_trap_insn_illegal
-	PTR do_trap_unknown
 	PTR 0 /* handle_syscall */
+	PTR do_trap_unknown
+	PTR do_trap_unknown
 	PTR do_trap_break
 	PTR do_trap_load_misaligned
-	PTR do_trap_store_misaligned
 	PTR do_page_fault
+	PTR do_trap_store_misaligned
 	PTR do_page_fault
 excp_vect_table_end:
 END(excp_vect_table)

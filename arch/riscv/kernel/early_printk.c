@@ -3,15 +3,7 @@
 
 #include <asm/setup.h>
 #include <asm/page.h>
-#include <asm/htif.h>
-
-#define HTIF_DEV_CONSOLE	(1U)
-
-static inline void __init early_htif_putc(unsigned char ch)
-{
-	/* FIXME: Device ID should not be hard-coded. */
-	htif_tohost(HTIF_DEV_CONSOLE, HTIF_CMD_WRITE, ch);
-}
+#include <asm/sbi.h>
 
 static void __init early_console_write(struct console *con,
 		const char *s, unsigned int n)
@@ -20,8 +12,8 @@ static void __init early_console_write(struct console *con,
 		unsigned char ch;
 		ch = *s++;
 		if (ch == '\n')
-			early_htif_putc('\r');
-		early_htif_putc(ch);
+			sbi_console_putchar('\r');
+		sbi_console_putchar(ch);
 	}
 }
 

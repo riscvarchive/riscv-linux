@@ -10,7 +10,7 @@ static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
 	/* Set comparator */
-	csr_write(compare, csr_read(count) + delta);
+	csr_write(stimecmp, csr_read(stime) + delta);
 	return 0;
 }
 
@@ -77,7 +77,7 @@ void __init time_init(void)
 	u32 freq;
 	freq = 100000000UL;
 
-	csr_write(count, 0);
+	csr_write(stime, 0);
 
 	clocksource_register_hz(&riscv_clocksource, freq);
 	setup_irq(IRQ_TIMER, &timer_irq);

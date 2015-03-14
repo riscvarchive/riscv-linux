@@ -16,6 +16,8 @@
 
 struct htifcon_port {
 	struct device *dev;
+	sbi_device_message output_buf;
+	sbi_device_message input_buf;
 	struct tty_port port;
 	spinlock_t lock;
 };
@@ -109,9 +111,15 @@ static void htif_tty_cleanup(struct tty_struct *tty)
 	tty->driver_data = NULL;
 }
 
-static inline void htifcon_put_char(unsigned int id, unsigned char ch)
+static inline void htifcon_put_char(struct htifcon_port *port,
+	unsigned int id, unsigned char ch)
 {
-	htif_tohost(id, HTIF_CMD_WRITE, ch);
+	while (port->output_buf.data != 0)
+		cpu_relax();
+	port->output_buf.dev = id;
+	port->output_buf.cmd = HTIF_CMD_WRITE;
+	port->output_buf.data = ch;
+	sbi_send_device_request(__pa(&port->output_buf));
 }
 
 static int htif_tty_write(struct tty_struct *tty,
@@ -123,17 +131,9 @@ static int htif_tty_write(struct tty_struct *tty,
 
 	id = htifcon_port_htifdev(port)->index;
 	for (end = buf + count; buf < end; buf++) {
-		htifcon_put_char(id, *buf);
+		htifcon_put_char(port, id, *buf);
 	}
 	return count;
-}
-
-static int htif_tty_put_char(struct tty_struct *tty, unsigned char ch)
-{
-	struct htifcon_port *port = tty->driver_data;
-
-	htifcon_put_char(htifcon_port_htifdev(port)->index, ch);
-	return 1;
 }
 
 static int htif_tty_write_room(struct tty_struct *tty)
@@ -154,24 +154,30 @@ static const struct tty_operations htif_tty_ops = {
 	.close		= htif_tty_close,
 	.cleanup	= htif_tty_cleanup,
 	.write		= htif_tty_write,
-	.put_char	= htif_tty_put_char,
 	.write_room	= htif_tty_write_room,
 	.hangup		= htif_tty_hangup,
 };
 
 static struct tty_driver *htif_tty_driver;
 
-static irqreturn_t htifcon_isr(struct htif_device *dev, unsigned long data)
+static irqreturn_t htifcon_isr(struct htif_device *dev, sbi_device_message *msg)
 {
 	struct htifcon_port *port = dev_get_drvdata(&dev->dev);
 
-	spin_lock(&port->lock);
-	tty_insert_flip_char(&port->port, data, TTY_NORMAL);
-	tty_flip_buffer_push(&port->port);
-	spin_unlock(&port->lock);
+	if (msg->cmd == HTIF_CMD_READ) {
+		spin_lock(&port->lock);
+		tty_insert_flip_char(&port->port, msg->data, TTY_NORMAL);
+		tty_flip_buffer_push(&port->port);
+		spin_unlock(&port->lock);
 
-	/* Request next character */
-	htif_tohost(dev->index, HTIF_CMD_READ, 0);
+		/* Request next character */
+		sbi_send_device_request(__pa(msg));
+	} else if (msg->cmd == HTIF_CMD_WRITE) {
+		msg->data = 0;
+	} else {
+		return IRQ_NONE;
+	}
+
 	return IRQ_HANDLED;
 }
 
@@ -213,6 +219,7 @@ static void htif_console_init_late(void);
 static int htifcon_probe(struct device *dev)
 {
 	struct htif_device *htif_dev;
+	struct htifcon_port *port;
 	int ret;
 
 	dev_info(dev, "detected console\n");
@@ -229,7 +236,10 @@ static int htifcon_probe(struct device *dev)
 	htif_console_init_late();
 
 	/* Request next character */
-	htif_tohost(htif_dev->index, HTIF_CMD_READ, 0);
+	port = dev_get_drvdata(&htif_dev->dev);
+	port->input_buf.dev = htif_dev->index;
+	port->input_buf.cmd = HTIF_CMD_READ;
+	sbi_send_device_request(__pa(&port->input_buf));
 	return 0;
 }
 
@@ -294,16 +304,16 @@ MODULE_LICENSE("GPL");
 static void htif_console_write(struct console *co,
 		const char *buf, unsigned int count)
 {
+	struct htifcon_port *port = htifcon_ports + co->index;
+	//unsigned int id = htifcon_port_htifdev(port)->index;
 	const char *end;
-	unsigned int id;
 
-	id = htifcon_port_htifdev(htifcon_ports + co->index)->index;
 	for (end = buf + count; buf < end; buf++) {
 		unsigned char ch = *buf;
 
 		if (ch == '\n')
-			htifcon_put_char(id, '\r');
-		htifcon_put_char(id, ch);
+			sbi_console_putchar('\r');
+		sbi_console_putchar(ch);
 	}
 }
 
