@@ -274,15 +274,13 @@ ENTRY(excp_vect_table)
 	PTR do_trap_insn_misaligned
 	PTR do_page_fault
 	PTR do_trap_insn_illegal
-	PTR do_trap_insn_privileged
+	PTR do_trap_unknown
+	PTR do_trap_unknown
+	PTR do_page_fault
+	PTR do_trap_unknown
+	PTR do_page_fault
 	PTR 0 /* handle_syscall */
-	PTR do_trap_unknown
-	PTR do_trap_unknown
 	PTR do_trap_break
-	PTR do_trap_load_misaligned
-	PTR do_page_fault
-	PTR do_trap_store_misaligned
-	PTR do_page_fault
 excp_vect_table_end:
 END(excp_vect_table)
 

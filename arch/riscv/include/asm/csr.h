@@ -21,11 +21,9 @@
 
 #define EXC_INST_MISALIGNED     0
 #define EXC_INST_ACCESS         1
-#define EXC_SYSCALL             4
-#define EXC_LOAD_MISALIGNED     8
-#define EXC_LOAD_ACCESS         9
-#define EXC_STORE_MISALIGNED    10
-#define EXC_STORE_ACCESS        11
+#define EXC_LOAD_ACCESS         5
+#define EXC_STORE_ACCESS        7
+#define EXC_SYSCALL             8
 
 #ifndef __ASSEMBLY__
 

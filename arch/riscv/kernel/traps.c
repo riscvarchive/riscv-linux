@@ -100,12 +100,6 @@ DO_ERROR_INFO(do_trap_insn_misaligned,
 	SIGBUS, BUS_ADRALN, GET_EPC, "instruction address misaligned");
 DO_ERROR_INFO(do_trap_insn_illegal,
 	SIGILL, ILL_ILLOPC, GET_EPC, "illegal instruction");
-DO_ERROR_INFO(do_trap_insn_privileged,
-	SIGILL, ILL_PRVOPC, GET_EPC, "privileged instruction");
-DO_ERROR_INFO(do_trap_load_misaligned,
-	SIGBUS, BUS_ADRALN, GET_BADVADDR, "load address misaligned");
-DO_ERROR_INFO(do_trap_store_misaligned,
-	SIGBUS, BUS_ADRALN, GET_BADVADDR, "store address misaligned");
 
 asmlinkage void do_trap_break(struct pt_regs *regs)
 {
