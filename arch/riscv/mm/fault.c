@@ -22,7 +22,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	int fault, code = SEGV_MAPERR;
 
 	cause = regs->cause;
-	addr = (cause == EXC_INST_ACCESS) ? regs->epc : regs->badvaddr;
+	addr = regs->badvaddr;
 
 	tsk = current;
 	mm = tsk->mm;

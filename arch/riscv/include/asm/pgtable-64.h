@@ -3,12 +3,12 @@
 
 #include <linux/const.h>
 
-#define PGDIR_SHIFT     33
+#define PGDIR_SHIFT     30
 /* Size of region mapped by a page global directory */
 #define PGDIR_SIZE      (_AC(1,UL) << PGDIR_SHIFT)
 #define PGDIR_MASK      (~(PGDIR_SIZE - 1))
 
-#define PMD_SHIFT       23
+#define PMD_SHIFT       21
 /* Size of region mapped by a page middle directory */
 #define PMD_SIZE        (_AC(1,UL) << PMD_SHIFT)
 #define PMD_MASK        (~(PMD_SIZE - 1))
@@ -50,7 +50,7 @@ static inline void pud_clear(pud_t *pudp)
 
 static inline unsigned long pud_page_vaddr(pud_t pud)
 {
-	return (unsigned long)__va(pud_val(pud) & PAGE_MASK);
+	return (unsigned long)pfn_to_virt(pud_val(pud) >> _PAGE_PFN_SHIFT);
 }
 
 #define pmd_index(addr) (((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
