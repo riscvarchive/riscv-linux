@@ -3,12 +3,12 @@
 
 /*
  * RV32Sv32 page table entry:
- * | 31 22  | 21  12 | 11  9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
- *   PPN[1]   PPN[0]     --    SX  SW  SR  UX  UW  UR   G   T   V
+ * | 31 10 | 9             8 | 7 | 6 | 5 | 4  3 | 2  0
+ *    PPN    reserved for SW   D   R   G   perm   type
  *
- * RV64Sv43 page table entry:
- * | 63  33 | 32  23 | 22  13 | 12  9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
- *   PPN[2]   PPN[1]   PPN[0]     --   SX  SW  SR  UX  UW  UR   G   T   V
+ * RV64Sv39 / RV64Sv48 page table entry:
+ * | 63 26 | 25           10 | 9             8 | 7 | 6 | 5 | 4  3 | 2  0
+ *    PPN    reserved for HW   reserved for SW   D   R   G   perm   type
  */
 
 #define _PAGE_TYPE      (7 << 0)
@@ -27,8 +27,6 @@
 #define _PAGE_ACCESSED  (1 << 6) /* Set by hardware on any access */
 #define _PAGE_DIRTY     (1 << 7) /* Set by hardware on any write */
 #define _PAGE_SOFT      (1 << 8) /* Reserved for software */
-
-#define _PAGE_PFN_SHIFT 10
 
 #define _PAGE_PRESENT   _PAGE_TYPE
 #define _PAGE_SPECIAL   _PAGE_SOFT

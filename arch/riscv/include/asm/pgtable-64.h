@@ -13,6 +13,8 @@
 #define PMD_SIZE        (_AC(1,UL) << PMD_SHIFT)
 #define PMD_MASK        (~(PMD_SIZE - 1))
 
+#define _PAGE_PFN_SHIFT 26
+
 /* Page Middle Directory entry */
 typedef struct {
 	unsigned long pmd;
