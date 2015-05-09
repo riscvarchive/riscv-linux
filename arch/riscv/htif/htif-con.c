@@ -301,19 +301,12 @@ MODULE_DESCRIPTION("HTIF console driver");
 MODULE_LICENSE("GPL");
 
 
-static void htif_console_write(struct console *co,
-		const char *buf, unsigned int count)
+static void htif_console_write(struct console *co, const char *buf, unsigned n)
 {
-	struct htifcon_port *port = htifcon_ports + co->index;
-	//unsigned int id = htifcon_port_htifdev(port)->index;
-	const char *end;
-
-	for (end = buf + count; buf < end; buf++) {
-		unsigned char ch = *buf;
-
-		if (ch == '\n')
+	for ( ; n > 0; n--, buf++) {
+		if (*buf == '\n')
 			sbi_console_putchar('\r');
-		sbi_console_putchar(ch);
+		sbi_console_putchar(*buf);
 	}
 }
 
