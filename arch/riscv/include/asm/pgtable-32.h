@@ -9,6 +9,4 @@
 #define PGDIR_SIZE      (_AC(1,UL) << PGDIR_SHIFT)
 #define PGDIR_MASK      (~(PGDIR_SIZE - 1))
 
-#define _PAGE_PFN_SHIFT 10
-
 #endif /* _ASM_RISCV_PGTABLE_32_H */

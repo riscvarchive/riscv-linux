@@ -30,22 +30,20 @@
 #define FIRST_USER_ADDRESS  0
 
 /* Page protection bits */
-#define _PAGE_BASE   (_PAGE_ACCESSED | _PAGE_USER)
-#define _PAGE_W      (_PAGE_SW | _PAGE_UW)
-#define _PAGE_X      (_PAGE_SX | _PAGE_UX)
+#define _PAGE_BASE   (_PAGE_PRESENT | _PAGE_ACCESSED)
 
 #define PAGE_NONE		__pgprot(0)
-#define PAGE_READ		__pgprot(_PAGE_BASE)
-#define PAGE_WRITE		__pgprot(_PAGE_BASE | _PAGE_W)
-#define PAGE_EXEC		__pgprot(_PAGE_BASE | _PAGE_X)
-#define PAGE_WRITE_EXEC		__pgprot(_PAGE_BASE | _PAGE_W | _PAGE_X)
+#define PAGE_READ		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RO)
+#define PAGE_WRITE		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RW)
+#define PAGE_EXEC		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RX)
+#define PAGE_WRITE_EXEC		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RWX)
 
 #define PAGE_COPY		PAGE_READ
 #define PAGE_COPY_EXEC		PAGE_EXEC
 #define PAGE_SHARED		PAGE_WRITE
 #define PAGE_SHARED_EXEC	PAGE_WRITE_EXEC
 
-#define PAGE_KERNEL		__pgprot(_PAGE_ACCESSED | _PAGE_TYPE_KERNEL_ONLY | _PAGE_UW | _PAGE_G)
+#define PAGE_KERNEL		__pgprot(_PAGE_BASE | _PAGE_TYPE_KERN_RW)
 
 #define swapper_pg_dir NULL
 
@@ -187,7 +185,7 @@ static inline int pte_none(pte_t pte)
 
 static inline int pte_write(pte_t pte)
 {
-	return pte_val(pte) & _PAGE_W;
+	return pte_val(pte) & _PAGE_WRITE;
 }
 
 /* static inline int pte_exec(pte_t pte) */
@@ -216,14 +214,14 @@ static inline int pte_special(pte_t pte)
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-	return __pte(pte_val(pte) & ~(_PAGE_W));
+	return __pte(pte_val(pte) & ~(_PAGE_WRITE));
 }
 
 /* static inline pte_t pte_mkread(pte_t pte) */
 
 static inline pte_t pte_mkwrite(pte_t pte)
 {
-	return __pte(pte_val(pte) | _PAGE_W);
+	return __pte(pte_val(pte) | _PAGE_WRITE);
 }
 
 /* static inline pte_t pte_mkexec(pte_t pte) */
@@ -273,12 +271,12 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
  * Encode and decode a swap entry
  *
  * Format of swap PTE:
- *	bits      0 to 2:	_PAGE_PRESENT (zero)
- *	bit            3:	_PAGE_FILE (zero)
- *	bits      4 to 8:	swap type
- *	bits 9 to XLEN-1:	swap offset
+ *	bit            0:	_PAGE_PRESENT (zero)
+ *	bit            1:	_PAGE_FILE (zero)
+ *	bits      2 to 6:	swap type
+ *	bits 7 to XLEN-1:	swap offset
  */
-#define __SWP_TYPE_SHIFT	4
+#define __SWP_TYPE_SHIFT	2
 #define __SWP_TYPE_BITS		5
 #define __SWP_TYPE_MASK		((1UL << __SWP_TYPE_BITS) - 1)
 #define __SWP_OFFSET_SHIFT	(__SWP_TYPE_BITS + __SWP_TYPE_SHIFT)

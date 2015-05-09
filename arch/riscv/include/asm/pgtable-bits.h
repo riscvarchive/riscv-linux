@@ -3,43 +3,36 @@
 
 /*
  * RV32Sv32 page table entry:
- * | 31 10 | 9             8 | 7 | 6 | 5 | 4  3 | 2  0
- *    PPN    reserved for SW   D   R   G   perm   type
+ * | 31 10 | 9             7 | 6 | 5 | 4  1 | 0
+ *    PFN    reserved for SW   D   R   TYPE   V
  *
  * RV64Sv39 / RV64Sv48 page table entry:
- * | 63 26 | 25           10 | 9             8 | 7 | 6 | 5 | 4  3 | 2  0
- *    PPN    reserved for HW   reserved for SW   D   R   G   perm   type
+ * | 63           48 | 47 10 | 9             7 | 6 | 5 | 4  1 | 0
+ *   reserved for HW    PFN    reserved for SW   D   R   TYPE   V
  */
 
-#define _PAGE_TYPE      (7 << 0)
-#define _PAGE_USER      (1 << 2) /* Readable by both user and kernel */
+#define _PAGE_PRESENT   (1 << 0)
+#define _PAGE_TYPE      (0xF << 1)  /* Page type */
+#define _PAGE_WRITE     (1 << 1)    /* Writable (subfield of TYPE field) */
+#define _PAGE_ACCESSED  (1 << 5)    /* Set by hardware on any access */
+#define _PAGE_DIRTY     (1 << 6)    /* Set by hardware on any write */
+#define _PAGE_SOFT      (1 << 7)    /* Reserved for software */
 
-/* The permission bits apply to _PAGE_USER pages.  _PAGE_U[WX] additionally
-   apply to _PAGE_TYPE_USER_ONLY pages.  For _PAGE_TYPE_KERNEL_ONLY pages,
-   use _PAGE_UW instead of _PAGE_SW and _PAGE_UX instead of _PAGE_SX. */
+#define _PAGE_TYPE_TABLE    (0x00)  /* Page table */
+#define _PAGE_TYPE_USER_RO  (0x08)  /* User read-only, Kernel read-only */
+#define _PAGE_TYPE_USER_RW  (0x0A)  /* User read-write, Kernel read-write */
+#define _PAGE_TYPE_USER_RX  (0x04)  /* User read-execute, Kernel read-only */
+#define _PAGE_TYPE_USER_RWX (0x06)  /* User RWX, Kernel read-write */
+#define _PAGE_TYPE_KERN_RW  (0x1A)  /* Kernel read-write */
 
-#define _PAGE_SW        (1 << 0) /* Supervisor write */
-#define _PAGE_SX        (1 << 1) /* Supervisor execute */
-#define _PAGE_UW        (1 << 3) /* User write */
-#define _PAGE_UX        (1 << 4) /* User execute */
-
-#define _PAGE_G         (1 << 5) /* Global */
-#define _PAGE_ACCESSED  (1 << 6) /* Set by hardware on any access */
-#define _PAGE_DIRTY     (1 << 7) /* Set by hardware on any write */
-#define _PAGE_SOFT      (1 << 8) /* Reserved for software */
-
-#define _PAGE_PRESENT   _PAGE_TYPE
 #define _PAGE_SPECIAL   _PAGE_SOFT
-#define _PAGE_FILE      _PAGE_UW /* when !present: non-linear file mapping */
+#define _PAGE_FILE      _PAGE_WRITE /* when !present: non-linear file mapping */
+#define _PAGE_TABLE     (_PAGE_PRESENT | _PAGE_TYPE_TABLE)
 
-/* Values for _PAGE_TYPE field.  _PAGE_USER subsumes types 4-7. */
-#define _PAGE_TYPE_INVALID     0
-#define _PAGE_TYPE_TABLE       1
-#define _PAGE_TYPE_USER_ONLY   2
-#define _PAGE_TYPE_KERNEL_ONLY 3
+#define _PAGE_PFN_SHIFT 10
 
 /* Set of bits to preserve across pte_modify() */
-#define _PAGE_CHG_MASK  (~(_PAGE_TYPE | _PAGE_UW | _PAGE_UX))
+#define _PAGE_CHG_MASK  (~(_PAGE_PRESENT | _PAGE_TYPE))
 
 /* Advertise support for _PAGE_SPECIAL */
 #define __HAVE_ARCH_PTE_SPECIAL

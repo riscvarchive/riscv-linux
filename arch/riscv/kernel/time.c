@@ -5,6 +5,7 @@
 
 #include <asm/irq.h>
 #include <asm/csr.h>
+#include <asm/sbi.h>
 
 static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
@@ -74,10 +75,7 @@ static struct clocksource riscv_clocksource = {
 
 void __init time_init(void)
 {
-	u32 freq;
-	freq = 100000000UL;
-
-	csr_write(stime, 0);
+	u32 freq = sbi_timebase();
 
 	clocksource_register_hz(&riscv_clocksource, freq);
 	setup_irq(IRQ_TIMER, &timer_irq);

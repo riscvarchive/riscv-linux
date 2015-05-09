@@ -18,18 +18,30 @@ asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 
 static void riscv_irq_mask(struct irq_data *d)
 {
-	if (d->irq == IRQ_TIMER)
-		csr_clear(sstatus, SR_TIE);
-	else
-		BUG_ON(!arch_irqs_disabled());
+	switch (d->irq) {
+	case IRQ_TIMER: 
+		csr_clear(sie, SIE_STIE);
+		break;
+	case IRQ_SOFTWARE: 
+		csr_clear(sie, SIE_SSIE);
+		break;
+	default:
+		BUG();
+	}
 }
 
 static void riscv_irq_unmask(struct irq_data *d)
 {
-	if (d->irq == IRQ_TIMER)
-		csr_set(sstatus, SR_TIE);
-	else
-		BUG_ON(!arch_irqs_disabled());
+	switch (d->irq) {
+	case IRQ_TIMER: 
+		csr_set(sie, SIE_STIE);
+		break;
+	case IRQ_SOFTWARE: 
+		csr_set(sie, SIE_SSIE);
+		break;
+	default:
+		BUG();
+	}
 }
 
 struct irq_chip riscv_irq_chip = {

@@ -4,23 +4,25 @@
 #include <linux/const.h>
 
 /* Status register flags */
-#define SR_SIP  _AC(0x00000002,UL) /* Software Interrupt Pending */
-#define SR_IE   _AC(0x00000010,UL) /* Interrupt Enable */
-#define SR_PIE  _AC(0x00000080,UL) /* Previous IE */
-#define SR_PS   _AC(0x00000100,UL) /* Previously Supervisor */
-#define SR_UA   _AC(0x000F0000,UL) /* User-mode Architecture */
-#define SR_TIE  _AC(0x01000000,UL) /* Timer Interrupt Enable */
-#define SR_TIP  _AC(0x04000000,UL) /* Timer Interrupt Pending */
-#define SR_FS   _AC(0x18000000,UL) /* Floating-point Status */
-#define SR_XS   _AC(0x60000000,UL) /* Extension Status */
+#define SR_IE   _AC(0x00000001,UL) /* Interrupt Enable */
+#define SR_PIE  _AC(0x00000008,UL) /* Previous IE */
+#define SR_PS   _AC(0x00000010,UL) /* Previously Supervisor */
+#define SR_FS   _AC(0x00003000,UL) /* Floating-point Status */
+#define SR_XS   _AC(0x0000C000,UL) /* Extension Status */
+#define SR_MPRV _AC(0x00010000,UL) /* Memory Privilege */
 #ifndef __riscv64
 # define SR_SD  _AC(0x80000000,UL) /* FS/XS dirty */
 #else
 # define SR_SD  _AC(0x8000000000000000,UL) /* FS/XS dirty */
 #endif
 
+/* Interrupt Enable and Interrupt Pending flags */
+#define SIE_SSIE _AC(0x00000002,UL) /* Software Interrupt Enable */
+#define SIE_STIE _AC(0x00000200,UL) /* Timer Interrupt Enable */
+
 #define EXC_INST_MISALIGNED     0
 #define EXC_INST_ACCESS         1
+#define EXC_BREAKPOINT          3
 #define EXC_LOAD_ACCESS         5
 #define EXC_STORE_ACCESS        7
 #define EXC_SYSCALL             8
