@@ -12,8 +12,8 @@ Building the kernel image
 1. Fetch upstream sources and overlay the `riscv` architecture-specific
    subtree:
 
-        $ curl https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.29.tar.xz | tar -xJ
-        $ cd linux-3.14.29
+        $ curl -L https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.41.tar.xz | tar -xJ
+        $ cd linux-3.14.41
         $ git init
         $ git remote add origin https://github.com/riscv/riscv-linux.git
         $ git fetch
@@ -34,19 +34,23 @@ Building the kernel image
 1. Boot the kernel in the functional simulator, optionally specifying a
    raw disk image for the root filesystem:
 
-        $ spike +disk=path/to/root.img vmlinux
+        $ spike +disk=path/to/root.img bbl vmlinux
+
+   `bbl` (the Berkeley Boot Loader) is available from the
+   [riscv-pk](https://github.com/riscv/riscv-pk) repository.
 
 Exporting kernel headers
 --------------------------------------------------------------------------------
 
-The `riscv-gcc` repository includes a copy of the kernel header files.
+The `riscv-gnu-toolchain` repository includes a copy of the kernel header files.
 If the userspace API has changed, export the updated headers to the
-`riscv-gcc` source directory:
+`riscv-gnu-toolchain` source directory:
 
     $ make ARCH=riscv headers_check
-    $ make ARCH=riscv INSTALL_HDR_PATH=path/to/riscv-gcc/linux-headers headers_install
+    $ make ARCH=riscv INSTALL_HDR_PATH=path/to/riscv-gnu-toolchain/linux-headers headers_install
 
-Rebuild `riscv-gcc` with the `linux` target:
+Rebuild `riscv64-unknown-linux-gnu-gcc` with the `linux` target:
 
-    $ make INSTALL_DIR=path/to/install linux
+    $ cd path/to/riscv-gnu-toolchain
+    $ make linux
 
