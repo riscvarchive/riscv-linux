@@ -7,6 +7,7 @@
 #include <asm/thread_info.h>
 #include <asm/asm-offsets.h>
 
+	.text
 	.altmacro
 	.macro SAVE_ALL
 	LOCAL _restore_kernel_sp
