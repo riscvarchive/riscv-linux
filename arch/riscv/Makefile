@@ -39,7 +39,6 @@ KBUILD_CFLAGS += -mno-atomic
 endif
 
 KBUILD_CFLAGS += -Wall
-KBUILD_CFLAGS += -fno-section-anchors
 
 head-y := arch/riscv/kernel/head.o
 
