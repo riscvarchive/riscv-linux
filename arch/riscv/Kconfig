@@ -77,6 +77,10 @@ config CPU_SUPPORTS_32BIT_KERNEL
 config CPU_SUPPORTS_64BIT_KERNEL
 	bool
 
+config RVC
+	bool "Use compressed instructions (RV32C or RV64C)"
+	default n
+
 config RV_ATOMIC
 	bool "Use atomic memory instructions (RV32A or RV64A)"
 	default y

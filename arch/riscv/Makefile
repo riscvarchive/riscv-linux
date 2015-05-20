@@ -40,6 +40,11 @@ endif
 
 KBUILD_CFLAGS += -Wall
 
+ifeq ($(CONFIG_RVC),y)
+	KBUILD_CFLAGS += -Wa,-mrvc
+	KBUILD_AFLAGS += -Wa,-mrvc
+endif
+
 head-y := arch/riscv/kernel/head.o
 
 core-y += arch/riscv/kernel/ arch/riscv/mm/
