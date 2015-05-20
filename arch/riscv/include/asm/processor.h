@@ -74,6 +74,11 @@ static inline void cpu_relax(void)
 	barrier();
 }
 
+static inline void wait_for_interrupt(void)
+{
+	__asm__ __volatile__ ("wfi");
+}
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* _ASM_RISCV_PROCESSOR_H */

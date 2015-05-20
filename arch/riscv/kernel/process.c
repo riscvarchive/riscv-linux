@@ -11,16 +11,11 @@
 extern asmlinkage void ret_from_fork(void);
 extern asmlinkage void ret_from_kernel_thread(void);
 
-#if 0
-/*
- * Default to the generic definition until the RISC-V specification
- * incorporates architectural support an explicit sleep mode.
- */
 void arch_cpu_idle(void)
 {
+	wait_for_interrupt();
 	local_irq_enable();
 }
-#endif
 
 void show_regs(struct pt_regs *regs)
 {
