@@ -54,8 +54,12 @@ _save_context:
 	REG_S x30, PT_T5(sp)
 	REG_S x31, PT_T6(sp)
 
+	/* Disable FPU to detect illegal usage of
+	   floating point in kernel space */
+	li t0, SR_FS
+
 	csrr s0, sscratch
-	csrr s1, sstatus
+	csrrc s1, sstatus, t0
 	csrr s2, sepc
 	csrr s3, sbadaddr
 	csrr s4, scause
@@ -68,7 +72,7 @@ _save_context:
 
 	.macro RESTORE_ALL
 	REG_L a0, PT_SSTATUS(sp)
-	li a1, SR_PS | SR_PIE
+	li a1, (SR_FS | SR_PS | SR_PIE)
 	REG_L a2, PT_SEPC(sp)
 	csrc sstatus, a1
 	and a0, a0, a1
@@ -225,7 +229,7 @@ ENDPROC(ret_from_kernel_thread)
 
 
 /*
- * Register context switch
+ * Integer register context switch
  * The callee-saved registers must be saved and restored.
  * 
  *   a0: previous task_struct (must be preserved across the switch)
@@ -265,6 +269,88 @@ ENTRY(__switch_to)
 	mv tp, a1 /* Next current pointer */
 	ret
 ENDPROC(__switch_to)
+
+ENTRY(__fstate_save)
+	li t1, SR_FS
+	csrs sstatus, t1
+	frcsr t0
+	fsd f0,  THREAD_F0(a0)
+	fsd f1,  THREAD_F1(a0)
+	fsd f2,  THREAD_F2(a0)
+	fsd f3,  THREAD_F3(a0)
+	fsd f4,  THREAD_F4(a0)
+	fsd f5,  THREAD_F5(a0)
+	fsd f6,  THREAD_F6(a0)
+	fsd f7,  THREAD_F7(a0)
+	fsd f8,  THREAD_F8(a0)
+	fsd f9,  THREAD_F9(a0)
+	fsd f10, THREAD_F10(a0)
+	fsd f11, THREAD_F11(a0)
+	fsd f12, THREAD_F12(a0)
+	fsd f13, THREAD_F13(a0)
+	fsd f14, THREAD_F14(a0)
+	fsd f15, THREAD_F15(a0)
+	fsd f16, THREAD_F16(a0)
+	fsd f17, THREAD_F17(a0)
+	fsd f18, THREAD_F18(a0)
+	fsd f19, THREAD_F19(a0)
+	fsd f20, THREAD_F20(a0)
+	fsd f21, THREAD_F21(a0)
+	fsd f22, THREAD_F22(a0)
+	fsd f23, THREAD_F23(a0)
+	fsd f24, THREAD_F24(a0)
+	fsd f25, THREAD_F25(a0)
+	fsd f26, THREAD_F26(a0)
+	fsd f27, THREAD_F27(a0)
+	fsd f28, THREAD_F28(a0)
+	fsd f29, THREAD_F29(a0)
+	fsd f30, THREAD_F30(a0)
+	fsd f31, THREAD_F31(a0)
+	sw t0, THREAD_FCSR(a0)
+	csrc sstatus, t1
+	ret
+ENDPROC(__fstate_save)
+
+ENTRY(__fstate_restore)
+	li t1, SR_FS
+	lw t0, THREAD_FCSR(a0)
+	csrs sstatus, t1
+	fld f0,  THREAD_F0(a0)
+	fld f1,  THREAD_F1(a0)
+	fld f2,  THREAD_F2(a0)
+	fld f3,  THREAD_F3(a0)
+	fld f4,  THREAD_F4(a0)
+	fld f5,  THREAD_F5(a0)
+	fld f6,  THREAD_F6(a0)
+	fld f7,  THREAD_F7(a0)
+	fld f8,  THREAD_F8(a0)
+	fld f9,  THREAD_F9(a0)
+	fld f10, THREAD_F10(a0)
+	fld f11, THREAD_F11(a0)
+	fld f12, THREAD_F12(a0)
+	fld f13, THREAD_F13(a0)
+	fld f14, THREAD_F14(a0)
+	fld f15, THREAD_F15(a0)
+	fld f16, THREAD_F16(a0)
+	fld f17, THREAD_F17(a0)
+	fld f18, THREAD_F18(a0)
+	fld f19, THREAD_F19(a0)
+	fld f20, THREAD_F20(a0)
+	fld f21, THREAD_F21(a0)
+	fld f22, THREAD_F22(a0)
+	fld f23, THREAD_F23(a0)
+	fld f24, THREAD_F24(a0)
+	fld f25, THREAD_F25(a0)
+	fld f26, THREAD_F26(a0)
+	fld f27, THREAD_F27(a0)
+	fld f28, THREAD_F28(a0)
+	fld f29, THREAD_F29(a0)
+	fld f30, THREAD_F30(a0)
+	fld f31, THREAD_F31(a0)
+	fscsr t0
+	csrc sstatus, t1
+	ret
+ENDPROC(__fstate_restore)
 
 
 	.section ".rodata"

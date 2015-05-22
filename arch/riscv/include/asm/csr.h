@@ -7,13 +7,25 @@
 #define SR_IE   _AC(0x00000001,UL) /* Interrupt Enable */
 #define SR_PIE  _AC(0x00000008,UL) /* Previous IE */
 #define SR_PS   _AC(0x00000010,UL) /* Previously Supervisor */
-#define SR_FS   _AC(0x00003000,UL) /* Floating-point Status */
-#define SR_XS   _AC(0x0000C000,UL) /* Extension Status */
+
+#define SR_FS           _AC(0x00003000,UL) /* Floating-point Status */
+#define SR_FS_OFF       _AC(0x00000000,UL)
+#define SR_FS_INITIAL   _AC(0x00001000,UL)
+#define SR_FS_CLEAN     _AC(0x00002000,UL)
+#define SR_FS_DIRTY     _AC(0x00003000,UL)
+
+#define SR_XS           _AC(0x0000C000,UL) /* Extension Status */
+#define SR_XS_OFF       _AC(0x00000000,UL)
+#define SR_XS_INITIAL   _AC(0x00004000,UL)
+#define SR_XS_CLEAN     _AC(0x00008000,UL)
+#define SR_XS_DIRTY     _AC(0x0000C000,UL)
+
 #define SR_MPRV _AC(0x00010000,UL) /* Memory Privilege */
-#ifndef __riscv64
-# define SR_SD  _AC(0x80000000,UL) /* FS/XS dirty */
+
+#ifndef CONFIG_64BIT
+#define SR_SD   _AC(0x80000000,UL) /* FS/XS dirty */
 #else
-# define SR_SD  _AC(0x8000000000000000,UL) /* FS/XS dirty */
+#define SR_SD   _AC(0x8000000000000000,UL) /* FS/XS dirty */
 #endif
 
 /* Interrupt Enable and Interrupt Pending flags */

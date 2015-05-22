@@ -1,6 +1,8 @@
-#include <asm/thread_info.h>
 #include <linux/init.h>
 #include <linux/linkage.h>
+#include <asm/thread_info.h>
+#include <asm/page.h>
+#include <asm/csr.h>
 
 __INIT
 ENTRY(_start)
@@ -18,6 +20,11 @@ ENTRY(_start)
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current task_struct pointer */
 	la tp, init_task
+
+	/* Disable FPU to detect illegal usage of
+	   floating point in kernel space */
+	li t0, SR_FS
+	csrc sstatus, t0
 
 	tail start_kernel
 END(_start)

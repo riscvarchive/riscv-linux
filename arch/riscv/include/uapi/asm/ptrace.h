@@ -3,6 +3,8 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/types.h>
+
 /* User-mode register state for core dumps, ptrace, sigcontext
  *
  * This decouples struct pt_regs from the userspace ABI.
@@ -41,6 +43,11 @@ struct user_regs_struct {
 	unsigned long t4;
 	unsigned long t5;
 	unsigned long t6;
+};
+
+struct user_fpregs_struct {
+	__u64 f[32];
+	__u32 fcsr;
 };
 
 #endif /* __ASSEMBLY__ */

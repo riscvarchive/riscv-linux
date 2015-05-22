@@ -8,9 +8,7 @@ typedef unsigned long elf_greg_t;
 typedef struct user_regs_struct elf_gregset_t;
 #define ELF_NGREG (sizeof(elf_gregset_t) / sizeof(elf_greg_t))
 
-#define ELF_NFPREG	0
-typedef double elf_fpreg_t;
-typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
+typedef struct user_fpregs_struct elf_fpregset_t;
 
 
 /*

@@ -6,6 +6,7 @@
 
 #include <asm/ucontext.h>
 #include <asm/vdso.h>
+#include <asm/switch_to.h>
 #include <asm/csr.h>
 
 #define DEBUG_SIG 0
@@ -18,9 +19,14 @@ struct rt_sigframe {
 static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
+	struct task_struct *task = current;
 	long err;
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_from_user(regs, &sc->sc_regs, sizeof(sc->sc_regs));
+	err |= __copy_from_user(&task->thread.fstate, &sc->sc_fpregs,
+		sizeof(sc->sc_fpregs));
+	if (likely(!err))
+		fstate_restore(task, regs);
 	return err;
 }
 
@@ -67,9 +73,13 @@ badframe:
 static long setup_sigcontext(struct sigcontext __user *sc,
 	struct pt_regs *regs)
 {
+	struct task_struct *task = current;
 	long err;
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_to_user(&sc->sc_regs, regs, sizeof(sc->sc_regs));
+	fstate_save(task, regs);
+	err |= __copy_to_user(&sc->sc_fpregs, &task->thread.fstate,
+		sizeof(sc->sc_fpregs));
 	return err;
 }
 

@@ -4,9 +4,11 @@
 #include <linux/ptrace.h>
 
 #include <asm/unistd.h>
+#include <asm/uaccess.h>
 #include <asm/processor.h>
 #include <asm/csr.h>
 #include <asm/string.h>
+#include <asm/switch_to.h>
 
 extern asmlinkage void ret_from_fork(void);
 extern asmlinkage void ret_from_kernel_thread(void);
@@ -52,13 +54,28 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	unsigned long sp)
 {
 	/* Remove supervisor privileges */
-	regs->sstatus &= ~(SR_PS);
+	regs->sstatus &= ~(SR_FS | SR_PS);
+	regs->sstatus |= SR_FS_INITIAL;
 	regs->sepc = pc;
 	regs->sp = sp;
+	set_fs(USER_DS);
 }
 
 void flush_thread(void)
 {
+	/* Reset FPU context
+	 *	frm: round to nearest, ties to even (IEEE default)
+	 *	fflags: accrued exceptions cleared
+	 */
+	memset(&current->thread.fstate, 0,
+		sizeof(struct user_fpregs_struct));
+}
+
+int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
+{
+	fstate_save(src, task_pt_regs(src));
+	*dst = *src;
+	return 0;
 }
 
 int copy_thread(unsigned long clone_flags, unsigned long usp,

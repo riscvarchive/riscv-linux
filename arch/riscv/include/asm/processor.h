@@ -3,6 +3,8 @@
 
 #include <linux/const.h>
 
+#include <asm/ptrace.h>
+
 /*
  * This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
@@ -31,6 +33,7 @@ struct thread_struct {
 	unsigned long ra;
 	unsigned long sp;	/* Kernel mode stack */
 	unsigned long s[12];	/* s[0]: frame pointer */
+	struct user_fpregs_struct fstate;
 };
 
 #define INIT_THREAD {					\
