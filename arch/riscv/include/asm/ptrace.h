@@ -6,7 +6,7 @@
 #ifndef __ASSEMBLY__
 
 typedef struct pt_regs {
-	unsigned long epc;
+	unsigned long sepc;
 	unsigned long ra;
 	unsigned long sp;
 	unsigned long gp;
@@ -38,10 +38,10 @@ typedef struct pt_regs {
 	unsigned long t4;
 	unsigned long t5;
 	unsigned long t6;
-	/* PCRs */
-	unsigned long status;
-	unsigned long badvaddr;
-	unsigned long cause;
+	/* Supervisor CSRs */
+	unsigned long sstatus;
+	unsigned long sbadaddr;
+	unsigned long scause;
 } pt_regs;
 
 #ifdef CONFIG_64BIT
@@ -50,11 +50,11 @@ typedef struct pt_regs {
 #define REG_FMT "%08lx"
 #endif
 
-#define user_mode(regs) (((regs)->status & SR_PS) == 0)
+#define user_mode(regs) (((regs)->sstatus & SR_PS) == 0)
 
 
 /* Helpers for working with the instruction pointer */
-#define GET_IP(regs) ((regs)->epc)
+#define GET_IP(regs) ((regs)->sepc)
 #define SET_IP(regs, val) (GET_IP(regs) = (val))
 
 static inline unsigned long instruction_pointer(struct pt_regs *regs)

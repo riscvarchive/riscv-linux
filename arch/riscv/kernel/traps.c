@@ -32,7 +32,7 @@ void die(struct pt_regs *regs, const char *str)
 	print_modules();
 	show_regs(regs);
 
-	ret = notify_die(DIE_OOPS, str, regs, 0, regs->cause, SIGSEGV);
+	ret = notify_die(DIE_OOPS, str, regs, 0, regs->scause, SIGSEGV);
 
 	bust_spinlocks(0);
 	add_taint(TAINT_DIE, LOCKDEP_NOW_UNRELIABLE);
@@ -85,21 +85,18 @@ static void do_trap_error(struct pt_regs *regs, int signo, int code,
 	}
 }
 
-#define DO_ERROR_INFO(name, signo, code, addr, str)			\
+#define DO_ERROR_INFO(name, signo, code, str)				\
 asmlinkage void name(struct pt_regs *regs)				\
 {									\
-	do_trap_error(regs, signo, code, addr(regs), "Oops - " str);	\
+	do_trap_error(regs, signo, code, regs->sepc, "Oops - " str);	\
 }
 
-#define GET_EPC(regs)		((regs)->epc)
-#define GET_BADVADDR(regs)	((regs)->badvaddr)
-
 DO_ERROR_INFO(do_trap_unknown,
-	SIGILL, ILL_ILLTRP, GET_EPC, "unknown exception");
+	SIGILL, ILL_ILLTRP, "unknown exception");
 DO_ERROR_INFO(do_trap_insn_misaligned,
-	SIGBUS, BUS_ADRALN, GET_EPC, "instruction address misaligned");
+	SIGBUS, BUS_ADRALN, "instruction address misaligned");
 DO_ERROR_INFO(do_trap_insn_illegal,
-	SIGILL, ILL_ILLOPC, GET_EPC, "illegal instruction");
+	SIGILL, ILL_ILLOPC, "illegal instruction");
 
 asmlinkage void do_trap_break(struct pt_regs *regs)
 {
@@ -107,12 +104,12 @@ asmlinkage void do_trap_break(struct pt_regs *regs)
 	if (!user_mode(regs)) {
 		enum bug_trap_type type;
 
-		type = report_bug(regs->epc, regs);
+		type = report_bug(regs->sepc, regs);
 		switch (type) {
 		case BUG_TRAP_TYPE_NONE:
 			break;
 		case BUG_TRAP_TYPE_WARN:
-			regs->epc += sizeof(bug_insn_t);
+			regs->sepc += sizeof(bug_insn_t);
 			return;
 		case BUG_TRAP_TYPE_BUG:
 			die(regs, "Kernel BUG");
@@ -120,8 +117,8 @@ asmlinkage void do_trap_break(struct pt_regs *regs)
 	}
 #endif /* CONFIG_GENERIC_BUG */
 
-	do_trap_siginfo(SIGTRAP, TRAP_BRKPT, regs->epc, current);
-	regs->epc += 0x4;
+	do_trap_siginfo(SIGTRAP, TRAP_BRKPT, regs->sepc, current);
+	regs->sepc += 0x4;
 }
 
 #ifdef CONFIG_GENERIC_BUG

@@ -56,7 +56,7 @@ badframe:
 		pr_info_ratelimited("%s[%d]: bad frame in %s: "
 			"frame=%p pc=%p sp=%p\n",
 			task->comm, task_pid_nr(task), __func__,
-			frame, (void *)regs->epc, (void *)regs->sp);
+			frame, (void *)regs->sepc, (void *)regs->sp);
 	}
 	force_sig(SIGSEGV, task);
 	return 0;
@@ -125,7 +125,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	 * We always pass siginfo and mcontext, regardless of SA_SIGINFO,
 	 * since some things rely on this (e.g. glibc's debug/segfault.c).
 	 */
-	regs->epc = (unsigned long)ksig->ka.sa.sa_handler;
+	regs->sepc = (unsigned long)ksig->ka.sa.sa_handler;
 	regs->sp = (unsigned long)frame;
 	regs->a0 = ksig->sig;                     /* a0: signal number */
 	regs->a1 = (unsigned long)(&frame->info); /* a1: siginfo pointer */
@@ -134,7 +134,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 #if DEBUG_SIG
 	pr_info("SIG deliver (%s:%d): sig=%d pc=%p ra=%p sp=%p\n",
 		current->comm, task_pid_nr(current), ksig->sig,
-		(void *)regs->epc, (void *)regs->ra, frame);
+		(void *)regs->sepc, (void *)regs->ra, frame);
 #endif
 
 	return 0;
@@ -146,7 +146,7 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 	int ret;
 
 	/* Are we from a system call? */
-	if (regs->cause == EXC_SYSCALL) {
+	if (regs->scause == EXC_SYSCALL) {
 		/* If so, check system call restarting.. */
 		switch (regs->a0) {
 		case -ERESTART_RESTARTBLOCK:
@@ -161,7 +161,7 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 			}
 			/* fallthrough */
 		case -ERESTARTNOINTR:
-			regs->epc -= 0x4;
+			regs->sepc -= 0x4;
 			break;
 		}
 	}
@@ -183,17 +183,17 @@ static void do_signal(struct pt_regs *regs)
 	}
 
 	/* Did we come from a system call? */
-	if (regs->cause == EXC_SYSCALL) {
+	if (regs->scause == EXC_SYSCALL) {
 		/* Restart the system call - no handlers present */
 		switch (regs->a0) {
 		case -ERESTARTNOHAND:
 		case -ERESTARTSYS:
 		case -ERESTARTNOINTR:
-			regs->epc -= 0x4;
+			regs->sepc -= 0x4;
 			break;
 		case -ERESTART_RESTARTBLOCK:
 			regs->a7 = __NR_restart_syscall;
-			regs->epc -= 0x4;
+			regs->sepc -= 0x4;
 			break;
 		}
 	}

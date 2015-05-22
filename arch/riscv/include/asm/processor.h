@@ -45,7 +45,7 @@ struct thread_struct {
 #define task_pt_regs(tsk) \
 	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE) - 1)
 
-#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->epc)
+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->sepc)
 #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)
 
 

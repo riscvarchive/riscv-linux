@@ -60,16 +60,16 @@ _save_context:
 	csrr s3, sbadaddr
 	csrr s4, scause
 	REG_S s0, PT_SP(sp)
-	REG_S s1, PT_STATUS(sp)
-	REG_S s2, PT_EPC(sp)
-	REG_S s3, PT_BADVADDR(sp)
-	REG_S s4, PT_CAUSE(sp)
+	REG_S s1, PT_SSTATUS(sp)
+	REG_S s2, PT_SEPC(sp)
+	REG_S s3, PT_SBADADDR(sp)
+	REG_S s4, PT_SCAUSE(sp)
 	.endm
 
 	.macro RESTORE_ALL
-	REG_L a0, PT_STATUS(sp)
+	REG_L a0, PT_SSTATUS(sp)
 	li a1, SR_PS | SR_PIE
-	REG_L a2, PT_EPC(sp)
+	REG_L a2, PT_SEPC(sp)
 	csrc sstatus, a1
 	and a0, a0, a1
 	csrw sepc, a2
@@ -154,10 +154,10 @@ ENTRY(handle_exception)
 	tail do_trap_unknown
 
 handle_syscall:
-	/* Advance EPC to avoid executing the original
+	/* Advance SEPC to avoid executing the original
 	   scall instruction on sret */
 	addi s2, s2, 0x4
-	REG_S s2, PT_EPC(sp)
+	REG_S s2, PT_SEPC(sp)
 	/* System calls run with interrupts enabled */
 	csrs sstatus, SR_IE
 	li t0, __NR_syscalls
@@ -176,7 +176,7 @@ ret_from_syscall:
 	REG_S a0, PT_A0(sp)
 
 ret_from_exception:
-	REG_L s0, PT_STATUS(sp)
+	REG_L s0, PT_SSTATUS(sp)
 	csrc sstatus, SR_IE
 	andi s0, s0, SR_PS
 	bnez s0, restore_all

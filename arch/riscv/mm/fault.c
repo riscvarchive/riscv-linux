@@ -21,8 +21,8 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
 	int fault, code = SEGV_MAPERR;
 
-	cause = regs->cause;
-	addr = regs->badvaddr;
+	cause = regs->scause;
+	addr = regs->sbadaddr;
 
 	tsk = current;
 	mm = tsk->mm;
@@ -40,7 +40,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 		goto vmalloc_fault;
 
 	/* Enable interrupts if they were enabled in the parent context. */
-	if (likely(regs->status & SR_PIE))
+	if (likely(regs->sstatus & SR_PIE))
 		local_irq_enable();
 
 	/*
