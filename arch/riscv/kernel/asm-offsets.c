@@ -20,6 +20,7 @@ void asm_offsets(void)
 	OFFSET(THREAD_S10, task_struct, thread.s[10]);
 	OFFSET(THREAD_S11, task_struct, thread.s[11]);
 	OFFSET(THREAD_SP, task_struct, thread.sp);
+	OFFSET(TI_TASK, thread_info, task);
 	OFFSET(TI_FLAGS, thread_info, flags);
 
 	DEFINE(PT_SIZE, sizeof(struct pt_regs));

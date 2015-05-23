@@ -119,37 +119,35 @@ ENTRY(handle_exception)
 	/* Compute address of current thread_info */
 	li tp, ~(THREAD_SIZE-1)
 	and tp, tp, sp
-	/* Set the current thread pointer */
-	REG_L tp, 0(tp)
+	/* Set current pointer */
+	REG_L tp, TI_TASK(tp)
 
-	csrr s0, scause
 	la gp, _gp
 	la ra, ret_from_exception
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
-	bge s0, zero, 1f
+	bge s4, zero, 1f
 
 	/* Handle interrupts */
-	slli a0, s0, 1
+	slli a0, s4, 1
 	srli a0, a0, 1
-	move a1, sp
+	move a1, sp /* pt_regs */
 	tail do_IRQ
 1:
 	/* Handle syscalls */
-	li s1, EXC_SYSCALL
-	beq s0, s1, handle_syscall
+	li t0, EXC_SYSCALL
+	beq s4, t0, handle_syscall
 
 	/* Handle other exceptions */
-	move  a0, sp /* pt_regs */
-1:
-	la s1, excp_vect_table
-	la s2, excp_vect_table_end
-	slli s0, s0, LGPTR
-	add s1, s1, s0
+	slli t0, s4, LGPTR
+	la t1, excp_vect_table
+	la t2, excp_vect_table_end
+	move a0, sp /* pt_regs */
+	add t0, t1, t0
 	/* Check if exception code lies within bounds */
-	bgeu s1, s2, 1f
-	REG_L s1, 0(s1)
-	jr s1
+	bgeu t0, t2, 1f
+	REG_L t0, 0(t0)
+	jr t0
 1:
 	tail do_trap_unknown
 
