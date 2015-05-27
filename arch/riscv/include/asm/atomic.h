@@ -205,11 +205,7 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 	"0:"
 		"lr.w %0, %2\n"
 		"beq  %0, %4, 1f\n"
-#ifdef CONFIG_64BIT
-		"addw %1, %0, %3\n"
-#else
 		"add  %1, %0, %3\n"
-#endif /* CONFIG_64BIT */
 		"sc.w %1, %1, %2\n"
 		"bnez %1, 0b\n"
 	"1:"
