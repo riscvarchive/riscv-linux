@@ -79,13 +79,11 @@ static void htifblk_request(struct request_queue *q)
 {
 	struct htifblk_device *dev;
 	struct request *req;
-	unsigned long flags;
 	int ret;
 
 	dev = q->queuedata;
-	spin_lock_irqsave(q->queue_lock, flags);
 	if (dev->req != NULL)
-		goto out;
+		return;
 
 	while ((req = blk_fetch_request(q)) != NULL) {
 		if (req->cmd_type == REQ_TYPE_FS) {
@@ -103,8 +101,6 @@ static void htifblk_request(struct request_queue *q)
 			continue;
 		}
 	}
-out:
-	spin_unlock_irqrestore(q->queue_lock, flags);
 }
 
 static irqreturn_t htifblk_isr(struct htif_device *dev, sbi_device_message *msg)
