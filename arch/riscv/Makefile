@@ -41,7 +41,7 @@ endif
 KBUILD_CFLAGS += -Wall
 
 ifeq ($(CONFIG_RVC),y)
-	KBUILD_CFLAGS += -Wa,-mrvc
+	KBUILD_CFLAGS += -mrvc
 	KBUILD_AFLAGS += -Wa,-mrvc
 endif
 
