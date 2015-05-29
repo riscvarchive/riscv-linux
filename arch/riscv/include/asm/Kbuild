@@ -23,7 +23,6 @@ generic-y += irq_regs.h
 generic-y += kdebug.h
 generic-y += kmap_types.h
 generic-y += kvm_para.h
-generic-y += linkage.h
 generic-y += local.h
 generic-y += mman.h
 generic-y += module.h
