@@ -5,23 +5,29 @@
 
 static void *c_start(struct seq_file *m, loff_t *pos)
 {
-	return *pos < 1 ? (void *)1 : NULL;
+	*pos = cpumask_next(*pos - 1, cpu_online_mask);
+	if ((*pos) < nr_cpu_ids)
+		return (void *)(1 + *pos);
+	return NULL;
 }
 
 static void *c_next(struct seq_file *m, void *v, loff_t *pos)
 {
-	++*pos;
-	return NULL;
+	(*pos)++;
+	return c_start(m, pos);
 }
 
 static void c_stop(struct seq_file *m, void *v)
 {
-
 }
 
 static int c_show(struct seq_file *m, void *v)
 {
-	seq_printf(m, "CPU info: PUNT!\n");
+	unsigned long hart_id = (unsigned long)v - 1;
+
+	seq_printf(m, "hart\t: %lu\n", hart_id);
+	seq_printf(m, "isa\t: RV%luG\n", sizeof(void *) * 8);
+	seq_printf(m, "\n");
 	return 0;
 }
 
