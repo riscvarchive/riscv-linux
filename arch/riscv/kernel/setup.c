@@ -7,6 +7,7 @@
 #include <asm/setup.h>
 #include <asm/sections.h>
 #include <asm/pgtable.h>
+#include <asm/smp.h>
 #include <asm/sbi.h>
 
 static char __initdata command_line[COMMAND_LINE_SIZE];
@@ -107,5 +108,8 @@ void __init setup_arch(char **cmdline_p)
 	init_mm.brk        = (unsigned long) _end;
 
 	setup_bootmem();
+#ifdef CONFIG_SMP
+	setup_smp();
+#endif
 	paging_init();
 }

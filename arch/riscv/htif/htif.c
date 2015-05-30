@@ -56,9 +56,6 @@ static irqreturn_t htif_isr(int irq, void *dev_id)
 	irqreturn_t ret = IRQ_NONE;
 	uintptr_t message_paddr;
 
-	/* Clear the interrupt. */
-	csr_clear(sip, SIE_SSIE);
-
 	while ((message_paddr = sbi_receive_device_response()) != 0) {
 		sbi_device_message *message;
 		struct htif_desc *desc;
@@ -130,7 +127,6 @@ static int __init htif_init(void)
 		response = htif_fromhost();
 		WARN_ON(&request != response);
 
-		csr_clear(sip, SIE_SSIE);
 		arch_local_irq_restore(flags);
 
 		len = strnlen(id, sizeof(id));

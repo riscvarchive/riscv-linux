@@ -138,6 +138,8 @@ void __init trap_init(void)
 {
 	/* Clear the IPI exception that started the processor */
 	csr_clear(sip, SIE_SSIE);
+	/* Enable software interrupts */
+	csr_set(sie, SIE_SSIE);
 	/* Set sup0 scratch register to 0, indicating to exception vector
 	   that we are presently executing in the kernel */
 	csr_write(sscratch, 0);

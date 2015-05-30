@@ -13,6 +13,7 @@ config RISCV
 	select GENERIC_IRQ_SHOW
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
+	select GENERIC_SMP_IDLE_THREAD
 	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
 	select HAVE_MEMBLOCK
 	select HAVE_MEMBLOCK_NODE_MAP
@@ -51,11 +52,24 @@ config GENERIC_HWEIGHT
 
 menu "Platform type"
 
+config SMP
+	bool "Symmetric Multi-Processing"
+	help
+	  This enables support for systems with more than one CPU.  If
+	  you say N here, the kernel will run on single and
+	  multiprocessor machines, but will use only one CPU of a
+	  multiprocessor machine. If you say Y here, the kernel will run
+	  on many, but not all, single processor machines. On a single
+	  processor machine, the kernel will run faster if you say N
+	  here.
+
+	  If you don't know what to do here, say N.
+
 config NR_CPUS
-	int "Number of cores"
-	range 1 1024
-	default "1"
+	int "Maximum number of CPUs (2-32)"
+	range 2 32
 	depends on SMP
+	default "8"
 
 choice
 	prompt "CPU selection"
