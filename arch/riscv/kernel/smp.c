@@ -3,6 +3,7 @@
 
 #include <asm/sbi.h>
 #include <asm/tlbflush.h>
+#include <asm/cacheflush.h>
 
 /* A collection of single bit ipi messages.  */
 static struct {
@@ -80,9 +81,14 @@ void smp_send_reschedule(int cpu)
 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
 }
 
-void flush_icache_range(unsigned long start, unsigned long end)
+static void ipi_flush_icache_all(void *unused)
 {
-	panic("TODO flush_icache_range");
+	local_flush_icache_all();
+}
+
+void flush_icache_range(uintptr_t start, uintptr_t end)
+{
+	on_each_cpu(ipi_flush_icache_all, NULL, 1);
 }
 
 static void ipi_flush_tlb_all(void *unused)
