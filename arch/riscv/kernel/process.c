@@ -53,9 +53,7 @@ void show_regs(struct pt_regs *regs)
 void start_thread(struct pt_regs *regs, unsigned long pc, 
 	unsigned long sp)
 {
-	/* Remove supervisor privileges */
-	regs->sstatus &= ~(SR_FS | SR_PS);
-	regs->sstatus |= SR_FS_INITIAL;
+	regs->sstatus = SR_PIE /* User mode, irqs on */ | SR_FS_INITIAL;
 	regs->sepc = pc;
 	regs->sp = sp;
 	set_fs(USER_DS);
@@ -89,7 +87,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 		const register unsigned long gp __asm__ ("gp");
 		memset(childregs, 0, sizeof(struct pt_regs));
 		childregs->gp = gp;
-		childregs->sstatus = SR_PS;
+		childregs->sstatus = SR_PS | SR_PIE; /* Supervisor, irqs on */
 
 		p->thread.ra = (unsigned long)ret_from_kernel_thread;
 		p->thread.s[0] = usp; /* fn */

@@ -72,12 +72,9 @@ _save_context:
 
 	.macro RESTORE_ALL
 	REG_L a0, PT_SSTATUS(sp)
-	li a1, (SR_FS | SR_PS | SR_PIE)
 	REG_L a2, PT_SEPC(sp)
-	csrc sstatus, a1
-	and a0, a0, a1
+	csrw sstatus, a0
 	csrw sepc, a2
-	csrs sstatus, a0
 
 	REG_L x1,  PT_RA(sp)
 	REG_L x3,  PT_GP(sp)
