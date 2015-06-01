@@ -47,15 +47,15 @@ static struct irqaction timer_irq = {
 };
 
 
-static cycle_t riscv_rdcycle(struct clocksource *cs)
+static cycle_t riscv_rdtime(struct clocksource *cs)
 {
-	return csr_read(cycle);
+	return csr_read(stime);
 }
 
 static struct clocksource riscv_clocksource = {
 	.name = "riscv_clocksource",
 	.rating = 300,
-	.read = riscv_rdcycle,
+	.read = riscv_rdtime,
 #ifdef CONFIG_64BITS
 	.mask = CLOCKSOURCE_MASK(64),
 #else
