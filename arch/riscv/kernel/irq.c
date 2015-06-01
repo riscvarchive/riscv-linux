@@ -4,6 +4,7 @@
 
 #include <asm/ptrace.h>
 #include <asm/sbi.h>
+#include <asm/smp.h>
 
 asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
