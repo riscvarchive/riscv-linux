@@ -7,11 +7,21 @@
 #include <linux/bug.h>
 #include <asm/csr.h>
 
-/* Flush all TLB entries */
-static inline void flush_tlb_all(void)
+/* Flush entire local TLB */
+static inline void local_flush_tlb_all(void)
 {
 	__asm__ __volatile__ ("sfence.vm");
 }
+
+#ifndef CONFIG_SMP
+
+#define flush_tlb_all() local_flush_tlb_all()
+
+#else /* CONFIG_SMP */
+
+void flush_tlb_all(void);
+
+#endif /* CONFIG_SMP */
 
 /* Flush the TLB entries of the specified mm context */
 static inline void flush_tlb_mm(struct mm_struct *mm)

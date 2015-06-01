@@ -1,6 +1,8 @@
 #include <linux/smp.h>
 #include <linux/sched.h>
+
 #include <asm/sbi.h>
+#include <asm/tlbflush.h>
 
 /* A collection of single bit ipi messages.  */
 static struct {
@@ -60,12 +62,12 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
 
 void arch_send_call_function_ipi_mask(struct cpumask *mask)
 {
-	panic("TODO arch_send_call_function_ipi_mask");
+	send_ipi_message(mask, IPI_CALL_FUNC);
 }
 
 void arch_send_call_function_single_ipi(int cpu)
 {
-	panic("TODO arch_send_call_function_single_ipi");
+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
 }
 
 void smp_send_stop(void)
@@ -81,4 +83,14 @@ void smp_send_reschedule(int cpu)
 void flush_icache_range(unsigned long start, unsigned long end)
 {
 	panic("TODO flush_icache_range");
+}
+
+static void ipi_flush_tlb_all(void *unused)
+{
+	local_flush_tlb_all();
+}
+
+void flush_tlb_all(void)
+{
+	on_each_cpu(ipi_flush_tlb_all, NULL, 1);
 }

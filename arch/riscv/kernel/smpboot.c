@@ -66,7 +66,7 @@ asmlinkage void __init smp_callin(void)
 	init_clockevent();
 	notify_cpu_starting(smp_processor_id());
 	set_cpu_online(smp_processor_id(), 1);
-	flush_tlb_all();
+	local_flush_tlb_all();
 	local_irq_enable();
 	preempt_disable();
 	cpu_startup_entry(CPUHP_ONLINE);

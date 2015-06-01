@@ -28,7 +28,7 @@ static inline void switch_mm(struct mm_struct *prev,
 {
 	if (likely(prev != next)) {
 		csr_write(sptbr, __pa(next->pgd));
-		flush_tlb_all();
+		local_flush_tlb_all();
 	}
 }
 
