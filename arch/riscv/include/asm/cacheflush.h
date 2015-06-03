@@ -13,7 +13,7 @@ static inline void local_flush_icache_all(void)
 
 #ifndef CONFIG_SMP
 
-#define flush_icache_range local_flush_icache_all()
+#define flush_icache_range(start, end) local_flush_icache_all()
 #define flush_icache_user_range(vma, pg, addr, len) local_flush_icache_all()
 
 #else /* CONFIG_SMP */
