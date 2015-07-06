@@ -71,9 +71,15 @@ void arch_send_call_function_single_ipi(int cpu)
 	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
 }
 
+static void ipi_stop(void *unused)
+{
+	while (1)
+		wait_for_interrupt();
+}
+
 void smp_send_stop(void)
 {
-	panic("TODO smp_send_stop");
+	on_each_cpu(ipi_stop, NULL, 1);
 }
 
 void smp_send_reschedule(int cpu)
