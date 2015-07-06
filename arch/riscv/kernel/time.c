@@ -12,14 +12,8 @@ static DEFINE_PER_CPU(struct clock_event_device, clock_event);
 static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
-	unsigned long new_timecmp;
-
-	/* Set comparator */
-	new_timecmp = csr_read(stime) + delta;
-	csr_write(stimecmp, new_timecmp);
-
-	/* Timer overflowed if high bit of subtraction is clear */
-	return (int32_t)(csr_read(stime) - new_timecmp) >= 0 ? -ETIME : 0;
+	sbi_set_timer(csr_read(stime) + delta);
+	return 0;
 }
 
 static void riscv_timer_set_mode(enum clock_event_mode mode,
@@ -37,7 +31,7 @@ static void riscv_timer_set_mode(enum clock_event_mode mode,
 	}
 }
 
-irqreturn_t timer_interrupt(int irq, void *dev_id)
+static irqreturn_t timer_interrupt(int irq, void *dev_id)
 {
 	int cpu = smp_processor_id();
 	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
