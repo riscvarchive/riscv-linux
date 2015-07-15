@@ -46,6 +46,8 @@ ifeq ($(CONFIG_RVC),y)
 	KBUILD_AFLAGS += -Wa,-mrvc
 endif
 
+KBUILD_CFLAGS += -mno-save-restore
+
 head-y := arch/riscv/kernel/head.o
 
 core-y += arch/riscv/kernel/ arch/riscv/mm/
