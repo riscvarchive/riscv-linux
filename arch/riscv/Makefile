@@ -38,6 +38,8 @@ ifeq ($(CONFIG_RV_ATOMIC),)
 KBUILD_CFLAGS += -mno-atomic
 endif
 
+KBUILD_DEFCONFIG := rv64_defconfig
+
 KBUILD_CFLAGS += -Wall
 KBUILD_CFLAGS += -msoft-float
 
