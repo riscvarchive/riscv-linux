@@ -21,6 +21,12 @@ LDFLAGS         :=
 OBJCOPYFLAGS    := -O binary
 LDFLAGS_vmlinux :=
 
+ifeq ($(ARCH),riscv)
+	KBUILD_DEFCONFIG = riscv64_spike
+else
+	KBUILD_DEFCONFIG = $(ARCH)_spike
+endif
+
 export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
