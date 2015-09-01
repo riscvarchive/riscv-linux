@@ -160,16 +160,11 @@ handle_syscall:
 	/* System calls run with interrupts enabled */
 	csrs sstatus, SR_IE
 	/* Trace syscalls, but only if requested by the user. */
-	move a0, sp
-	call do_syscall_trace_enter
-	REG_L a0, PT_A0(sp)
-	REG_L a1, PT_A1(sp)
-	REG_L a2, PT_A2(sp)
-	REG_L a3, PT_A3(sp)
-	REG_L a4, PT_A4(sp)
-	REG_L a5, PT_A5(sp)
-	REG_L a6, PT_A6(sp)
-	REG_L a7, PT_A7(sp)
+	REG_L t0, TASK_THREAD_INFO(tp)
+	REG_L t0, TI_FLAGS(t0)
+	andi t0, t0, _TIF_SYSCALL_TRACE
+	bnez t0, handle_syscall_trace_enter
+check_syscall_nr:
 	/* Check to make sure we don't jump to a bogus syscall number. */
 	li t0, __NR_syscalls
 	la s0, sys_ni_syscall
@@ -182,13 +177,14 @@ handle_syscall:
 1:
 	jalr s0
 
-
 ret_from_syscall:
 	/* Set user a0 to kernel a0 */
 	REG_S a0, PT_A0(sp)
 	/* Trace syscalls, but only if requested by the user. */
-	move a0, sp
-	call do_syscall_trace_exit
+	REG_L t0, TASK_THREAD_INFO(tp)
+	REG_L t0, TI_FLAGS(t0)
+	andi t0, t0, _TIF_SYSCALL_TRACE
+	bnez t0, handle_syscall_trace_exit
 
 ret_from_exception:
 	REG_L s0, PT_SSTATUS(sp)
@@ -224,8 +220,25 @@ work_notifysig:
 work_resched:
 	tail schedule
 
-END(handle_exception)
+/* Slow paths for ptrace. */
+handle_syscall_trace_enter:
+	move a0, sp
+	call do_syscall_trace_enter
+	REG_L a0, PT_A0(sp)
+	REG_L a1, PT_A1(sp)
+	REG_L a2, PT_A2(sp)
+	REG_L a3, PT_A3(sp)
+	REG_L a4, PT_A4(sp)
+	REG_L a5, PT_A5(sp)
+	REG_L a6, PT_A6(sp)
+	REG_L a7, PT_A7(sp)
+	j check_syscall_nr
+handle_syscall_trace_exit:
+	move a0, sp
+	call do_syscall_trace_exit
+	j ret_from_exception
 
+END(handle_exception)
 
 ENTRY(ret_from_fork)
 	la ra, ret_from_exception
