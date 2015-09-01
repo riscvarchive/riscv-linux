@@ -159,6 +159,18 @@ handle_syscall:
 	REG_S s2, PT_SEPC(sp)
 	/* System calls run with interrupts enabled */
 	csrs sstatus, SR_IE
+	/* Trace syscalls, but only if requested by the user. */
+	move a0, sp
+	call do_syscall_trace_enter
+	REG_L a0, PT_A0(sp)
+	REG_L a1, PT_A1(sp)
+	REG_L a2, PT_A2(sp)
+	REG_L a3, PT_A3(sp)
+	REG_L a4, PT_A4(sp)
+	REG_L a5, PT_A5(sp)
+	REG_L a6, PT_A6(sp)
+	REG_L a7, PT_A7(sp)
+	/* Check to make sure we don't jump to a bogus syscall number. */
 	li t0, __NR_syscalls
 	la s0, sys_ni_syscall
 	/* Syscall number held in a7 */
@@ -170,9 +182,13 @@ handle_syscall:
 1:
 	jalr s0
 
+
 ret_from_syscall:
 	/* Set user a0 to kernel a0 */
 	REG_S a0, PT_A0(sp)
+	/* Trace syscalls, but only if requested by the user. */
+	move a0, sp
+	call do_syscall_trace_exit
 
 ret_from_exception:
 	REG_L s0, PT_SSTATUS(sp)

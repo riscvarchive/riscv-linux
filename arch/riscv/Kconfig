@@ -20,6 +20,7 @@ config RISCV
 	select RV_ATOMIC if SMP
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
 	select SYSCTL_EXCEPTION_TRACE
+	select HAVE_ARCH_TRACEHOOK
 
 config MMU
 	def_bool y
