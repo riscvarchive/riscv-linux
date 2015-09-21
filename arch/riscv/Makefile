@@ -46,6 +46,7 @@ endif
 
 KBUILD_CFLAGS += -Wall
 KBUILD_CFLAGS += -msoft-float
+KBUILD_AFLAGS += -msoft-float
 
 ifeq ($(CONFIG_RVC),y)
 	KBUILD_CFLAGS += -mrvc
