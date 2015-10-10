@@ -123,7 +123,9 @@ ENTRY(handle_exception)
 	/* Set current pointer */
 	REG_L tp, TI_TASK(tp)
 
-	la gp, _gp
+1:	auipc gp, %pcrel_hi(_gp)
+	addi gp, gp, %pcrel_lo(1b)
+
 	la ra, ret_from_exception
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */

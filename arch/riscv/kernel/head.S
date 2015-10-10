@@ -9,8 +9,9 @@
 
 __INIT
 ENTRY(_start)
-	/* Load the global pointer (before any other use of la) */
-	la gp, _gp
+	/* Load the global pointer (before any use of la) */
+1:	auipc gp, %pcrel_hi(_gp)
+	addi gp, gp, %pcrel_lo(1b)
 
 	/* See if we're the main hart */
 	call sbi_hart_id
