@@ -53,6 +53,20 @@ disable:
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
+static resource_size_t __initdata mem_size;
+
+/* Parse "mem=nn[KkMmGg]" */
+static int __init early_mem(char *p)
+{
+	if (!p)
+		return -EINVAL;
+	mem_size = memparse(p, &p) & PMD_MASK;
+	if (mem_size == 0)
+		return -EINVAL;
+	return 0;
+}
+early_param("mem", early_mem);
+
 static void __init setup_bootmem(void)
 {
 	unsigned long start_pfn, end_pfn;
@@ -64,12 +78,17 @@ static void __init setup_bootmem(void)
 	BUG_ON(ret != 0);
 	BUG_ON((info.base & ~PMD_MASK) != 0);
 	BUG_ON((info.size & ~PMD_MASK) != 0);
-	printk(KERN_INFO "Detected 0x%lx bytes of physical memory\n",
-	       info.size);
+	pr_info("Available physical memory: %ldMB\n", info.size >> 20);
 
 	/* The kernel image is mapped at VA=PAGE_OFFSET and PA=info.base */
 	va_pa_offset = PAGE_OFFSET - info.base;
 	pfn_base = PFN_DOWN(info.base);
+
+	if ((mem_size != 0) && (mem_size < info.size)) {
+		info.size = mem_size;
+		pr_notice("Physical memory usage limited to %lldMB\n",
+			mem_size >> 20);
+	}
 	set_max_mapnr(PFN_DOWN(info.size));
 
 	/* The first available page is after the page directory */
@@ -101,6 +120,8 @@ void __init setup_arch(char **cmdline_p)
 #endif /* CONFIG_CMDLINE_BOOL */
 	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
 	*cmdline_p = command_line;
+
+	parse_early_param();
 
 	init_mm.start_code = (unsigned long) _stext;
 	init_mm.end_code   = (unsigned long) _etext;
