@@ -38,7 +38,6 @@ static int htifblk_segment(struct htifblk_device *dev,
 {
 	static struct htifblk_request pkt __aligned(HTIF_ALIGN);
 	u64 offset, size, end;
-	unsigned long cmd;
 
 	offset = (blk_rq_pos(req) << SECTOR_SIZE_SHIFT);
 	size = (blk_rq_cur_sectors(req) << SECTOR_SIZE_SHIFT);
@@ -51,25 +50,15 @@ static int htifblk_segment(struct htifblk_device *dev,
 	}
 
 	rmb();
-	pkt.addr = __pa(req->buffer);
+	pkt.addr = __pa(bio_data(req->bio));
 	pkt.offset = offset;
 	pkt.size = size;
 	pkt.tag = dev->tag;
 
-	switch (rq_data_dir(req)) {
-	case READ:
-		cmd = HTIF_CMD_READ;
-		break;
-	case WRITE:
-		cmd = HTIF_CMD_WRITE;
-		break;
-	default:
-		return -EINVAL;
-	}
-
 	dev->req = req;
 	dev->msg_buf.dev = dev->dev->index;
-	dev->msg_buf.cmd = cmd;
+	dev->msg_buf.cmd = (rq_data_dir(req) == READ) ?
+		HTIF_CMD_READ : HTIF_CMD_WRITE;
 	dev->msg_buf.data = __pa(&pkt);
 	htif_tohost(&dev->msg_buf);
 	return 0;
