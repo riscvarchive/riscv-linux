@@ -3,8 +3,8 @@ Linux/RISC-V
 
 This is a port of Linux kernel for the [RISC-V](http://riscv.org/)
 instruction set architecture.
-Development is currently based on the [3.14 longterm branch](
-https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/log/?h=linux-3.14.y).
+Development is currently based on the [4.1 longterm branch](
+https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/log/?h=linux-4.1.y).
 
 Building the kernel image
 --------------------------------------------------------------------------------
@@ -12,8 +12,8 @@ Building the kernel image
 1. Fetch upstream sources and overlay the `riscv` architecture-specific
    subtree:
 
-        $ curl -L https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.41.tar.xz | tar -xJ
-        $ cd linux-3.14.41
+        $ curl -L https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.1.15.tar.xz | tar -xJ
+        $ cd linux-4.1.15
         $ git init
         $ git remote add origin https://github.com/riscv/riscv-linux.git
         $ git fetch
