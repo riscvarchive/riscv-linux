@@ -38,7 +38,7 @@ SYSCALL_DEFINE0(rt_sigreturn)
 	sigset_t set;
 
 	/* Always make any pending restarted system calls return -EINTR */
-	current_thread_info()->restart_block.fn = do_no_restart_syscall;
+	current->restart_block.fn = do_no_restart_syscall;
 
 	frame = (struct rt_sigframe __user *)regs->sp;
 
