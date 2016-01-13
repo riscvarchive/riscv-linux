@@ -56,6 +56,8 @@ extern void iounmap(void __iomem *addr);
 
 #endif /* CONFIG_MMU */
 
+#include <asm-generic/io.h>
+
 #endif /* __KERNEL__ */
 
 #endif /* _ASM_RISCV_IO_H */
