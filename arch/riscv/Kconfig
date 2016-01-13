@@ -21,12 +21,14 @@ config RISCV
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
+	select HAS_DMA
+	select HAVE_DMA_ATTRS
 
 config MMU
 	def_bool y
 
 config NO_DMA
-	def_bool y
+	def_bool n
 
 config STACKTRACE_SUPPORT
 	def_bool y
