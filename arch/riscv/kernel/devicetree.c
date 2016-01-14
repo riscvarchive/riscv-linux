@@ -22,7 +22,7 @@ int __init devicetree_init(void)
 	void *dt;
 	int err = 0;
 
-	printk("%s:%d\n", __FUNCTION__, __LINE__);
+	printk("%s:%d devicetree physaddr %lx\n", __FUNCTION__, __LINE__, initial_dtb);
 	initial_boot_params = dt = ioremap(initial_dtb, map_len);
 	size = of_get_flat_dt_size();
 	printk("dtb size %ld initial_boot_params=%p\n", size, initial_boot_params);
@@ -41,7 +41,7 @@ int __init devicetree_init(void)
 int __init devicetree_populate(void)
 {
 	printk("calling of_platform_populate\n");
-	of_platform_populate(NULL, NULL, NULL, NULL);
+	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 	return 0;
 }
 
