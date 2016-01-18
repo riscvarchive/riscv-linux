@@ -58,7 +58,7 @@ struct irq_chip riscv_irq_chip = {
 void __init init_IRQ(void)
 {
 	unsigned int irq;
-	for (irq = 0; irq < NR_IRQS; irq++)
+	for (irq = 0; irq < 2; irq++)
 	{
 		irq_set_chip_and_handler(irq, &riscv_irq_chip, handle_level_irq);
 	}

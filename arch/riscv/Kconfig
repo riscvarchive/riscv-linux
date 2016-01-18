@@ -143,6 +143,12 @@ config 64BIT
 
 endchoice
 
+config NR_IRQS
+	int "Number of IRQs"
+	default "2"
+	help
+	  Maximum number of IRQs
+
 source "mm/Kconfig"
 
 source "kernel/Kconfig.preempt"
