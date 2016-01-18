@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/device.h>
 #include <linux/io.h>
+#include <linux/irqchip.h>
 #include <linux/of_fdt.h>
 #include <linux/of_platform.h>
 
@@ -40,6 +41,8 @@ int __init devicetree_init(void)
 
 int __init devicetree_populate(void)
 {
+	printk("calling of_irq_init\n");
+	irqchip_init();
 	printk("calling of_platform_populate\n");
 	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 	return 0;
