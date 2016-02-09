@@ -17,7 +17,7 @@
 
 int __init devicetree_init(void)
 {
-	resource_size_t initial_dtb = 0x04100000;
+	resource_size_t initial_dtb = CONFIG_DTB_START;
 	unsigned long map_len = 4096;
 	unsigned long size = 128;
 	void *dt;
