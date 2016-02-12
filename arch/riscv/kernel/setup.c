@@ -92,7 +92,7 @@ static void __init setup_bootmem(void)
 	set_max_mapnr(PFN_DOWN(info.size));
 
 	/* The first available page is after the page directory */
-	start_pfn = (csr_read(sptbr) >> PAGE_SHIFT) + 1;
+	start_pfn = csr_read(sptbr) + 1;
 	end_pfn = PFN_DOWN(info.base + info.size);
 
 	bootmap_size = init_bootmem(start_pfn, end_pfn);
