@@ -41,9 +41,14 @@ struct irq_chip riscv_irq_chip = {
 
 void __init init_IRQ(void)
 {
-	unsigned int irq;
-	for (irq = 0; irq < NR_IRQS; irq++)
-	{
-		irq_set_chip_and_handler(irq, &riscv_irq_chip, handle_level_irq);
-	}
+	int ret;
+
+	ret = irq_alloc_desc_at(IRQ_TIMER, numa_node_id());
+	BUG_ON(ret < 0);
+	irq_set_chip_and_handler(IRQ_TIMER, &riscv_irq_chip, handle_level_irq);
+
+	ret = irq_alloc_desc_at(IRQ_SOFTWARE, numa_node_id());
+	BUG_ON(ret < 0);
+	irq_set_chip_and_handler(IRQ_SOFTWARE, &riscv_irq_chip,
+				 handle_level_irq);
 }
