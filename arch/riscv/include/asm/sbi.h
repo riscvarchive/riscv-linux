@@ -18,6 +18,10 @@ unsigned long sbi_clear_ipi(void);
 void sbi_console_putchar(unsigned long ch);
 void sbi_shutdown(void);
 
+void sbi_remote_sfence_vm(unsigned long hart_mask_ptr, unsigned long asid);
+void sbi_remote_sfence_vm_range(unsigned long hart_mask_ptr, unsigned long asid, unsigned long start, unsigned long size);
+void sbi_remote_fence_i(unsigned long hart_mask_ptr);
+
 typedef struct {
   unsigned long dev;
   unsigned long cmd;
@@ -27,5 +31,8 @@ typedef struct {
 
 unsigned long sbi_send_device_request(unsigned long req);
 unsigned long sbi_receive_device_response(void);
+
+unsigned long sbi_mask_interrupt(unsigned long which);
+unsigned long sbi_unmask_interrupt(unsigned long which);
 
 #endif
