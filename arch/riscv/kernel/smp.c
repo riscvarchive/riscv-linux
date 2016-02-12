@@ -87,22 +87,12 @@ void smp_send_reschedule(int cpu)
 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
 }
 
-static void ipi_flush_icache_all(void *unused)
-{
-	local_flush_icache_all();
-}
-
 void flush_icache_range(uintptr_t start, uintptr_t end)
 {
-	on_each_cpu(ipi_flush_icache_all, NULL, 1);
-}
-
-static void ipi_flush_tlb_all(void *unused)
-{
-	local_flush_tlb_all();
+	sbi_remote_fence_i(__pa(cpu_all_bits));
 }
 
 void flush_tlb_all(void)
 {
-	on_each_cpu(ipi_flush_tlb_all, NULL, 1);
+	sbi_remote_sfence_vm(__pa(cpu_all_bits), 0);
 }
