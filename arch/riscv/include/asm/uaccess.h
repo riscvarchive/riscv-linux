@@ -10,6 +10,14 @@
 #include <asm/byteorder.h>
 #include <asm/asm.h>
 
+#ifdef CONFIG_RV_PUM
+#define __enable_user_access() __asm__ ("csrc sstatus, %0" : : "r" (SR_PUM))
+#define __disable_user_access() __asm__ ("csrs sstatus, %0" : : "r" (SR_PUM))
+#else
+#define __enable_user_access()
+#define __disable_user_access()
+#endif
+
 /*
  * The fs value determines whether argument validity checking should be
  * performed or not.  If get_fs() == USER_DS, checking is performed, with
@@ -109,6 +117,7 @@ extern int fixup_exception(struct pt_regs *);
 #define __get_user_asm(insn, x, ptr, err)			\
 do {								\
 	uintptr_t __tmp;					\
+	__enable_user_access();					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
 		"	" insn " %1, %3\n"			\
@@ -126,6 +135,7 @@ do {								\
 		"	.previous"				\
 		: "+r" (err), "=&r" (x), "=r" (__tmp)		\
 		: "m" (*(ptr)), "i" (-EFAULT));			\
+	__disable_user_access();				\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __get_user_asm(insn, x, ptr, err)			\
@@ -146,6 +156,7 @@ do {								\
 	u32 __user *__ptr = (u32 __user *)(ptr);		\
 	u32 __lo, __hi;						\
 	uintptr_t __tmp;					\
+	__enable_user_access();					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
 		"	lw %1, %4\n"				\
@@ -169,6 +180,7 @@ do {								\
 			"=r" (__tmp)				\
 		: "m" (__ptr[__LSW]), "m" (__ptr[__MSW]),	\
 			"i" (-EFAULT));				\
+	__disable_user_access();				\
 	(x) = (__typeof__(x))((__typeof__((x)-(x)))(		\
 		(((u64)__hi << 32) | __lo)));			\
 } while (0)
@@ -254,6 +266,7 @@ do {								\
 #define __put_user_asm(insn, x, ptr, err)			\
 do {								\
 	uintptr_t __tmp;					\
+	__enable_user_access();					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
 		"	" insn " %z3, %2\n"			\
@@ -270,6 +283,7 @@ do {								\
 		"	.previous"				\
 		: "+r" (err), "=r" (__tmp), "=m" (*(ptr))	\
 		: "rJ" (x), "i" (-EFAULT));			\
+	__disable_user_access();				\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __put_user_asm(insn, x, ptr, err)			\
@@ -290,6 +304,7 @@ do {								\
 	u32 __user *__ptr = (u32 __user *)(ptr);		\
 	u64 __x = (__typeof__((x)-(x)))(x);	 		\
 	uintptr_t __tmp;					\
+	__enable_user_access();					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
 		"	sw %z4, %2\n"				\
@@ -311,6 +326,7 @@ do {								\
 			"=m" (__ptr[__LSW]),			\
 			"=m" (__ptr[__MSW])			\
 		: "rJ" (__x), "rJ" (__x >> 32), "i" (-EFAULT));	\
+	__disable_user_access();				\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __put_user_8(x, ptr, err)				\

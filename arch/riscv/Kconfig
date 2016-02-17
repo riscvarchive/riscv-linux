@@ -118,6 +118,16 @@ config RV_SYSRISCV_ATOMIC
 
 	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
 
+config RV_PUM
+	def_bool y
+	prompt "Protect User Memory" if EXPERT
+	---help---
+	  Protect User Memory (PUM) prevents the kernel from inadvertently
+	  accessing user-space memory.  There is a small performance cost
+	  and kernel size increase if this is enabled.
+
+	  If unsure, say Y.
+
 source "arch/riscv/htif/Kconfig"
 
 endmenu

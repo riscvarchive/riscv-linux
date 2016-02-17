@@ -18,6 +18,12 @@ ENTRY(_start)
 	li t0, SR_FS
 	csrc sstatus, t0
 
+#ifdef CONFIG_RV_PUM
+	/* Prevent inadvertent access to user memory */
+	li t0, SR_PUM
+	csrs sstatus, t0
+#endif
+
 	/* See if we're the main hart */
 	call sbi_hart_id
 	bnez a0, .Lsecondary_start

@@ -1,5 +1,6 @@
 #include <linux/linkage.h>
 #include <asm/asm.h>
+#include <asm/csr.h>
 
 	.altmacro
 	.macro fixup op reg addr lbl
@@ -13,6 +14,13 @@ _epc:
 	.endm
 
 ENTRY(__copy_user)
+
+#ifdef CONFIG_RV_PUM
+	/* Enable access to user memory */
+	li t6, SR_PUM
+	csrc sstatus, t6
+#endif
+
 	add a3, a1, a2
 	/* Use word-oriented copy only if low-order bits match */
 	andi t0, a0, SZREG-1
@@ -27,7 +35,7 @@ ENTRY(__copy_user)
 	 * t1: highest XLEN-aligned address in source
 	 */
 	bgeu t0, t1, 2f
-	bltu a1, t0, 3f
+	bltu a1, t0, 4f
 1:
 	fixup REG_L, t2, (a1), 10f
 	fixup REG_S, t2, (a0), 10f
@@ -35,28 +43,40 @@ ENTRY(__copy_user)
 	addi a0, a0, SZREG
 	bltu a1, t1, 1b
 2:
-	bltu a1, a3, 4f
+	bltu a1, a3, 5f
+
+3:
+#ifdef CONFIG_RV_PUM
+	/* Disable access to user memory */
+	csrs sstatus, t6
+#endif
 	li a0, 0
 	ret
-3: /* Edge case: unalignment */
+4: /* Edge case: unalignment */
 	fixup lbu, t2, (a1), 10f
 	fixup sb, t2, (a0), 10f
 	addi a1, a1, 1
 	addi a0, a0, 1
-	bltu a1, t0, 3b
+	bltu a1, t0, 4b
 	j 1b
-4: /* Edge case: remainder */
+5: /* Edge case: remainder */
 	fixup lbu, t2, (a1), 10f
 	fixup sb, t2, (a0), 10f
 	addi a1, a1, 1
 	addi a0, a0, 1
-	bltu a1, a3, 4b
-	li a0, 0
-	ret
+	bltu a1, a3, 5b
+	j 3b
 ENDPROC(__copy_user)
 
 
 ENTRY(__clear_user)
+
+#ifdef CONFIG_RV_PUM
+	/* Enable access to user memory */
+	li t6, SR_PUM
+	csrc sstatus, t6
+#endif
+
 	add a3, a0, a1
 	addi t0, a0, SZREG-1
 	andi t1, a3, ~(SZREG-1)
@@ -66,30 +86,39 @@ ENTRY(__clear_user)
 	 * t1: highest doubleword-aligned address in target region
 	 */
 	bgeu t0, t1, 2f
-	bltu a0, t0, 3f
+	bltu a0, t0, 4f
 1:
 	fixup REG_S, zero, (a0), 10f
 	addi a0, a0, SZREG
 	bltu a0, t1, 1b
 2:
-	bltu a0, a3, 4f
+	bltu a0, a3, 5f
+
+3:
+#ifdef CONFIG_RV_PUM
+	/* Disable access to user memory */
+	csrs sstatus, t6
+#endif
 	li a0, 0
 	ret
-3: /* Edge case: unalignment */
+4: /* Edge case: unalignment */
 	fixup sb, zero, (a0), 10f
 	addi a0, a0, 1
-	bltu a0, t0, 3b
+	bltu a0, t0, 4b
 	j 1b
-4: /* Edge case: remainder */
+5: /* Edge case: remainder */
 	fixup sb, zero, (a0), 10f
-	bltu a0, a3, 4b
-	li a0, 0
-	ret
+	bltu a0, a3, 5b
+	j 3b
 ENDPROC(__clear_user)
 
 	.section .fixup,"ax"
 	.balign 4
 10:
+#ifdef CONFIG_RV_PUM
+	/* Disable access to user memory */
+	csrs sstatus, t6
+#endif
 	sub a0, a3, a0
 	ret
 	.previous

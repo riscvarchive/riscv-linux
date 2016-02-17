@@ -7,6 +7,7 @@
 #define SR_IE   _AC(0x00000002,UL) /* Interrupt Enable */
 #define SR_PIE  _AC(0x00000020,UL) /* Previous IE */
 #define SR_PS   _AC(0x00000100,UL) /* Previously Supervisor */
+#define SR_PUM  _AC(0x00040000,UL) /* Protect User Memory */
 
 #define SR_FS           _AC(0x00006000,UL) /* Floating-point Status */
 #define SR_FS_OFF       _AC(0x00000000,UL)
