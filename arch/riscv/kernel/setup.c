@@ -86,8 +86,8 @@ static void __init setup_bootmem(void)
 
 	if ((mem_size != 0) && (mem_size < info.size)) {
 		info.size = mem_size;
-		pr_notice("Physical memory usage limited to %lldMB\n",
-			mem_size >> 20);
+		pr_notice("Physical memory usage limited to %lluMB\n",
+			(unsigned long long)(mem_size >> 20));
 	}
 	set_max_mapnr(PFN_DOWN(info.size));
 

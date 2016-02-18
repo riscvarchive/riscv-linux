@@ -7,7 +7,7 @@ static void *c_start(struct seq_file *m, loff_t *pos)
 {
 	*pos = cpumask_next(*pos - 1, cpu_online_mask);
 	if ((*pos) < nr_cpu_ids)
-		return (void *)(1 + *pos);
+		return (void *)(uintptr_t)(1 + *pos);
 	return NULL;
 }
 
@@ -26,7 +26,7 @@ static int c_show(struct seq_file *m, void *v)
 	unsigned long hart_id = (unsigned long)v - 1;
 
 	seq_printf(m, "hart\t: %lu\n", hart_id);
-	seq_printf(m, "isa\t: RV%luG\n", sizeof(void *) * 8);
+	seq_printf(m, "isa\t: RV%zuG\n", sizeof(void *) * 8);
 	seq_printf(m, "\n");
 	return 0;
 }
