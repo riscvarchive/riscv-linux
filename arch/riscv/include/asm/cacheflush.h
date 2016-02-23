@@ -18,9 +18,8 @@ static inline void local_flush_icache_all(void)
 
 #else /* CONFIG_SMP */
 
-void flush_icache_range(uintptr_t start, uintptr_t end);
-#define flush_icache_user_range(vma, pg, addr, len) \
-	flush_icache_range((addr), (addr) + (len))
+#define flush_icache_range(start, end) sbi_remote_fence_i(0)
+#define flush_icache_user_range(vma, pg, addr, len) sbi_remote_fence_i(0)
 
 #endif /* CONFIG_SMP */
 
