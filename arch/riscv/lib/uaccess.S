@@ -108,6 +108,7 @@ ENTRY(__clear_user)
 	j 1b
 5: /* Edge case: remainder */
 	fixup sb, zero, (a0), 10f
+	addi a0, a0, 1
 	bltu a0, a3, 5b
 	j 3b
 ENDPROC(__clear_user)
