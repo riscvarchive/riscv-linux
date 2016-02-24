@@ -133,8 +133,6 @@ config RV_PUM
 
 	  If unsure, say Y.
 
-source "arch/riscv/htif/Kconfig"
-
 endmenu
 
 menu "Kernel type"

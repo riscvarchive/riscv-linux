@@ -1,4 +1,3 @@
-# CONFIG_HTIF is not set
 # CONFIG_COMPACTION is not set
 # CONFIG_CROSS_MEMORY_ATTACH is not set
 CONFIG_HZ_100=y
