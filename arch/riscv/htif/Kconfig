@@ -7,16 +7,6 @@ menuconfig HTIF
 
 if HTIF
 
-config HTIF_CONSOLE
-	tristate "HTIF console support"
-	select TTY
-	default y
-
-config HTIF_CONSOLE_PORTS
-	int "Maximum number of HTIF console ports"
-	depends on HTIF_CONSOLE
-	default 1
-
 config HTIF_BLOCK
 	tristate "HTIF block device support"
 	select BLOCK
