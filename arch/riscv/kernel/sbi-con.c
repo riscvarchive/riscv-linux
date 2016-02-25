@@ -4,11 +4,27 @@
 #include <linux/tty_flip.h>
 #include <linux/tty_driver.h>
 #include <linux/module.h>
+#include <linux/interrupt.h>
 
 #include <asm/sbi.h>
 
+static DEFINE_SPINLOCK(sbi_tty_port_lock);
 static struct tty_port sbi_tty_port;
 static struct tty_driver *sbi_tty_driver;
+
+static irqreturn_t sbi_console_isr(int irq, void *dev_id)
+{
+	int ch = sbi_console_getchar();
+	if (ch < 0)
+		return IRQ_NONE;
+
+	spin_lock(&sbi_tty_port_lock);
+	tty_insert_flip_char(&sbi_tty_port, ch, TTY_NORMAL);
+	tty_flip_buffer_push(&sbi_tty_port);
+	spin_unlock(&sbi_tty_port_lock);
+
+	return IRQ_HANDLED;
+}
 
 static int sbi_tty_open(struct tty_struct *tty, struct file *filp)
 {
@@ -61,7 +77,7 @@ static int sbi_console_setup(struct console *co, char *options)
 static struct console sbi_console = {
 	.name	= "sbi_console",
 	.write	= sbi_console_write,
-	.device = sbi_console_device,
+	.device	= sbi_console_device,
 	.setup	= sbi_console_setup,
 	.flags	= CON_PRINTBUFFER,
 	.index	= -1
@@ -92,8 +108,17 @@ static int __init sbi_console_init(void)
 
 	ret = tty_register_driver(sbi_tty_driver);
 	if (unlikely(ret))
-		put_tty_driver(sbi_tty_driver);
+		goto out_tty_put;
 
+	ret = request_irq(IRQ_SOFTWARE, sbi_console_isr, 0,
+	                  sbi_tty_driver->driver_name, NULL);
+	if (unlikely(ret))
+		goto out_tty_put;
+
+	return ret;
+
+out_tty_put:
+	put_tty_driver(sbi_tty_driver);
 	return ret;
 }
 
