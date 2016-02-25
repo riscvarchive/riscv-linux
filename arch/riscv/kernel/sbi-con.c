@@ -110,8 +110,8 @@ static int __init sbi_console_init(void)
 	if (unlikely(ret))
 		goto out_tty_put;
 
-	ret = request_irq(IRQ_SOFTWARE, sbi_console_isr, 0,
-	                  sbi_tty_driver->driver_name, NULL);
+	ret = request_irq(IRQ_SOFTWARE, sbi_console_isr, IRQF_SHARED,
+	                  sbi_tty_driver->driver_name, sbi_console_isr);
 	if (unlikely(ret))
 		goto out_tty_put;
 

@@ -1,3 +1,4 @@
+#include <linux/interrupt.h>
 #include <linux/smp.h>
 #include <linux/sched.h>
 
@@ -16,14 +17,14 @@ enum ipi_message_type {
 	IPI_MAX
 };
 
-bool handle_ipi(void)
+irqreturn_t ipi_isr(int irq, void *dev_id)
 {
 	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
 	unsigned long ops;
 
 	/* Clear pending IPI */
 	if (!sbi_clear_ipi())
-	  return false;
+		return IRQ_NONE;
 
 	mb();	/* Order interrupt and bit testing. */
 	while ((ops = xchg(pending_ipis, 0)) != 0) {
@@ -40,7 +41,7 @@ bool handle_ipi(void)
 		mb();	/* Order data access and bit testing. */
 	}
 
-	return true;
+	return IRQ_HANDLED;
 }
 
 static void

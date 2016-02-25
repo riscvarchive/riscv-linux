@@ -8,12 +8,7 @@
 
 asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
-	struct pt_regs *old_regs;
-
-	if (irq == IRQ_SOFTWARE && handle_ipi())
-		return;
-
-	old_regs = set_irq_regs(regs);
+	struct pt_regs *old_regs = set_irq_regs(regs);
 	irq_enter();
 	generic_handle_irq(irq);
 	irq_exit();
@@ -51,4 +46,9 @@ void __init init_IRQ(void)
 	BUG_ON(ret < 0);
 	irq_set_chip_and_handler(IRQ_SOFTWARE, &riscv_irq_chip,
 				 handle_level_irq);
+
+#ifdef CONFIG_SMP
+	ret = request_irq(IRQ_SOFTWARE, ipi_isr, IRQF_SHARED, "ipi", ipi_isr);
+	BUG_ON(ret != 0);
+#endif
 }

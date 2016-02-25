@@ -2,6 +2,7 @@
 #define _ASM_RISCV_SMP_H
 
 #include <linux/cpumask.h>
+#include <linux/irqreturn.h>
 
 #ifdef CONFIG_SMP
 
@@ -19,12 +20,8 @@ void arch_send_call_function_single_ipi(int cpu);
 
 #define raw_smp_processor_id() (current_thread_info()->cpu)
 
-/* Possibly handle an IPI and return whether or not one actually occurred */
-bool handle_ipi(void);
-
-#else /* !CONFIG_SMP */
-
-#define handle_ipi() (0)
+/* Interprocessor interrupt handler */
+irqreturn_t ipi_isr(int irq, void *dev_id);
 
 #endif /* CONFIG_SMP */
 
