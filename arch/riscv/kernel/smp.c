@@ -13,7 +13,6 @@ static struct {
 enum ipi_message_type {
 	IPI_RESCHEDULE,
 	IPI_CALL_FUNC,
-	IPI_CALL_FUNC_SINGLE,
 	IPI_MAX
 };
 
@@ -35,9 +34,6 @@ bool handle_ipi(void)
 
 		if (ops & (1 << IPI_CALL_FUNC))
 			generic_smp_call_function_interrupt();
-
-		if (ops & (1 << IPI_CALL_FUNC_SINGLE))
-			generic_smp_call_function_single_interrupt();
 
 		BUG_ON((ops >> IPI_MAX) != 0);
 
@@ -68,7 +64,7 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask)
 
 void arch_send_call_function_single_ipi(int cpu)
 {
-	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
 }
 
 static void ipi_stop(void *unused)
