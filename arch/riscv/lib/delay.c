@@ -3,34 +3,22 @@
 #include <linux/timex.h>
 #include <linux/export.h>
 
-inline void __delay(unsigned long loops)
+void __delay(unsigned long cycles)
 {
-	cycles_t start;
-
-	start = get_cycles();
-	do {
+	cycle_t t0 = get_cycles();
+	while ((unsigned long)(get_cycles() - t0) < cycles)
 		cpu_relax();
-	} while ((get_cycles() - start) < loops);
 }
-EXPORT_SYMBOL(__delay);
 
-inline void __const_udelay(unsigned long xloops)
+void udelay(unsigned long usecs)
 {
-	u64 loops;
+	__delay((unsigned long)(((u64)usecs * timebase) / 1000000UL));
 
-	loops = (u64)xloops * loops_per_jiffy * HZ;
-	__delay(loops >> 32);
 }
-EXPORT_SYMBOL(__const_udelay);
+EXPORT_SYMBOL(udelay);
 
-void __udelay(unsigned long usecs)
+void ndelay(unsigned long nsecs)
 {
-	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
+	__delay((unsigned long)(((u64)nsecs * timebase) / 1000000000UL));
 }
-EXPORT_SYMBOL(__udelay);
-
-void __ndelay(unsigned long nsecs)
-{
-	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
-}
-EXPORT_SYMBOL(__ndelay);
+EXPORT_SYMBOL(ndelay);
