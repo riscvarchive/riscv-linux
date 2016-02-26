@@ -12,7 +12,7 @@ static DEFINE_PER_CPU(struct clock_event_device, clock_event);
 static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
-	sbi_set_timer(csr_read(stime) + delta);
+	sbi_set_timer(get_cycles() + delta);
 	return 0;
 }
 
@@ -48,7 +48,7 @@ static struct irqaction timer_irq = {
 
 static cycle_t riscv_rdtime(struct clocksource *cs)
 {
-	return csr_read(stime);
+	return get_cycles();
 }
 
 static struct clocksource riscv_clocksource = {
