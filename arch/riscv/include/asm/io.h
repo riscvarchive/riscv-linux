@@ -56,6 +56,13 @@ extern void iounmap(void __iomem *addr);
 
 #endif /* CONFIG_MMU */
 
+static inline void flush_write_buffers(void)
+{
+  // sfence goes here?
+}
+
+#include <asm-generic/io.h>
+
 #endif /* __KERNEL__ */
 
 #endif /* _ASM_RISCV_IO_H */

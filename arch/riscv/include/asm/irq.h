@@ -1,7 +1,7 @@
 #ifndef _ASM_RISCV_IRQ_H
 #define _ASM_RISCV_IRQ_H
 
-#define NR_IRQS         2
+#define NR_IRQS         CONFIG_NR_IRQS
 #define IRQ_SOFTWARE    0
 #define IRQ_TIMER       1
 

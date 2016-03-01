@@ -21,12 +21,14 @@ config RISCV
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
+	select HAS_DMA
+	select HAVE_DMA_ATTRS
 
 config MMU
 	def_bool y
 
 config NO_DMA
-	def_bool y
+	def_bool n
 
 config STACKTRACE_SUPPORT
 	def_bool y
@@ -140,6 +142,18 @@ config 64BIT
 	  Select this option to build a 64-bit kernel.
 
 endchoice
+
+config NR_IRQS
+	int "Number of IRQs"
+	default "16"
+	help
+	  Maximum number of IRQs
+
+config NR_IRQS_CORE
+	int "Number of RISC-V core IRQs"
+	default "2"
+	help
+	  Number of IRQs connected to the CPU cores
 
 source "mm/Kconfig"
 
