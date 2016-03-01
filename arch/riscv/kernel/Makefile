@@ -10,5 +10,6 @@ obj-y	:= cpu.o entry.o irq.o process.o ptrace.o reset.o setup.o \
 
 obj-$(CONFIG_EARLY_PRINTK)      += early_printk.o
 obj-$(CONFIG_SMP)		+= smpboot.o smp.o
+obj-$(CONFIG_OF)                += devicetree.o
 
 clean:

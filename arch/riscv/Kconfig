@@ -56,6 +56,10 @@ config PGTABLE_LEVELS
 	default 3 if 64BIT
 	default 2
 
+config DTB_START
+	hex "Device tree start address"
+	default "0x04080000"
+
 menu "Platform type"
 
 config SMP
