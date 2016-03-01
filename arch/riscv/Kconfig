@@ -145,9 +145,15 @@ endchoice
 
 config NR_IRQS
 	int "Number of IRQs"
-	default "2"
+	default "16"
 	help
 	  Maximum number of IRQs
+
+config NR_IRQS_CORE
+	int "Number of RISC-V core IRQs"
+	default "2"
+	help
+	  Number of IRQs connected to the CPU cores
 
 source "mm/Kconfig"
 
