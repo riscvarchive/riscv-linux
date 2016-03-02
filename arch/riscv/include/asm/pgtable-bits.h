@@ -26,7 +26,6 @@
 #define _PAGE_TYPE_KERN_RW  (0x1A)  /* Kernel read-write */
 
 #define _PAGE_SPECIAL   _PAGE_SOFT
-#define _PAGE_FILE      _PAGE_WRITE /* when !present: non-linear file mapping */
 #define _PAGE_TABLE     (_PAGE_PRESENT | _PAGE_TYPE_TABLE)
 
 #define _PAGE_PFN_SHIFT 10
