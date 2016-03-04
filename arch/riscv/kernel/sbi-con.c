@@ -115,6 +115,9 @@ static int __init sbi_console_init(void)
 	if (unlikely(ret))
 		goto out_tty_put;
 
+	/* Poll the console once, which will trigger future interrupts */
+	sbi_console_isr(0, NULL);
+
 	return ret;
 
 out_tty_put:
