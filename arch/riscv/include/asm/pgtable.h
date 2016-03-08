@@ -188,6 +188,13 @@ static inline int pte_write(pte_t pte)
 	return pte_val(pte) & _PAGE_WRITE;
 }
 
+static inline int pte_huge(pte_t pte)
+{
+	return pte_present(pte)
+		&& !((pte_val(pte) & _PAGE_TYPE) == _PAGE_TYPE_TABLE
+		     || (pte_val(pte) & _PAGE_TYPE) == _PAGE_TYPE_TABLE_G);
+}
+
 /* static inline int pte_exec(pte_t pte) */
 
 static inline int pte_dirty(pte_t pte)
