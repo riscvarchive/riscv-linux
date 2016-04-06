@@ -2,17 +2,21 @@
 #include <linux/clockchips.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
+#include <linux/delay.h>
 
 #include <asm/irq.h>
 #include <asm/csr.h>
 #include <asm/sbi.h>
+#include <asm/delay.h>
+
+unsigned long timebase;
 
 static DEFINE_PER_CPU(struct clock_event_device, clock_event);
 
 static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
-	sbi_set_timer(csr_read(stime) + delta);
+	sbi_set_timer(get_cycles() + delta);
 	return 0;
 }
 
@@ -48,7 +52,7 @@ static struct irqaction timer_irq = {
 
 static cycle_t riscv_rdtime(struct clocksource *cs)
 {
-	return csr_read(stime);
+	return get_cycles();
 }
 
 static struct clocksource riscv_clocksource = {
@@ -82,7 +86,11 @@ void __init init_clockevent(void)
 
 void __init time_init(void)
 {
-	clocksource_register_hz(&riscv_clocksource, sbi_timebase());
+	timebase = sbi_timebase();
+	lpj_fine = timebase;
+	do_div(lpj_fine, HZ);
+
+	clocksource_register_hz(&riscv_clocksource, timebase);
 	setup_irq(IRQ_TIMER, &timer_irq);
 	init_clockevent();
 }

@@ -1,3 +1,4 @@
+#include <linux/interrupt.h>
 #include <linux/smp.h>
 #include <linux/sched.h>
 
@@ -13,18 +14,17 @@ static struct {
 enum ipi_message_type {
 	IPI_RESCHEDULE,
 	IPI_CALL_FUNC,
-	IPI_CALL_FUNC_SINGLE,
 	IPI_MAX
 };
 
-bool handle_ipi(void)
+irqreturn_t ipi_isr(int irq, void *dev_id)
 {
 	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
 	unsigned long ops;
 
 	/* Clear pending IPI */
 	if (!sbi_clear_ipi())
-	  return false;
+		return IRQ_NONE;
 
 	mb();	/* Order interrupt and bit testing. */
 	while ((ops = xchg(pending_ipis, 0)) != 0) {
@@ -36,15 +36,12 @@ bool handle_ipi(void)
 		if (ops & (1 << IPI_CALL_FUNC))
 			generic_smp_call_function_interrupt();
 
-		if (ops & (1 << IPI_CALL_FUNC_SINGLE))
-			generic_smp_call_function_single_interrupt();
-
 		BUG_ON((ops >> IPI_MAX) != 0);
 
 		mb();	/* Order data access and bit testing. */
 	}
 
-	return true;
+	return IRQ_HANDLED;
 }
 
 static void
@@ -68,7 +65,7 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask)
 
 void arch_send_call_function_single_ipi(int cpu)
 {
-	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
 }
 
 static void ipi_stop(void *unused)
@@ -85,24 +82,4 @@ void smp_send_stop(void)
 void smp_send_reschedule(int cpu)
 {
 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
-}
-
-static void ipi_flush_icache_all(void *unused)
-{
-	local_flush_icache_all();
-}
-
-void flush_icache_range(uintptr_t start, uintptr_t end)
-{
-	on_each_cpu(ipi_flush_icache_all, NULL, 1);
-}
-
-static void ipi_flush_tlb_all(void *unused)
-{
-	local_flush_tlb_all();
-}
-
-void flush_tlb_all(void)
-{
-	on_each_cpu(ipi_flush_tlb_all, NULL, 1);
 }

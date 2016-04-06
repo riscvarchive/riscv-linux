@@ -1,6 +1,6 @@
 #include <linux/init.h>
 #include <linux/mm.h>
-#include <linux/bootmem.h>
+#include <linux/memblock.h>
 #include <linux/sched.h>
 #include <linux/initrd.h>
 
@@ -40,7 +40,7 @@ static void __init setup_initrd(void)
 	}
 
 	size =  initrd_end - initrd_start;
-	reserve_bootmem(__pa(initrd_start), size, BOOTMEM_DEFAULT);
+	memblock_reserve(__pa(initrd_start), size);
 	initrd_below_start_ok = 1;
 
 	printk(KERN_INFO "Initial ramdisk at: 0x%p (%lu bytes)\n",
@@ -67,10 +67,20 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
+static void __init reserve_boot_page_table(pte_t *table)
+{
+	unsigned long i;
+
+	memblock_reserve(__pa(table), PAGE_SIZE);
+
+	for (i = 0; i < PTRS_PER_PTE; i++) {
+		if (pte_present(table[i]) && !pte_huge(table[i]))
+			reserve_boot_page_table(pfn_to_virt(pte_pfn(table[i])));
+	}
+}
+
 static void __init setup_bootmem(void)
 {
-	unsigned long start_pfn, end_pfn;
-	unsigned long bootmap_size;
 	unsigned long ret;
 	memory_block_info info;
 
@@ -85,23 +95,21 @@ static void __init setup_bootmem(void)
 	pfn_base = PFN_DOWN(info.base);
 
 	if ((mem_size != 0) && (mem_size < info.size)) {
+		memblock_enforce_memory_limit(mem_size);
 		info.size = mem_size;
-		pr_notice("Physical memory usage limited to %lldMB\n",
-			mem_size >> 20);
+		pr_notice("Physical memory usage limited to %lluMB\n",
+			(unsigned long long)(mem_size >> 20));
 	}
 	set_max_mapnr(PFN_DOWN(info.size));
-
-	/* The first available page is after the page directory */
-	start_pfn = (csr_read(sptbr) >> PAGE_SHIFT) + 1;
-	end_pfn = PFN_DOWN(info.base + info.size);
-
-	bootmap_size = init_bootmem(start_pfn, end_pfn);
-	free_bootmem(PFN_PHYS(start_pfn), (end_pfn - start_pfn) << PAGE_SHIFT);
-	reserve_bootmem(PFN_PHYS(start_pfn), bootmap_size, BOOTMEM_DEFAULT);
+	max_low_pfn = PFN_DOWN(info.base + info.size);
 
 #ifdef CONFIG_BLK_DEV_INITRD
 	setup_initrd();
 #endif /* CONFIG_BLK_DEV_INITRD */
+
+	memblock_reserve(info.base, __pa(_end) - info.base);
+	reserve_boot_page_table(pfn_to_virt(csr_read(sptbr)));
+	memblock_allow_resize();
 }
 
 void __init setup_arch(char **cmdline_p)

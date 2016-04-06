@@ -19,6 +19,7 @@
 #define _PAGE_SOFT      (1 << 7)    /* Reserved for software */
 
 #define _PAGE_TYPE_TABLE    (0x00)  /* Page table */
+#define _PAGE_TYPE_TABLE_G  (0x02)  /* Page table, global mapping */
 #define _PAGE_TYPE_USER_RO  (0x08)  /* User read-only, Kernel read-only */
 #define _PAGE_TYPE_USER_RW  (0x0A)  /* User read-write, Kernel read-write */
 #define _PAGE_TYPE_USER_RX  (0x04)  /* User read-execute, Kernel read-only */
@@ -26,7 +27,6 @@
 #define _PAGE_TYPE_KERN_RW  (0x1A)  /* Kernel read-write */
 
 #define _PAGE_SPECIAL   _PAGE_SOFT
-#define _PAGE_FILE      _PAGE_WRITE /* when !present: non-linear file mapping */
 #define _PAGE_TABLE     (_PAGE_PRESENT | _PAGE_TYPE_TABLE)
 
 #define _PAGE_PFN_SHIFT 10

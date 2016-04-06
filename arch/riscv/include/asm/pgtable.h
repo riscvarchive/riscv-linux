@@ -188,16 +188,18 @@ static inline int pte_write(pte_t pte)
 	return pte_val(pte) & _PAGE_WRITE;
 }
 
+static inline int pte_huge(pte_t pte)
+{
+	return pte_present(pte)
+		&& !((pte_val(pte) & _PAGE_TYPE) == _PAGE_TYPE_TABLE
+		     || (pte_val(pte) & _PAGE_TYPE) == _PAGE_TYPE_TABLE_G);
+}
+
 /* static inline int pte_exec(pte_t pte) */
 
 static inline int pte_dirty(pte_t pte)
 {
 	return pte_val(pte) & _PAGE_DIRTY;
-}
-
-static inline int pte_file(pte_t pte)
-{
-	return pte_val(pte) & _PAGE_FILE;
 }
 
 static inline int pte_young(pte_t pte)
@@ -272,7 +274,7 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
  *
  * Format of swap PTE:
  *	bit            0:	_PAGE_PRESENT (zero)
- *	bit            1:	_PAGE_FILE (zero)
+ *	bit            1:	reserved for future use (zero)
  *	bits      2 to 6:	swap type
  *	bits 7 to XLEN-1:	swap offset
  */
@@ -291,30 +293,6 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 
 #define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
 #define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-
-/*
- * Encode and decode a non-linear file mapping entry
- *
- * Format of file PTE:
- *	bits                    0 to 2:	_PAGE_PRESENT (zero)
- *	bit                          3:	_PAGE_FILE (set)
- *	bits _PAGE_PFN_SHIFT to XLEN-1:	file offset / PAGE_SIZE
- */
-#ifdef CONFIG_64BIT
-#define PTE_FILE_MAX_BITS	(64 - _PAGE_PFN_SHIFT)
-#else
-#define PTE_FILE_MAX_BITS	(32 - _PAGE_PFN_SHIFT)
-#endif
-
-static inline pte_t pgoff_to_pte(unsigned long off)
-{
-	return __pte((off << _PAGE_PFN_SHIFT) | _PAGE_FILE);
-}
-
-static inline unsigned long pte_to_pgoff(pte_t pte)
-{
-	return (pte_val(pte) >> _PAGE_PFN_SHIFT);
-}
 
 #ifdef CONFIG_FLATMEM
 #define kern_addr_valid(addr)   (1) /* FIXME */

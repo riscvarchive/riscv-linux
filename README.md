@@ -13,7 +13,7 @@ Development is currently based on the
 Overlay the `riscv` architecture-specific subtree onto an upstream release:
 
         $ curl -L https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.1.17.tar.xz | tar -xJ
-        $ cd linux-4.1.15
+        $ cd linux-4.1.17
         $ git init
         $ git remote add -t master origin https://github.com/riscv/riscv-linux.git
         $ git fetch

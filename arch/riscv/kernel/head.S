@@ -13,6 +13,17 @@ ENTRY(_start)
 1:	auipc gp, %pcrel_hi(_gp)
 	addi gp, gp, %pcrel_lo(1b)
 
+	/* Disable FPU to detect illegal usage of
+	   floating point in kernel space */
+	li t0, SR_FS
+	csrc sstatus, t0
+
+#ifdef CONFIG_RV_PUM
+	/* Prevent inadvertent access to user memory */
+	li t0, SR_PUM
+	csrs sstatus, t0
+#endif
+
 	/* See if we're the main hart */
 	call sbi_hart_id
 	bnez a0, .Lsecondary_start
@@ -28,11 +39,6 @@ ENTRY(_start)
 	la sp, init_thread_union + THREAD_SIZE
 	/* Initialize current task_struct pointer */
 	la tp, init_task
-
-	/* Disable FPU to detect illegal usage of
-	   floating point in kernel space */
-	li t0, SR_FS
-	csrc sstatus, t0
 
 	tail start_kernel
 

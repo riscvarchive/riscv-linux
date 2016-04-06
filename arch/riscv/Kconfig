@@ -17,8 +17,10 @@ config RISCV
 	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
 	select HAVE_MEMBLOCK
 	select HAVE_MEMBLOCK_NODE_MAP
+	select NO_BOOTMEM
 	select RV_ATOMIC if SMP
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
+	select SPARSE_IRQ
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
 
@@ -97,6 +99,11 @@ config CPU_SUPPORTS_32BIT_KERNEL
 config CPU_SUPPORTS_64BIT_KERNEL
 	bool
 
+config SBI_CONSOLE
+	tristate "SBI console support"
+	select TTY
+	default y
+
 config RVC
 	bool "Use compressed instructions (RV32C or RV64C)"
 	default n
@@ -117,7 +124,15 @@ config RV_SYSRISCV_ATOMIC
 
 	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
 
-source "arch/riscv/htif/Kconfig"
+config RV_PUM
+	def_bool y
+	prompt "Protect User Memory" if EXPERT
+	---help---
+	  Protect User Memory (PUM) prevents the kernel from inadvertently
+	  accessing user-space memory.  There is a small performance cost
+	  and kernel size increase if this is enabled.
+
+	  If unsure, say Y.
 
 endmenu
 
