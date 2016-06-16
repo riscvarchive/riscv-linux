@@ -166,6 +166,16 @@ static void *eeh_dev_save_state(void *data, void *userdata)
 	if (!edev)
 		return NULL;
 
+	/*
+	 * We cannot access the config space on some adapters.
+	 * Otherwise, it will cause fenced PHB. We don't save
+	 * the content in their config space and will restore
+	 * from the initial config space saved when the EEH
+	 * device is created.
+	 */
+	if (edev->pe && (edev->pe->state & EEH_PE_CFG_RESTRICTED))
+		return NULL;
+
 	pdev = eeh_dev_to_pci_dev(edev);
 	if (!pdev)
 		return NULL;
@@ -304,6 +314,19 @@ static void *eeh_dev_restore_state(void *data, void *userdata)
 
 	if (!edev)
 		return NULL;
+
+	/*
+	 * The content in the config space isn't saved because
+	 * the blocked config space on some adapters. We have
+	 * to restore the initial saved config space when the
+	 * EEH device is created.
+	 */
+	if (edev->pe && (edev->pe->state & EEH_PE_CFG_RESTRICTED)) {
+		if (list_is_last(&edev->list, &edev->pe->edevs))
+			eeh_pe_restore_bars(edev->pe);
+
+		return NULL;
+	}
 
 	pdev = eeh_dev_to_pci_dev(edev);
 	if (!pdev)
@@ -502,9 +525,6 @@ int eeh_pe_reset_and_recover(struct eeh_pe *pe)
 	/* Save states */
 	eeh_pe_dev_traverse(pe, eeh_dev_save_state, NULL);
 
-	/* Report error */
-	eeh_pe_dev_traverse(pe, eeh_report_error, &result);
-
 	/* Issue reset */
 	ret = eeh_reset_pe(pe);
 	if (ret) {
@@ -561,6 +581,7 @@ static int eeh_reset_device(struct eeh_pe *pe, struct pci_bus *bus)
 	 */
 	eeh_pe_state_mark(pe, EEH_PE_KEEP);
 	if (bus) {
+		eeh_pe_state_clear(pe, EEH_PE_PRI_BUS);
 		pci_lock_rescan_remove();
 		pcibios_remove_pci_devices(bus);
 		pci_unlock_rescan_remove();
@@ -792,6 +813,7 @@ perm_error:
 	 * the their PCI config any more.
 	 */
 	if (frozen_bus) {
+		eeh_pe_state_clear(pe, EEH_PE_PRI_BUS);
 		eeh_pe_dev_mode_mark(pe, EEH_DEV_REMOVED);
 
 		pci_lock_rescan_remove();
@@ -875,6 +897,7 @@ static void eeh_handle_special_event(void)
 					continue;
 
 				/* Notify all devices to be down */
+				eeh_pe_state_clear(pe, EEH_PE_PRI_BUS);
 				bus = eeh_pe_bus_get(phb_pe);
 				eeh_pe_dev_traverse(pe,
 					eeh_report_failure, NULL);
