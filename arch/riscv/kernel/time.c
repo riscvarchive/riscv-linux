@@ -35,21 +35,6 @@ static void riscv_timer_set_mode(enum clock_event_mode mode,
 	}
 }
 
-static irqreturn_t timer_interrupt(int irq, void *dev_id)
-{
-	int cpu = smp_processor_id();
-	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
-	evdev->event_handler(evdev);
-	return IRQ_HANDLED;
-}
-
-static struct irqaction timer_irq = {
-	.handler = timer_interrupt,
-	.flags = IRQF_TIMER,
-	.name = "timer",
-};
-
-
 static cycle_t riscv_rdtime(struct clocksource *cs)
 {
 	return get_cycles();
@@ -66,6 +51,13 @@ static struct clocksource riscv_clocksource = {
 #endif /* CONFIG_64BITS */
 	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
+
+void riscv_timer_interrupt(void)
+{
+	int cpu = smp_processor_id();
+	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+	evdev->event_handler(evdev);
+}
 
 void __init init_clockevent(void)
 {
@@ -91,6 +83,8 @@ void __init time_init(void)
 	do_div(lpj_fine, HZ);
 
 	clocksource_register_hz(&riscv_clocksource, timebase);
-	setup_irq(IRQ_TIMER, &timer_irq);
 	init_clockevent();
+
+	/* Enable timer interrupts. */
+	csr_set(sie, SIE_STIE);
 }

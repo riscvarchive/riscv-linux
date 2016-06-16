@@ -136,8 +136,6 @@ int is_valid_bugaddr(unsigned long pc)
 
 void __init trap_init(void)
 {
-	/* Enable software interrupts */
-	csr_set(sie, SIE_SSIE);
 	/* Set sup0 scratch register to 0, indicating to exception vector
 	   that we are presently executing in the kernel */
 	csr_write(sscratch, 0);
