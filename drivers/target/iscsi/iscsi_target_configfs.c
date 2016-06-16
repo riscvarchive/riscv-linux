@@ -1815,6 +1815,13 @@ static void lio_queue_tm_rsp(struct se_cmd *se_cmd)
 	iscsit_add_cmd_to_response_queue(cmd, cmd->conn, cmd->i_state);
 }
 
+static void lio_aborted_task(struct se_cmd *se_cmd)
+{
+	struct iscsi_cmd *cmd = container_of(se_cmd, struct iscsi_cmd, se_cmd);
+
+	cmd->conn->conn_transport->iscsit_aborted_task(cmd->conn, cmd);
+}
+
 static char *lio_tpg_get_endpoint_wwn(struct se_portal_group *se_tpg)
 {
 	struct iscsi_portal_group *tpg = se_tpg->se_tpg_fabric_ptr;
@@ -1876,7 +1883,8 @@ static void lio_tpg_release_fabric_acl(
 }
 
 /*
- * Called with spin_lock_bh(struct se_portal_group->session_lock) held..
+ * Called with spin_lock_irq(struct se_portal_group->session_lock) held
+ * or not held.
  *
  * Also, this function calls iscsit_inc_session_usage_count() on the
  * struct iscsi_session in question.
@@ -1884,19 +1892,32 @@ static void lio_tpg_release_fabric_acl(
 static int lio_tpg_shutdown_session(struct se_session *se_sess)
 {
 	struct iscsi_session *sess = se_sess->fabric_sess_ptr;
+	struct se_portal_group *se_tpg = se_sess->se_tpg;
+	bool local_lock = false;
+
+	if (!spin_is_locked(&se_tpg->session_lock)) {
+		spin_lock_irq(&se_tpg->session_lock);
+		local_lock = true;
+	}
 
 	spin_lock(&sess->conn_lock);
 	if (atomic_read(&sess->session_fall_back_to_erl0) ||
 	    atomic_read(&sess->session_logout) ||
 	    (sess->time2retain_timer_flags & ISCSI_TF_EXPIRED)) {
 		spin_unlock(&sess->conn_lock);
+		if (local_lock)
+			spin_unlock_irq(&sess->conn_lock);
 		return 0;
 	}
 	atomic_set(&sess->session_reinstatement, 1);
 	spin_unlock(&sess->conn_lock);
 
 	iscsit_stop_time2retain_timer(sess);
+	spin_unlock_irq(&se_tpg->session_lock);
+
 	iscsit_stop_session(sess, 1, 1);
+	if (!local_lock)
+		spin_lock_irq(&se_tpg->session_lock);
 
 	return 1;
 }
@@ -1999,6 +2020,7 @@ int iscsi_target_register_configfs(void)
 	fabric->tf_ops.queue_data_in = &lio_queue_data_in;
 	fabric->tf_ops.queue_status = &lio_queue_status;
 	fabric->tf_ops.queue_tm_rsp = &lio_queue_tm_rsp;
+	fabric->tf_ops.aborted_task = &lio_aborted_task;
 	/*
 	 * Setup function pointers for generic logic in target_core_fabric_configfs.c
 	 */
