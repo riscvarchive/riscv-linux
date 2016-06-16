@@ -17,7 +17,7 @@ enum ipi_message_type {
 	IPI_MAX
 };
 
-irqreturn_t ipi_isr(int irq, void *dev_id)
+irqreturn_t handle_ipi(void)
 {
 	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
 	unsigned long ops;

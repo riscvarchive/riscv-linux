@@ -12,7 +12,7 @@ static DEFINE_SPINLOCK(sbi_tty_port_lock);
 static struct tty_port sbi_tty_port;
 static struct tty_driver *sbi_tty_driver;
 
-static irqreturn_t sbi_console_isr(int irq, void *dev_id)
+irqreturn_t sbi_console_isr(void)
 {
 	int ch = sbi_console_getchar();
 	if (ch < 0)
@@ -110,13 +110,8 @@ static int __init sbi_console_init(void)
 	if (unlikely(ret))
 		goto out_tty_put;
 
-	ret = request_irq(IRQ_SOFTWARE, sbi_console_isr, IRQF_SHARED,
-	                  sbi_tty_driver->driver_name, sbi_console_isr);
-	if (unlikely(ret))
-		goto out_tty_put;
-
 	/* Poll the console once, which will trigger future interrupts */
-	sbi_console_isr(0, NULL);
+	sbi_console_isr();
 
 	return ret;
 

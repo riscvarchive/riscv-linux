@@ -21,7 +21,7 @@ void arch_send_call_function_single_ipi(int cpu);
 #define raw_smp_processor_id() (current_thread_info()->cpu)
 
 /* Interprocessor interrupt handler */
-irqreturn_t ipi_isr(int irq, void *dev_id);
+irqreturn_t handle_ipi(void);
 
 #endif /* CONFIG_SMP */
 
