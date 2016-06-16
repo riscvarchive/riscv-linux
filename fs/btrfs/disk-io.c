@@ -1574,8 +1574,23 @@ int btrfs_init_fs_root(struct btrfs_root *root)
 	ret = get_anon_bdev(&root->anon_dev);
 	if (ret)
 		goto free_writers;
+
+	mutex_lock(&root->objectid_mutex);
+	ret = btrfs_find_highest_objectid(root,
+					&root->highest_objectid);
+	if (ret) {
+		mutex_unlock(&root->objectid_mutex);
+		goto free_root_dev;
+	}
+
+	ASSERT(root->highest_objectid <= BTRFS_LAST_FREE_OBJECTID);
+
+	mutex_unlock(&root->objectid_mutex);
+
 	return 0;
 
+free_root_dev:
+	free_anon_bdev(root->anon_dev);
 free_writers:
 	btrfs_free_subvolume_writers(root->subv_writers);
 fail:
@@ -1772,8 +1787,11 @@ static int cleaner_kthread(void *arg)
 			goto sleep;
 		}
 
+		mutex_lock(&root->fs_info->cleaner_delayed_iput_mutex);
 		btrfs_run_delayed_iputs(root);
 		btrfs_delete_unused_bgs(root->fs_info);
+		mutex_unlock(&root->fs_info->cleaner_delayed_iput_mutex);
+
 		again = btrfs_clean_one_deleted_snapshot(root);
 		mutex_unlock(&root->fs_info->cleaner_mutex);
 
@@ -2491,8 +2509,8 @@ int open_ctree(struct super_block *sb,
 	mutex_init(&fs_info->unused_bg_unpin_mutex);
 	mutex_init(&fs_info->reloc_mutex);
 	mutex_init(&fs_info->delalloc_root_mutex);
+	mutex_init(&fs_info->cleaner_delayed_iput_mutex);
 	seqlock_init(&fs_info->profiles_lock);
-	init_rwsem(&fs_info->delayed_iput_sem);
 
 	init_completion(&fs_info->kobj_unregister);
 	INIT_LIST_HEAD(&fs_info->dirty_cowonly_roots);
@@ -2619,6 +2637,7 @@ int open_ctree(struct super_block *sb,
 	if (btrfs_check_super_csum(bh->b_data)) {
 		printk(KERN_ERR "BTRFS: superblock checksum mismatch\n");
 		err = -EINVAL;
+		brelse(bh);
 		goto fail_alloc;
 	}
 
@@ -2845,6 +2864,18 @@ retry_root_backup:
 	btrfs_set_root_node(&tree_root->root_item, tree_root->node);
 	tree_root->commit_root = btrfs_root_node(tree_root);
 	btrfs_set_root_refs(&tree_root->root_item, 1);
+
+	mutex_lock(&tree_root->objectid_mutex);
+	ret = btrfs_find_highest_objectid(tree_root,
+					&tree_root->highest_objectid);
+	if (ret) {
+		mutex_unlock(&tree_root->objectid_mutex);
+		goto recovery_tree_root;
+	}
+
+	ASSERT(tree_root->highest_objectid <= BTRFS_LAST_FREE_OBJECTID);
+
+	mutex_unlock(&tree_root->objectid_mutex);
 
 	ret = btrfs_read_roots(fs_info, tree_root);
 	if (ret)

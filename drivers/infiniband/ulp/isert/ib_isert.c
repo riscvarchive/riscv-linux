@@ -865,7 +865,7 @@ isert_put_conn(struct isert_conn *isert_conn)
  * @isert_conn: isert connection struct
  *
  * Notes:
- * In case the connection state is FULL_FEATURE, move state
+ * In case the connection state is BOUND, move state
  * to TEMINATING and start teardown sequence (rdma_disconnect).
  * In case the connection state is UP, complete flush as well.
  *
@@ -881,6 +881,7 @@ isert_conn_terminate(struct isert_conn *isert_conn)
 	case ISER_CONN_TERMINATING:
 		break;
 	case ISER_CONN_UP:
+	case ISER_CONN_BOUND:
 	case ISER_CONN_FULL_FEATURE: /* FALLTHRU */
 		isert_info("Terminating conn %p state %d\n",
 			   isert_conn, isert_conn->state);
@@ -927,13 +928,8 @@ isert_disconnected_handler(struct rdma_cm_id *cma_id,
 			   enum rdma_cm_event_type event)
 {
 	struct isert_np *isert_np = cma_id->context;
-	struct isert_conn *isert_conn;
+	struct isert_conn *isert_conn = cma_id->qp->qp_context;
 	bool terminating = false;
-
-	if (isert_np->np_cm_id == cma_id)
-		return isert_np_cma_handler(cma_id->context, event);
-
-	isert_conn = cma_id->qp->qp_context;
 
 	mutex_lock(&isert_conn->mutex);
 	terminating = (isert_conn->state == ISER_CONN_TERMINATING);
@@ -972,10 +968,14 @@ isert_connect_error(struct rdma_cm_id *cma_id)
 static int
 isert_cma_handler(struct rdma_cm_id *cma_id, struct rdma_cm_event *event)
 {
+	struct isert_np *isert_np = cma_id->context;
 	int ret = 0;
 
 	isert_info("event %d status %d id %p np %p\n", event->event,
 		   event->status, cma_id, cma_id->context);
+
+	if (isert_np->np_cm_id == cma_id)
+		return isert_np_cma_handler(cma_id->context, event->event);
 
 	switch (event->event) {
 	case RDMA_CM_EVENT_CONNECT_REQUEST:
@@ -1349,7 +1349,7 @@ sequence_cmd:
 	if (!rc && dump_payload == false && unsol_data)
 		iscsit_set_unsoliticed_dataout(cmd);
 	else if (dump_payload && imm_data)
-		target_put_sess_cmd(conn->sess->se_sess, &cmd->se_cmd);
+		target_put_sess_cmd(&cmd->se_cmd);
 
 	return 0;
 }
@@ -1774,7 +1774,7 @@ isert_put_cmd(struct isert_cmd *isert_cmd, bool comp_err)
 			    cmd->se_cmd.t_state == TRANSPORT_WRITE_PENDING) {
 				struct se_cmd *se_cmd = &cmd->se_cmd;
 
-				target_put_sess_cmd(se_cmd->se_sess, se_cmd);
+				target_put_sess_cmd(se_cmd);
 			}
 		}
 
@@ -1947,7 +1947,7 @@ isert_completion_rdma_read(struct iser_tx_desc *tx_desc,
 	spin_unlock_bh(&cmd->istate_lock);
 
 	if (ret) {
-		target_put_sess_cmd(se_cmd->se_sess, se_cmd);
+		target_put_sess_cmd(se_cmd);
 		transport_send_check_condition_and_sense(se_cmd,
 							 se_cmd->pi_err, 0);
 	} else {
@@ -2059,7 +2059,8 @@ is_isert_tx_desc(struct isert_conn *isert_conn, void *wr_id)
 	void *start = isert_conn->rx_descs;
 	int len = ISERT_QP_MAX_RECV_DTOS * sizeof(*isert_conn->rx_descs);
 
-	if (wr_id >= start && wr_id < start + len)
+	if ((wr_id >= start && wr_id < start + len) ||
+	    (wr_id == isert_conn->login_req_buf))
 		return false;
 
 	return true;
@@ -2085,7 +2086,8 @@ isert_cq_comp_err(struct isert_conn *isert_conn, struct ib_wc *wc)
 			isert_completion_put(desc, isert_cmd, ib_dev, true);
 	} else {
 		isert_conn->post_recv_buf_count--;
-		if (!isert_conn->post_recv_buf_count)
+		if (!isert_conn->post_recv_buf_count &&
+		    isert_conn->state >= ISER_CONN_BOUND)
 			iscsit_cause_connection_reinstatement(isert_conn->conn, 0);
 	}
 }
@@ -3268,6 +3270,7 @@ accept_wait:
 
 	conn->context = isert_conn;
 	isert_conn->conn = conn;
+	isert_conn->state = ISER_CONN_BOUND;
 
 	isert_set_conn_info(np, conn, isert_conn);
 
