@@ -17,6 +17,9 @@ config RISCV
 	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
 	select HAVE_MEMBLOCK
 	select HAVE_MEMBLOCK_NODE_MAP
+	select HAVE_DMA_API_DEBUG
+	select HAVE_DMA_CONTIGUOUS
+	select HAVE_GENERIC_DMA_COHERENT
 	select NO_BOOTMEM
 	select RV_ATOMIC if SMP
 	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
@@ -27,8 +30,12 @@ config RISCV
 config MMU
 	def_bool y
 
-config NO_DMA
+# even on 32-bit, physical (and DMA) addresses are > 32-bits
+config ARCH_PHYS_ADDR_T_64BIT
 	def_bool y
+
+config ARCH_DMA_ADDR_T_64BIT
+ 	def_bool y
 
 config STACKTRACE_SUPPORT
 	def_bool y

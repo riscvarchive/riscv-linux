@@ -4,6 +4,7 @@
 #include <linux/sysfs.h>
 
 struct dev_archdata {
+	struct dma_map_ops *dma_ops;
 };
 
 struct pdev_archdata {
