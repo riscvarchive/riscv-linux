@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 ARM Ltd.
- * Copyright (C) 2016 SiFive Inc.
+ * Copyright (C) 2016 SiFive, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
