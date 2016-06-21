@@ -6,4 +6,5 @@ header-y += bitsperlong.h
 header-y += byteorder.h
 header-y += ptrace.h
 header-y += sigcontext.h
+header-y += siginfo.h
 header-y += unistd.h
