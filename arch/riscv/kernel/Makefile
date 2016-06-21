@@ -10,5 +10,6 @@ obj-y	:= cpu.o entry.o irq.o process.o ptrace.o reset.o setup.o \
 
 obj-$(CONFIG_SMP)		+= smpboot.o smp.o
 obj-$(CONFIG_SBI_CONSOLE)	+= sbi-con.o
+obj-$(CONFIG_PCI)		+= pci.o
 
 clean:
