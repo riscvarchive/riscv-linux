@@ -215,31 +215,46 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 }
 
 /**
- * atomic_clear_mask - Atomically clear bits in atomic variable
- * @mask: Mask of the bits to be cleared
+ * atomic_and - Atomically clear bits in atomic variable
+ * @mask: Mask of the bits to be retained
  * @v: pointer of type atomic_t
  *
- * Atomically clears the bits set in @mask from @v
+ * Atomically retains the bits set in @mask from @v
  */
-static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
+static inline void atomic_and(unsigned int mask, atomic_t *v)
 {
 	__asm__ __volatile__ (
 		"amoand.w zero, %1, %0"
 		: "+A" (v->counter)
-		: "r" (~mask));
+		: "r" (mask));
 }
 
 /**
- * atomic_set_mask - Atomically set bits in atomic variable
+ * atomic_or - Atomically set bits in atomic variable
  * @mask: Mask of the bits to be set
  * @v: pointer of type atomic_t
  *
  * Atomically sets the bits set in @mask in @v
  */
-static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
+static inline void atomic_or(unsigned int mask, atomic_t *v)
 {
 	__asm__ __volatile__ (
 		"amoor.w zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (mask));
+}
+
+/**
+ * atomic_xor - Atomically flips bits in atomic variable
+ * @mask: Mask of the bits to be flipped
+ * @v: pointer of type atomic_t
+ *
+ * Atomically flips the bits set in @mask in @v
+ */
+static inline void atomic_xor(unsigned int mask, atomic_t *v)
+{
+	__asm__ __volatile__ (
+		"amoxor.w zero, %1, %0"
 		: "+A" (v->counter)
 		: "r" (mask));
 }

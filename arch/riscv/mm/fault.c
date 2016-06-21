@@ -3,6 +3,7 @@
 #include <linux/interrupt.h>
 #include <linux/perf_event.h>
 #include <linux/signal.h>
+#include <linux/uaccess.h>
 
 #include <asm/pgalloc.h>
 #include <asm/ptrace.h>
@@ -47,7 +48,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs)
 	 * If we're in an interrupt, have no user context, or are running
 	 * in an atomic region, then we must not take the fault.
 	 */
-	if (unlikely(in_atomic() || !mm))
+	if (unlikely(faulthandler_disabled() || !mm))
 		goto no_context;
 
 	if (user_mode(regs))

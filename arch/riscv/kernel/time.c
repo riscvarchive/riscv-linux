@@ -20,19 +20,16 @@ static int riscv_timer_set_next_event(unsigned long delta,
 	return 0;
 }
 
-static void riscv_timer_set_mode(enum clock_event_mode mode,
-	struct clock_event_device *evdev)
+static int riscv_timer_set_oneshot(struct clock_event_device *evt)
 {
-	switch (mode) {
-	case CLOCK_EVT_MODE_ONESHOT:
-	case CLOCK_EVT_MODE_UNUSED:
-	case CLOCK_EVT_MODE_SHUTDOWN:
-	case CLOCK_EVT_MODE_RESUME:
-		break;
-	case CLOCK_EVT_MODE_PERIODIC:
-	default:
-		BUG();
-	}
+	/* no-op; only one mode */
+	return 0;
+}
+
+static int riscv_timer_set_shutdown(struct clock_event_device *evt)
+{
+	/* can't stop the clock! */
+	return 0;
 }
 
 static cycle_t riscv_rdtime(struct clocksource *cs)
@@ -69,8 +66,9 @@ void __init init_clockevent(void)
 		.features = CLOCK_EVT_FEAT_ONESHOT,
 		.rating = 300,
 		.cpumask = cpumask_of(cpu),
-		.set_mode = riscv_timer_set_mode,
 		.set_next_event = riscv_timer_set_next_event,
+		.set_state_oneshot  = riscv_timer_set_oneshot,
+		.set_state_shutdown = riscv_timer_set_shutdown,
 	};
 
 	clockevents_config_and_register(ce, sbi_timebase(), 100, 0x7fffffff);

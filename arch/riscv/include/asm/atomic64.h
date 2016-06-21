@@ -237,6 +237,51 @@ static inline int atomic64_inc_not_zero(atomic64_t *v)
 	return atomic64_add_unless(v, 1, 0);
 }
 
+/**
+ * atomic64_and - Atomically clear bits in atomic variable
+ * @mask: Mask of the bits to be retained
+ * @v: pointer of type atomic_t
+ *
+ * Atomically retains the bits set in @mask from @v
+ */
+static inline void atomic64_and(s64 mask, atomic64_t *v)
+{
+	__asm__ __volatile__ (
+		"amoand.d zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (mask));
+}
+
+/**
+ * atomic64_or - Atomically set bits in atomic variable
+ * @mask: Mask of the bits to be set
+ * @v: pointer of type atomic_t
+ *
+ * Atomically sets the bits set in @mask in @v
+ */
+static inline void atomic64_or(s64 mask, atomic64_t *v)
+{
+	__asm__ __volatile__ (
+		"amoor.d zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (mask));
+}
+
+/**
+ * atomic64_xor - Atomically flips bits in atomic variable
+ * @mask: Mask of the bits to be flipped
+ * @v: pointer of type atomic_t
+ *
+ * Atomically flips the bits set in @mask in @v
+ */
+static inline void atomic64_xor(s64 mask, atomic64_t *v)
+{
+	__asm__ __volatile__ (
+		"amoxor.d zero, %1, %0"
+		: "+A" (v->counter)
+		: "r" (mask));
+}
+
 #endif /* CONFIG_GENERIC_ATOMIC64 */
 
 #endif /* _ASM_RISCV_ATOMIC64_H */

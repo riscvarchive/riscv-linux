@@ -52,6 +52,8 @@ static inline void __iomem *ioremap_wc(
 	return ioremap(offset, size);
 }
 
+#define ioremap_wt ioremap_nocache
+
 extern void iounmap(void __iomem *addr);
 
 #endif /* CONFIG_MMU */
