@@ -1,0 +1,11 @@
+config CONFIG_STRING
+	bool "Platform device config-string parser"
+	depends on RISCV
+	default y
+	help
+	   This enables support for reading and parsing the configuration
+	   string typically found on RISC-V systems. The string describes
+	   devices included in the on-board SoC. Without this option, any
+	   devices described in the config string will not be loaded.
+
+	   Say 'Y' here if you have a standard RISC-V platform.

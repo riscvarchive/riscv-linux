@@ -164,6 +164,12 @@ source "kernel/Kconfig.hz"
 
 endmenu
 
+menu "Bus support"
+
+source "arch/riscv/drivers/Kconfig"
+
+endmenu
+
 source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
