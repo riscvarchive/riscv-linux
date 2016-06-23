@@ -32,3 +32,11 @@ config GPIO_RV
 	  This enables support for platform GPIO devices.
 
 	  Say 'Y' here if you want the kernel to support LEDs.
+
+config PCIE_XILINX_RV
+	bool "Xilinx AXI PCIe host bridge support fo RV"
+	depends on RISCV
+	select PCI
+	help
+	  Say 'Y' here if you want kernel to support the Xilinx AXI PCIe
+	  Host Bridge driver.
