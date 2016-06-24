@@ -21,3 +21,14 @@ config PLIC
 	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
 
 	   If you don't know what to do here, say Y.
+
+config GPIO_RV
+	bool "Onboard GPIO support for RV"
+	depends on CONFIG_STRING
+	default y
+	select GPIOLIB
+	select GPIO_SYSFS
+	help
+	  This enables support for platform GPIO devices.
+
+	  Say 'Y' here if you want the kernel to support LEDs.
