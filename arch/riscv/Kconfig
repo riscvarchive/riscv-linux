@@ -10,6 +10,7 @@ config RISCV
 	select CLONE_BACKWARDS
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CPU_DEVICES
+	select GENERIC_EARLY_IOREMAP
 	select GENERIC_IRQ_SHOW
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
@@ -57,6 +58,9 @@ config PGTABLE_LEVELS
 	int
 	default 3 if 64BIT
 	default 2
+
+config FIX_EARLYCON_MEM
+	def_bool y
 
 menu "Platform type"
 

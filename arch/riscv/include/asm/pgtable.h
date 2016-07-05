@@ -319,7 +319,7 @@ static inline void pgtable_cache_init(void)
 #ifdef CONFIG_64BIT
 #define TASK_SIZE (PGDIR_SIZE * PTRS_PER_PGD / 2)
 #else
-#define TASK_SIZE VMALLOC_START
+#define TASK_SIZE (ALIGN(FIXADDR_START - SZ_4M, SZ_4M))
 #endif
 
 #include <asm-generic/pgtable.h>
