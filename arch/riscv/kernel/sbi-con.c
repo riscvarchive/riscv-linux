@@ -5,6 +5,7 @@
 #include <linux/tty_driver.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
+#include <linux/serial_core.h>
 
 #include <asm/sbi.h>
 
@@ -132,24 +133,23 @@ module_exit(sbi_console_exit);
 MODULE_DESCRIPTION("RISC-V SBI console driver");
 MODULE_LICENSE("GPL");
 
-#ifdef CONFIG_EARLY_PRINTK
-
-static struct console early_console_dev __initdata = {
-	.name	= "early",
-	.write	= sbi_console_write,
-	.flags	= CON_PRINTBUFFER | CON_BOOT,
-	.index	= -1
-};
-
-static int __init setup_early_printk(char *str)
+static void sbi_earlycon_putchar(struct uart_port *up, int c)
 {
-	if (early_console == NULL) {
-		early_console = &early_console_dev;
-		register_console(early_console);
-	}
+	sbi_console_putchar((char)c);
+}
+
+static void sbi_earlycon_write(struct console *con, const char *s, unsigned int count)
+{
+	struct earlycon_device *dev = (struct earlycon_device *)con->data;
+
+	uart_console_write(&dev->port, s, count, sbi_earlycon_putchar);
+}
+
+static int __init sbi_earlycon_setup(struct earlycon_device *dev, const char *opt)
+{
+	dev->con->write = sbi_earlycon_write;
+
 	return 0;
 }
 
-early_param("earlyprintk", setup_early_printk);
-
-#endif
+EARLYCON_DECLARE(sbi_console, sbi_earlycon_setup);
