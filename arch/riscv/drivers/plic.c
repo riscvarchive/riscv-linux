@@ -94,9 +94,9 @@ static int plic_probe(struct platform_device *pdev)
 		per_cpu(plic_context, hart) = plic;
 	}
 
-	/* Enable software and external interrupts (and disable the others) */
+	/* Enable external interrupts */
 	dev_info(&pdev->dev, "enabling %d IRQs\n", plic_irqs);
-	csr_write(sie, SIE_SSIE | SIE_SEIE);
+	csr_set(sie, SIE_SEIE);
 
 	return 0;
 }
@@ -105,8 +105,8 @@ static int plic_remove(struct platform_device *pdev)
 {
 	int hart;
 
-	/* Disable all but software interrupts */
-	csr_write(sie, SIE_SSIE);
+	/* Disable external interrupts */
+	csr_clear(sie, SIE_SEIE);
 
 	/* Wipe out the global mapping table; actual unmap is automatic */
 	for_each_cpu(hart, cpu_possible_mask) {
