@@ -195,7 +195,7 @@ static inline int pte_write(pte_t pte)
 static inline int pte_huge(pte_t pte)
 {
 	return pte_present(pte)
-		&& !(pte_val(pte) & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC));
+		&& (pte_val(pte) & (_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC));
 }
 
 /* static inline int pte_exec(pte_t pte) */
