@@ -12,7 +12,7 @@ struct plic_context {
 	volatile int claim;
 };
 
-static DEFINE_PER_CPU(struct plic_context *, plic_context);
+static DEFINE_PER_CPU(struct plic_context, plic_context);
 static DEFINE_PER_CPU(unsigned int, irq_in_progress);
 
 static void riscv_software_interrupt(void)
@@ -35,7 +35,7 @@ static void riscv_software_interrupt(void)
 static void plic_interrupt(void)
 {
 	unsigned int cpu = smp_processor_id();
-	unsigned int irq = per_cpu(plic_context, cpu)->claim;
+	unsigned int irq = per_cpu(plic_context, cpu).claim;
 
 	BUG_ON(per_cpu(irq_in_progress, cpu) != 0);
 
@@ -84,7 +84,7 @@ static void plic_irq_unmask(struct irq_data *d)
 
 	BUG_ON(d->irq != per_cpu(irq_in_progress, cpu));
 
-	per_cpu(plic_context, cpu)->claim = per_cpu(irq_in_progress, cpu);
+	per_cpu(plic_context, cpu).claim = per_cpu(irq_in_progress, cpu);
 	per_cpu(irq_in_progress, cpu) = 0;
 }
 
