@@ -68,5 +68,5 @@ asmlinkage void __init smp_callin(void)
 	local_flush_tlb_all();
 	local_irq_enable();
 	preempt_disable();
-	cpu_startup_entry(CPUHP_ONLINE);
+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
 }
