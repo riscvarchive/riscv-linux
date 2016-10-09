@@ -11,8 +11,10 @@
 #include <asm/asm.h>
 
 #ifdef CONFIG_RV_PUM
-#define __enable_user_access() __asm__ ("csrc sstatus, %0" : : "r" (SR_PUM))
-#define __disable_user_access() __asm__ ("csrs sstatus, %0" : : "r" (SR_PUM))
+#define __enable_user_access()						\
+	__asm__ __volatile__ ("csrc sstatus, %0" : : "r" (SR_PUM))
+#define __disable_user_access()						\
+	__asm__ __volatile__ ("csrs sstatus, %0" : : "r" (SR_PUM))
 #else
 #define __enable_user_access()
 #define __disable_user_access()
