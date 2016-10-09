@@ -268,6 +268,7 @@ do {								\
 #define __put_user_asm(insn, x, ptr, err)			\
 do {								\
 	uintptr_t __tmp;					\
+	__typeof__(*(ptr)) __x = x;				\
 	__enable_user_access();					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
@@ -284,7 +285,7 @@ do {								\
 		"	" PTR " 1b, 3b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=r" (__tmp), "=m" (*(ptr))	\
-		: "rJ" (x), "i" (-EFAULT));			\
+		: "rJ" (__x), "i" (-EFAULT));			\
 	__disable_user_access();				\
 } while (0)
 #else /* !CONFIG_MMU */
@@ -292,7 +293,7 @@ do {								\
 	__asm__ __volatile__ (					\
 		insn " %z1, %0"					\
 		: "=m" (*(ptr))					\
-		: "rJ" (x))
+		: "rJ" ((__typeof__(*(ptr))) x))
 #endif /* CONFIG_MMU */
 
 
