@@ -93,6 +93,8 @@ asmlinkage void name(struct pt_regs *regs)				\
 
 DO_ERROR_INFO(do_trap_unknown,
 	SIGILL, ILL_ILLTRP, "unknown exception");
+DO_ERROR_INFO(do_trap_amo_misaligned,
+	SIGBUS, BUS_ADRALN, "AMO address misaligned");
 DO_ERROR_INFO(do_trap_insn_misaligned,
 	SIGBUS, BUS_ADRALN, "instruction address misaligned");
 DO_ERROR_INFO(do_trap_insn_illegal,

@@ -390,7 +390,7 @@ ENTRY(excp_vect_table)
 	PTR do_trap_unknown
 	PTR do_trap_unknown
 	PTR do_page_fault
-	PTR do_trap_unknown
+	PTR do_trap_amo_misaligned
 	PTR do_page_fault
 	PTR 0 /* handle_syscall */
 	PTR do_trap_break
