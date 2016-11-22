@@ -45,8 +45,8 @@ KBUILD_CFLAGS += -mno-atomic
 endif
 
 KBUILD_CFLAGS += -Wall
-KBUILD_CFLAGS += -msoft-float
-KBUILD_AFLAGS += -msoft-float
+KBUILD_CFLAGS += -mno-float
+KBUILD_AFLAGS += -mno-float
 
 ifeq ($(CONFIG_RVC),y)
 	KBUILD_CFLAGS += -mrvc
