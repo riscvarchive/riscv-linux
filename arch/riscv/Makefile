@@ -30,11 +30,15 @@ endif
 export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
+	UTS_MACHINE := riscv64
+
 	KBUILD_CFLAGS += -m64
 	KBUILD_AFLAGS += -m64
 	LDFLAGS += -melf64lriscv
 else
 	BITS := 32
+	UTS_MACHINE := riscv32
+
 	KBUILD_CFLAGS += -m32
 	KBUILD_AFLAGS += -m32
 	LDFLAGS += -melf32lriscv
