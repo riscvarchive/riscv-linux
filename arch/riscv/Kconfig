@@ -11,6 +11,7 @@ config RISCV
 	select COMMON_CLK
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CPU_DEVICES
+	select GENERIC_EARLY_IOREMAP
 	select GENERIC_IRQ_SHOW
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
@@ -59,6 +60,9 @@ config PGTABLE_LEVELS
 	default 3 if 64BIT
 	default 2
 
+config FIX_EARLYCON_MEM
+	def_bool y
+
 menu "Platform type"
 
 config SMP
@@ -103,6 +107,9 @@ config CPU_SUPPORTS_64BIT_KERNEL
 config SBI_CONSOLE
 	tristate "SBI console support"
 	select TTY
+	select SERIAL_CORE
+	select SERIAL_CORE_CONSOLE
+	select SERIAL_EARLYCON
 	default y
 
 config RVC

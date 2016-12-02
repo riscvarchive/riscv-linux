@@ -4,6 +4,7 @@
 #include <linux/io.h>
 
 #include <asm/pgtable.h>
+#include <asm/early_ioremap.h>
 
 /*
  * Remap an arbitrary physical address space into the kernel virtual
@@ -79,3 +80,7 @@ void iounmap(void __iomem *addr)
 }
 EXPORT_SYMBOL(iounmap);
 
+void __init early_ioremap_init(void)
+{
+	early_ioremap_setup();
+}

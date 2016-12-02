@@ -8,6 +8,8 @@
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
 #include <asm/pgtable.h>
+#include <asm/pgalloc.h>
+#include <asm/fixmap.h>
 #include <asm/io.h>
 
 #ifdef CONFIG_NUMA
@@ -51,8 +53,6 @@ void setup_zero_page(void)
 
 void __init paging_init(void)
 {
-	init_mm.pgd = (pgd_t *)pfn_to_virt(csr_read(sptbr));
-
 	setup_zero_page();
 	local_flush_tlb_all();
 	zone_sizes_init();
@@ -82,3 +82,78 @@ void free_initrd_mem(unsigned long start, unsigned long end)
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
+
+static pte_t bm_pte[PTRS_PER_PTE] __page_aligned_bss;
+#ifndef __PAGETABLE_PMD_FOLDED
+static pmd_t bm_pmd[PTRS_PER_PMD] __page_aligned_bss __maybe_unused;
+#endif
+
+static inline pmd_t *pmd_offset_fixmap(unsigned long addr)
+{
+	pud_t *pud = pud_offset(pgd_offset_k(addr), addr);
+
+	BUG_ON(pud_none(*pud) || pud_bad(*pud));
+
+	return pmd_offset(pud, addr);
+}
+
+static inline pte_t *pte_offset_fixmap(unsigned long addr)
+{
+	return &bm_pte[pte_index(addr)];
+}
+
+void __init early_fixmap_init(void)
+{
+	pud_t *pud;
+	pmd_t *pmd;
+	unsigned long addr = FIXADDR_START;
+
+	pud = pud_offset(pgd_offset_k(addr), addr);
+#ifndef __PAGETABLE_PMD_FOLDED
+	BUG_ON(pud_present(*pud));
+	pud_populate(&init_mm, pud, bm_pmd);
+#endif
+	pmd = pmd_offset(pud, addr);
+	BUG_ON(pmd_present(*pmd));
+	pmd_populate_kernel(&init_mm, pmd, bm_pte);
+
+	/*
+	 * The boot-ioremap range spans multiple pmds, for which
+	 * we are not prepared:
+	 */
+	BUILD_BUG_ON((__fix_to_virt(FIX_BTMAP_BEGIN) >> PMD_SHIFT)
+		     != (__fix_to_virt(FIX_BTMAP_END) >> PMD_SHIFT));
+
+	if ((pmd != pmd_offset_fixmap(fix_to_virt(FIX_BTMAP_BEGIN)))
+	     || pmd != pmd_offset_fixmap(fix_to_virt(FIX_BTMAP_END))) {
+		WARN_ON(1);
+		pr_warn("pmd %p != %p, %p\n",
+			pmd, pmd_offset_fixmap(fix_to_virt(FIX_BTMAP_BEGIN)),
+			pmd_offset_fixmap(fix_to_virt(FIX_BTMAP_END)));
+		pr_warn("fix_to_virt(FIX_BTMAP_BEGIN): %08lx\n",
+			fix_to_virt(FIX_BTMAP_BEGIN));
+		pr_warn("fix_to_virt(FIX_BTMAP_END):   %08lx\n",
+			fix_to_virt(FIX_BTMAP_END));
+
+		pr_warn("FIX_BTMAP_END:       %d\n", FIX_BTMAP_END);
+		pr_warn("FIX_BTMAP_BEGIN:     %d\n", FIX_BTMAP_BEGIN);
+	}
+}
+
+void __set_fixmap(enum fixed_addresses idx,
+			       phys_addr_t phys, pgprot_t flags)
+{
+	unsigned long addr = __fix_to_virt(idx);
+	pte_t *pte;
+
+	BUG_ON(idx <= FIX_HOLE || idx >= __end_of_fixed_addresses);
+
+	pte = pte_offset_fixmap(addr);
+
+	if (pgprot_val(flags)) {
+		set_pte(pte, pfn_pte(phys >> PAGE_SHIFT, flags));
+	} else {
+		pte_clear(&init_mm, addr, pte);
+		flush_tlb_kernel_range(addr, addr + PAGE_SIZE);
+	}
+}

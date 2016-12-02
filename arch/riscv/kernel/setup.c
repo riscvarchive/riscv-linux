@@ -7,6 +7,8 @@
 #include <asm/setup.h>
 #include <asm/sections.h>
 #include <asm/pgtable.h>
+#include <asm/fixmap.h>
+#include <asm/early_ioremap.h>
 #include <asm/smp.h>
 #include <asm/sbi.h>
 
@@ -79,41 +81,48 @@ static void __init reserve_boot_page_table(pte_t *table)
 	}
 }
 
-static void __init setup_bootmem(void)
+static void __init setup_bootmem(memory_block_info *info)
 {
-	unsigned long ret;
-	memory_block_info info;
-
-	ret = sbi_query_memory(0, &info);
-	BUG_ON(ret != 0);
-	BUG_ON((info.base & ~PMD_MASK) != 0);
-	BUG_ON((info.size & ~PMD_MASK) != 0);
-	pr_info("Available physical memory: %ldMB\n", info.size >> 20);
-
-	/* The kernel image is mapped at VA=PAGE_OFFSET and PA=info.base */
-	va_pa_offset = PAGE_OFFSET - info.base;
-	pfn_base = PFN_DOWN(info.base);
-
-	if ((mem_size != 0) && (mem_size < info.size)) {
+	if ((mem_size != 0) && (mem_size < info->size)) {
 		memblock_enforce_memory_limit(mem_size);
-		info.size = mem_size;
+		info->size = mem_size;
 		pr_notice("Physical memory usage limited to %lluMB\n",
 			(unsigned long long)(mem_size >> 20));
 	}
-	set_max_mapnr(PFN_DOWN(info.size));
-	max_low_pfn = PFN_DOWN(info.base + info.size);
+	set_max_mapnr(PFN_DOWN(info->size));
+	max_low_pfn = PFN_DOWN(info->base + info->size);
 
 #ifdef CONFIG_BLK_DEV_INITRD
 	setup_initrd();
 #endif /* CONFIG_BLK_DEV_INITRD */
 
-	memblock_reserve(info.base, __pa(_end) - info.base);
+	memblock_reserve(info->base, __pa(_end) - info->base);
 	reserve_boot_page_table(pfn_to_virt(csr_read(sptbr)));
 	memblock_allow_resize();
 }
 
 void __init setup_arch(char **cmdline_p)
 {
+	memory_block_info mem_info;
+
+	BUG_ON(sbi_query_memory(0, &mem_info));
+	BUG_ON((mem_info.base & ~PMD_MASK) != 0);
+	BUG_ON((mem_info.size & ~PMD_MASK) != 0);
+	pr_info("Available physical memory: %ldMB\n", mem_info.size >> 20);
+
+	/* The kernel image is mapped at VA=PAGE_OFFSET and PA=mem_info.base */
+	va_pa_offset = PAGE_OFFSET - mem_info.base;
+	pfn_base = PFN_DOWN(mem_info.base);
+
+	init_mm.start_code = (unsigned long) _stext;
+	init_mm.end_code   = (unsigned long) _etext;
+	init_mm.end_data   = (unsigned long) _edata;
+	init_mm.brk        = (unsigned long) _end;
+	init_mm.pgd        = (pgd_t *)pfn_to_virt(csr_read(sptbr));
+
+	early_fixmap_init();
+	early_ioremap_init();
+
 #ifdef CONFIG_CMDLINE_BOOL
 #ifdef CONFIG_CMDLINE_OVERRIDE
 	strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
@@ -131,14 +140,11 @@ void __init setup_arch(char **cmdline_p)
 
 	parse_early_param();
 
-	init_mm.start_code = (unsigned long) _stext;
-	init_mm.end_code   = (unsigned long) _etext;
-	init_mm.end_data   = (unsigned long) _edata;
-	init_mm.brk        = (unsigned long) _end;
-
-	setup_bootmem();
+	setup_bootmem(&mem_info);
 #ifdef CONFIG_SMP
 	setup_smp();
 #endif
 	paging_init();
+
+	early_ioremap_reset();
 }
