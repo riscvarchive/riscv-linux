@@ -3,12 +3,25 @@
 #include <linux/memblock.h>
 #include <linux/sched.h>
 #include <linux/initrd.h>
+#include <linux/console.h>
+#include <linux/screen_info.h>
 
 #include <asm/setup.h>
 #include <asm/sections.h>
 #include <asm/pgtable.h>
 #include <asm/smp.h>
 #include <asm/sbi.h>
+
+#ifdef CONFIG_DUMMY_CONSOLE
+struct screen_info screen_info = {
+	.orig_video_lines	= 30,
+	.orig_video_cols	= 80,
+	.orig_video_mode	= 0,
+	.orig_video_ega_bx	= 0,
+	.orig_video_isVGA	= 1,
+	.orig_video_points	= 8
+};
+#endif
 
 static char __initdata command_line[COMMAND_LINE_SIZE];
 #ifdef CONFIG_CMDLINE_BOOL
@@ -141,4 +154,8 @@ void __init setup_arch(char **cmdline_p)
 	setup_smp();
 #endif
 	paging_init();
+
+#ifdef CONFIG_DUMMY_CONSOLE
+	conswitchp = &dummy_con;
+#endif
 }
