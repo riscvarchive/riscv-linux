@@ -9,7 +9,7 @@ typedef unsigned long cycles_t;
 
 static inline cycles_t get_cycles(void)
 {
-#ifdef __riscv64
+#if __riscv_xlen >= 64
 	cycles_t n;
 	__asm__ __volatile__ (
 		"rdtime %0"

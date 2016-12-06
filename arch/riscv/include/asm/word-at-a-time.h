@@ -1,7 +1,6 @@
 #ifndef _ASM_RISCV_WORD_AT_A_TIME_H
 #define _ASM_RISCV_WORD_AT_A_TIME_H
 
-#ifdef __RISCVEL
 /* Derived from arch/x86/include/asm/word-at-a-time.h */
 
 #include <linux/kernel.h>
@@ -39,9 +38,5 @@ static inline unsigned long find_zero(unsigned long mask)
 
 /* The mask we created is directly usable as a bytemask */
 #define zero_bytemask(mask) (mask)
-
-#else /* !__RISCVEL */
-#include <asm-generic/word-at-a-time.h>
-#endif /* __RISCVEL */
 
 #endif /* _ASM_RISCV_WORD_AT_A_TIME_H */
