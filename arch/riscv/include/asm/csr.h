@@ -27,6 +27,17 @@
 #define SR_SD   _AC(0x8000000000000000,UL) /* FS/XS dirty */
 #endif
 
+/* SPTBR flags */
+#if __riscv_xlen == 32
+#define SPTBR_PPN     _AC(0x003FFFFF,UL)
+#define SPTBR_MODE_32 _AC(0x80000000,UL)
+#define SPTBR_MODE    SPTBR_MODE_32
+#else
+#define SPTBR_PPN     _AC(0x0000003FFFFFFFFF,UL)
+#define SPTBR_MODE_39 _AC(0x8000000000000000,UL)
+#define SPTBR_MODE    SPTBR_MODE_39
+#endif
+
 /* Interrupt Enable and Interrupt Pending flags */
 #define SIE_SSIE _AC(0x00000002,UL) /* Software Interrupt Enable */
 #define SIE_STIE _AC(0x00000020,UL) /* Timer Interrupt Enable */

@@ -10,13 +10,13 @@
 /* Flush entire local TLB */
 static inline void local_flush_tlb_all(void)
 {
-	__asm__ __volatile__ ("sfence.vm");
+	__asm__ __volatile__ ("sfence.vma");
 }
 
 /* Flush one page from local TLB */
 static inline void local_flush_tlb_page(unsigned long addr)
 {
-	__asm__ __volatile__ ("sfence.vm %0" : : "r" (addr));
+	__asm__ __volatile__ ("sfence.vma %0" : : "r" (addr));
 }
 
 #ifndef CONFIG_SMP
