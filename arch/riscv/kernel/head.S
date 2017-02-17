@@ -24,8 +24,7 @@ ENTRY(_start)
 	csrs sstatus, t0
 #endif
 
-	/* See if we're the main hart */
-	call sbi_hart_id
+	/* By SBI convention, hart ID is in a0 */
 	bnez a0, .Lsecondary_start
 
 	/* Clear the .bss segment */
