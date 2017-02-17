@@ -53,6 +53,7 @@ ENTRY(_start)
 .Lwait_for_cpu_up:
 	REG_L sp, (a0)
 	beqz sp, .Lwait_for_cpu_up
+	fence
 
 	/* Initialize task_struct pointer */
 	li tp, -THREAD_SIZE
