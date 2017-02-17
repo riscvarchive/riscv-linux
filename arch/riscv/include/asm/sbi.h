@@ -1,30 +1,45 @@
 #ifndef _ASM_RISCV_SBI_H
 #define _ASM_RISCV_SBI_H
 
-typedef struct {
-  unsigned long base;
-  unsigned long size;
-  unsigned long node_id;
-} memory_block_info;
+#define SBI_CALL(which, arg0, arg1, arg2) ({ 		\
+	register uintptr_t a0 asm ("a0") = (arg0);	\
+	register uintptr_t a1 asm ("a1") = (arg1);	\
+	register uintptr_t a2 asm ("a2") = (arg2);	\
+	register uintptr_t a7 asm ("a7") = (which);	\
+	asm volatile ("ecall"				\
+		      : "+r" (a0)			\
+		      : "r" (a1), "r" (a2), "r" (a7)	\
+		      : "memory");			\
+	a0;						\
+})
 
-unsigned long sbi_query_memory(unsigned long id, memory_block_info *p);
+/* Lazy implementations until SBI is finalized */
+#define SBI_CALL_0(which) SBI_CALL(which, 0, 0, 0)
+#define SBI_CALL_1(which, arg0) SBI_CALL(which, arg0, 0, 0)
+#define SBI_CALL_2(which, arg0, arg1) SBI_CALL(which, arg0, arg1, 0)
 
-unsigned long sbi_hart_id(void);
-unsigned long sbi_num_harts(void);
-unsigned long sbi_timebase(void);
-void sbi_set_timer(unsigned long long stime_value);
-void sbi_send_ipi(unsigned long hart_id);
-unsigned long sbi_clear_ipi(void);
-void sbi_shutdown(void);
+static inline void sbi_console_putchar(int ch)
+{
+	SBI_CALL_1(1, ch);
+}
 
-void sbi_console_putchar(unsigned char ch);
-int sbi_console_getchar(void);
+static inline int sbi_console_getchar(void)
+{
+	return SBI_CALL_0(2);
+}
 
-void sbi_remote_sfence_vm(unsigned long hart_mask_ptr, unsigned long asid);
-void sbi_remote_sfence_vm_range(unsigned long hart_mask_ptr, unsigned long asid, unsigned long start, unsigned long size);
-void sbi_remote_fence_i(unsigned long hart_mask_ptr);
+static inline void sbi_set_timer(unsigned long long stime_value)
+{
+#if __riscv_xlen == 32
+	SBI_CALL_2(7, stime_value, stime_value >> 32);
+#else
+	SBI_CALL_1(7, stime_value);
+#endif
+}
 
-unsigned long sbi_mask_interrupt(unsigned long which);
-unsigned long sbi_unmask_interrupt(unsigned long which);
+static inline void sbi_shutdown(void)
+{
+	SBI_CALL_0(6);
+}
 
 #endif

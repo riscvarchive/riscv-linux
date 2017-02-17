@@ -9,10 +9,6 @@
 
 __INIT
 ENTRY(_start)
-	/* Load the global pointer (before any use of la) */
-1:	auipc gp, %pcrel_hi(_gp)
-	addi gp, gp, %pcrel_lo(1b)
-
 	/* Disable FPU to detect illegal usage of
 	   floating point in kernel space */
 	li t0, SR_FS
@@ -36,6 +32,23 @@ ENTRY(_start)
 
 	/* Initialize stack pointer */
 	la sp, init_thread_union + THREAD_SIZE
+
+	/* Initialize virtual memory */
+	la a0, 1f
+	tail setup_vm
+
+1:
+	/* Temporary trap vector */
+	la a0, .Lsecondary_park
+	csrw stvec, a0
+
+	/* Load the global pointer */
+	auipc gp, %pcrel_hi(_gp)
+	addi gp, gp, %pcrel_lo(1b)
+
+	/* Re-initialize stack pointer */
+	la sp, init_thread_union + THREAD_SIZE
+
 	/* Initialize current task_struct pointer */
 	la tp, init_task
 

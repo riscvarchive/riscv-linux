@@ -11,6 +11,7 @@
 #include <asm/pgtable.h>
 #include <asm/smp.h>
 #include <asm/sbi.h>
+#include <asm/tlbflush.h>
 
 #ifdef CONFIG_DUMMY_CONSOLE
 struct screen_info screen_info = {
@@ -80,48 +81,65 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
-static void __init reserve_boot_page_table(pte_t *table)
+#define NUM_SWAPPER_PMDS ((uintptr_t)-PAGE_OFFSET >> PGDIR_SHIFT)
+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
+pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
+
+asmlinkage void __init setup_vm(uintptr_t next_fn)
 {
-	unsigned long i;
+	extern char _start;
+	uintptr_t i;
+	uintptr_t pa = (uintptr_t) &_start;
+	uintptr_t size = roundup((uintptr_t) _end - pa, PMD_SIZE);
+	uintptr_t pmd_pfn = PFN_DOWN((uintptr_t)swapper_pmd);
+	pgd_t pmd = __pgd((pmd_pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
 
-	memblock_reserve(__pa(table), PAGE_SIZE);
+	/* Sanity check alignment and size */
+	BUG_ON((pa % PMD_SIZE) != 0);
+	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
+	BUG_ON(size > PGDIR_SIZE);
 
-	for (i = 0; i < PTRS_PER_PTE; i++) {
-		if (pte_present(table[i]) && !pte_huge(table[i]))
-			reserve_boot_page_table(pfn_to_virt(pte_pfn(table[i])));
+	va_pa_offset = PAGE_OFFSET - pa;
+	pfn_base = PFN_DOWN(pa);
+	mem_size = size;
+
+	swapper_pg_dir[((uintptr_t)PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
+	for (i = 0; i < size / PMD_SIZE; i++, pa += PMD_SIZE) {
+		uintptr_t prot = pgprot_val(PAGE_KERNEL) | _PAGE_EXEC;
+		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
 	}
+
+	csr_write(stvec, next_fn + va_pa_offset);
+	local_flush_tlb_all();
+	csr_write(sptbr, PFN_DOWN((uintptr_t)swapper_pg_dir) | SPTBR_MODE);
 }
 
 static void __init setup_bootmem(void)
 {
-	unsigned long ret;
-	memory_block_info info;
+	extern char _start;
 
-	ret = sbi_query_memory(0, &info);
-	BUG_ON(ret != 0);
-	BUG_ON((info.base & ~PMD_MASK) != 0);
-	BUG_ON((info.size & ~PMD_MASK) != 0);
-	pr_info("Available physical memory: %ldMB\n", info.size >> 20);
-
-	/* The kernel image is mapped at VA=PAGE_OFFSET and PA=info.base */
-	va_pa_offset = PAGE_OFFSET - info.base;
-	pfn_base = PFN_DOWN(info.base);
-
-	if ((mem_size != 0) && (mem_size < info.size)) {
-		memblock_enforce_memory_limit(mem_size);
-		info.size = mem_size;
-		pr_notice("Physical memory usage limited to %lluMB\n",
-			(unsigned long long)(mem_size >> 20));
+#warning FIXME CONFIG STRING: enumerate physical memory
+	{
+		/* Assume we have 4 * (kernel size) memory in total */
+		uintptr_t i, extra = 3 * (mem_size / PMD_SIZE);
+		uintptr_t va = (uintptr_t) &_start + mem_size;
+		mem_size += extra * PMD_SIZE;
+		for (i = 0; i < extra; i++, va += PMD_SIZE) {
+			uintptr_t prot = pgprot_val(PAGE_KERNEL);
+			pmd_t pte = __pmd((PFN_DOWN(__pa(va)) << _PAGE_PFN_SHIFT) | prot);
+			swapper_pmd[(va >> PMD_SHIFT) % PTRS_PER_PMD] = pte;
+		}
+		local_flush_tlb_all();
 	}
-	set_max_mapnr(PFN_DOWN(info.size));
-	max_low_pfn = PFN_DOWN(info.base + info.size);
+
+	set_max_mapnr(PFN_DOWN(mem_size));
+	max_low_pfn = pfn_base + PFN_DOWN(mem_size);
 
 #ifdef CONFIG_BLK_DEV_INITRD
 	setup_initrd();
 #endif /* CONFIG_BLK_DEV_INITRD */
 
-	memblock_reserve(info.base, __pa(_end) - info.base);
-	reserve_boot_page_table(pfn_to_virt(csr_read(sptbr)));
+	memblock_reserve(__pa(&_start), (uintptr_t) _end - (uintptr_t) &_start);
 	memblock_allow_resize();
 }
 

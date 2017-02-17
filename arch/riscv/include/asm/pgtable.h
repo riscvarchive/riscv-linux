@@ -49,7 +49,7 @@
 #define PAGE_KERNEL		__pgprot(_PAGE_READ | _PAGE_WRITE |	\
 					 _PAGE_PRESENT | _PAGE_ACCESSED)
 
-#define swapper_pg_dir NULL
+extern pgd_t swapper_pg_dir[];
 
 /* MAP_PRIVATE permissions: xwr (copy-on-write) */
 #define __P000	PAGE_NONE
