@@ -85,13 +85,17 @@ early_param("mem", early_mem);
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
 
-asmlinkage void __init setup_vm(uintptr_t next_fn)
+pgd_t trampoline_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
+pmd_t trampoline_pmd[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
+
+asmlinkage void __init setup_vm(void)
 {
 	extern char _start;
 	uintptr_t i;
 	uintptr_t pa = (uintptr_t) &_start;
 	uintptr_t size = roundup((uintptr_t) _end - pa, PMD_SIZE);
 	uintptr_t pmd_pfn = PFN_DOWN((uintptr_t)swapper_pmd);
+	uintptr_t prot = pgprot_val(PAGE_KERNEL) | _PAGE_EXEC;
 	pgd_t pmd = __pgd((pmd_pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
 
 	/* Sanity check alignment and size */
@@ -103,15 +107,12 @@ asmlinkage void __init setup_vm(uintptr_t next_fn)
 	pfn_base = PFN_DOWN(pa);
 	mem_size = size;
 
-	swapper_pg_dir[((uintptr_t)PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
-	for (i = 0; i < size / PMD_SIZE; i++, pa += PMD_SIZE) {
-		uintptr_t prot = pgprot_val(PAGE_KERNEL) | _PAGE_EXEC;
-		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
-	}
+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
+	trampoline_pmd[0] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
 
-	csr_write(stvec, next_fn + va_pa_offset);
-	local_flush_tlb_all();
-	csr_write(sptbr, PFN_DOWN((uintptr_t)swapper_pg_dir) | SPTBR_MODE);
+	swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
+	for (i = 0; i < size / PMD_SIZE; i++, pa += PMD_SIZE)
+		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
 }
 
 static void __init setup_bootmem(void)
