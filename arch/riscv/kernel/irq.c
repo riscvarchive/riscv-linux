@@ -92,6 +92,4 @@ struct irq_chip plic_irq_chip = {
 
 void __init init_IRQ(void)
 {
-	/* Enable software interrupts (and disable the others) */
-	csr_write(sie, SIE_SSIE);
 }

@@ -71,6 +71,9 @@ void __init init_clockevent(void)
 		.set_state_shutdown = riscv_timer_set_shutdown,
 	};
 
+	/* Enable timer interrupts */
+	csr_set(sie, SIE_STIE);
+
 	clockevents_config_and_register(ce, timebase, 100, 0x7fffffff);
 }
 
@@ -83,7 +86,4 @@ void __init time_init(void)
 
 	clocksource_register_hz(&riscv_clocksource, timebase);
 	init_clockevent();
-
-	/* Enable timer interrupts. */
-	csr_set(sie, SIE_STIE);
 }
