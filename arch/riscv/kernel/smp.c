@@ -20,15 +20,17 @@ enum ipi_message_type {
 irqreturn_t handle_ipi(void)
 {
 	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
-	unsigned long ops;
 
 	/* Clear pending IPI */
-	if (!sbi_clear_ipi())
-		return IRQ_NONE;
+	csr_clear(sip, SIE_SSIE);
 
-	mb();	/* Order interrupt and bit testing. */
-	while ((ops = xchg(pending_ipis, 0)) != 0) {
+	while (true) {
+		unsigned long ops;
+
 		mb();	/* Order bit clearing and data access. */
+
+		if ((ops = xchg(pending_ipis, 0)) == 0)
+			return IRQ_HANDLED;
 
 		if (ops & (1 << IPI_RESCHEDULE))
 			scheduler_ipi();
@@ -54,8 +56,7 @@ send_ipi_message(const struct cpumask *to_whom, enum ipi_message_type operation)
 		set_bit(operation, &ipi_data[i].bits);
 
 	mb();
-	for_each_cpu(i, to_whom)
-		sbi_send_ipi(i);
+	sbi_send_ipi(cpumask_bits(to_whom));
 }
 
 void arch_send_call_function_ipi_mask(struct cpumask *mask)
