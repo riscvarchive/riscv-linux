@@ -41,6 +41,9 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 	/* Signal cpu to start */
 	mb();
 	__cpu_up_stack_pointer[cpu] = task_stack_page(tidle) + THREAD_SIZE;
+
+	while (!cpu_online(cpu))
+		cpu_relax();
 	
 	return 0;
 }
