@@ -65,7 +65,7 @@ relocate:
 	csrw stvec, a0
 
 	/* Load the global pointer */
-	la gp, _gp
+	la gp, __global_pointer$
 
 	/* Switch to kernel page tables */
 	csrw sptbr, a2

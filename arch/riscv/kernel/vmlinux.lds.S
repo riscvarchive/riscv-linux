@@ -45,19 +45,21 @@ SECTIONS
 
 	/* Start of data section */
 	_sdata = .;
-	RO_DATA_SECTION(PAGE_SIZE)
-	RW_DATA_SECTION(0x40, PAGE_SIZE, THREAD_SIZE)
-	.sdata : {
-		_gp = . + 0x800;
-		*(.sdata*)
-	}
+	RO_DATA_SECTION(L1_CACHE_BYTES)
 	.srodata : {
 		*(.srodata*)
 	}
-	/* End of data section */
-	_edata = .;
 
-	BSS_SECTION(0x20, 0, 0x20)
+	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
+	.sdata : {
+		__global_pointer$ = . + 0x800;
+		*(.sdata*)
+		/* End of data section */
+		_edata = .;
+		*(.sbss*)
+	}
+
+	BSS_SECTION(0, 0, 0)
 
 	EXCEPTION_TABLE(0x10)
 	NOTES

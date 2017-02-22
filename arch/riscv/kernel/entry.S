@@ -121,8 +121,7 @@ ENTRY(handle_exception)
 	li tp, ~(THREAD_SIZE-1)
 	and tp, tp, sp
 
-1:	auipc gp, %pcrel_hi(_gp)
-	addi gp, gp, %pcrel_lo(1b)
+	la gp, __global_pointer$
 
 	la ra, ret_from_exception
 	/* MSB of cause differentiates between
