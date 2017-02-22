@@ -29,8 +29,9 @@ ENTRY(_start)
 	call relocate
 
 	/* Start the kernel */
-	la sp, init_thread_union + THREAD_SIZE
-	la tp, init_task
+	la tp, init_thread_union
+	li sp, THREAD_SIZE
+	add sp, sp, tp
 	tail start_kernel
 
 relocate:
@@ -91,7 +92,6 @@ relocate:
 	/* Initialize task_struct pointer */
 	li tp, -THREAD_SIZE
 	add tp, tp, sp
-	REG_L tp, (tp)
 
 	tail smp_callin
 #endif
