@@ -9,10 +9,6 @@
 
 __INIT
 ENTRY(_start)
-	/* Load the global pointer (before any use of la) */
-1:	auipc gp, %pcrel_hi(_gp)
-	addi gp, gp, %pcrel_lo(1b)
-
 	/* Disable FPU to detect illegal usage of
 	   floating point in kernel space */
 	li t0, SR_FS
@@ -24,23 +20,57 @@ ENTRY(_start)
 	csrs sstatus, t0
 #endif
 
-	/* See if we're the main hart */
-	call sbi_hart_id
+	/* By SBI convention, hart ID is in a0 */
 	bnez a0, .Lsecondary_start
 
-	/* Clear the .bss segment */
-	la a0, __bss_start
-	li a1, 0
-	la a2, __bss_stop
-	sub a2, a2, a0
-	call memset
-
-	/* Initialize stack pointer */
+	/* Initialize page tables and relocate to virtual addresses */
 	la sp, init_thread_union + THREAD_SIZE
-	/* Initialize current task_struct pointer */
-	la tp, init_task
+	call setup_vm
+	call relocate
 
+	/* Start the kernel */
+	la tp, init_thread_union
+	li sp, THREAD_SIZE
+	add sp, sp, tp
 	tail start_kernel
+
+relocate:
+	/* Relocate return address */
+	li a1, PAGE_OFFSET
+	la a0, _start
+	sub a1, a1, a0
+	add ra, ra, a1
+
+	/* Point stvec to virtual address of intruction after sptbr write */
+	la a0, 1f
+	add a0, a0, a1
+	csrw stvec, a0
+
+	/* Compute sptbr for kernel page tables, but don't load it yet */
+	la a2, swapper_pg_dir
+	srl a2, a2, PAGE_SHIFT
+	li a1, SPTBR_MODE
+	or a2, a2, a1
+
+	/* Load trampoline page directory, which will cause us to trap to
+	   stvec if VA != PA, or simply fall through if VA == PA */
+	la a0, trampoline_pg_dir
+	srl a0, a0, PAGE_SHIFT
+	or a0, a0, a1
+	sfence.vma
+	csrw sptbr, a0
+1:
+	/* Set trap vector to spin forever to help debug */
+	la a0, .Lsecondary_park
+	csrw stvec, a0
+
+	/* Load the global pointer */
+	la gp, __global_pointer$
+
+	/* Switch to kernel page tables */
+	csrw sptbr, a2
+
+	ret
 
 .Lsecondary_start:
 #ifdef CONFIG_SMP
@@ -54,11 +84,14 @@ ENTRY(_start)
 .Lwait_for_cpu_up:
 	REG_L sp, (a0)
 	beqz sp, .Lwait_for_cpu_up
+	fence
+
+	/* Enable virtual memory and relocate to virtual address */
+	call relocate
 
 	/* Initialize task_struct pointer */
 	li tp, -THREAD_SIZE
 	add tp, tp, sp
-	REG_L tp, (tp)
 
 	tail smp_callin
 #endif

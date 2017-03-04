@@ -71,18 +71,19 @@ void __init init_clockevent(void)
 		.set_state_shutdown = riscv_timer_set_shutdown,
 	};
 
-	clockevents_config_and_register(ce, sbi_timebase(), 100, 0x7fffffff);
+	/* Enable timer interrupts */
+	csr_set(sie, SIE_STIE);
+
+	clockevents_config_and_register(ce, timebase, 100, 0x7fffffff);
 }
 
 void __init time_init(void)
 {
-	timebase = sbi_timebase();
+#warning FIXME CONFIG STRING: timer frequency
+	timebase = 10000000;
 	lpj_fine = timebase;
 	do_div(lpj_fine, HZ);
 
 	clocksource_register_hz(&riscv_clocksource, timebase);
 	init_clockevent();
-
-	/* Enable timer interrupts. */
-	csr_set(sie, SIE_STIE);
 }

@@ -92,11 +92,7 @@ config NR_CPUS
 
 choice
 	prompt "CPU selection"
-	default CPU_RV_ROCKET
-
-config CPU_RV_ROCKET
-	bool "Rocket"
-	select CPU_SUPPORTS_64BIT_KERNEL
+	default CPU_RV_GENERIC
 
 config CPU_RV_GENERIC
 	bool "Generic RISC-V"

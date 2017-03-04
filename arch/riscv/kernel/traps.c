@@ -143,4 +143,6 @@ void __init trap_init(void)
 	csr_write(sscratch, 0);
 	/* Set the exception vector address */
 	csr_write(stvec, &handle_exception);
+	/* Enable software interrupts (and disable the others) */
+	csr_write(sie, SIE_SSIE);
 }

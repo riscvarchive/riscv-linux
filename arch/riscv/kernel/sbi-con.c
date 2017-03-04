@@ -1,5 +1,6 @@
 #include <linux/init.h>
 #include <linux/console.h>
+#include <linux/timer.h>
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
 #include <linux/tty_driver.h>
@@ -8,27 +9,34 @@
 
 #include <asm/sbi.h>
 
-static DEFINE_SPINLOCK(sbi_tty_port_lock);
-static struct tty_port sbi_tty_port;
+#define SBI_POLL_PERIOD 1
+#define SBI_MAX_GETCHARS 10
+
 static struct tty_driver *sbi_tty_driver;
 
-irqreturn_t sbi_console_isr(void)
+struct sbi_console_private {
+	struct tty_port port;
+	struct timer_list timer;
+
+} sbi_console_singleton;
+
+static void sbi_console_getchars(uintptr_t data)
 {
-	int ch = sbi_console_getchar();
-	if (ch < 0)
-		return IRQ_NONE;
+	struct sbi_console_private *priv = (struct sbi_console_private *)data;
+	struct tty_port *port = &priv->port;
+	unsigned long flags;
+	int ch;
 
-	spin_lock(&sbi_tty_port_lock);
-	tty_insert_flip_char(&sbi_tty_port, ch, TTY_NORMAL);
-	tty_flip_buffer_push(&sbi_tty_port);
-	spin_unlock(&sbi_tty_port_lock);
+	spin_lock_irqsave(&port->lock, flags);
 
-	return IRQ_HANDLED;
-}
+	if ((ch = sbi_console_getchar()) >= 0) {
+		tty_insert_flip_char(port, ch, TTY_NORMAL);
+		tty_flip_buffer_push(port);
+	}
 
-static int sbi_tty_open(struct tty_struct *tty, struct file *filp)
-{
-	return 0;
+	mod_timer(&priv->timer, jiffies + SBI_POLL_PERIOD);
+
+	spin_unlock_irqrestore(&port->lock, flags);
 }
 
 static int sbi_tty_write(struct tty_struct *tty,
@@ -47,8 +55,45 @@ static int sbi_tty_write_room(struct tty_struct *tty)
 	return 1024; /* arbitrary */
 }
 
+static int sbi_tty_open(struct tty_struct *tty, struct file *filp)
+{
+	struct sbi_console_private *priv = &sbi_console_singleton;
+	struct tty_port *port = &priv->port;
+	unsigned long flags;
+
+	spin_lock_irqsave(&port->lock, flags);
+
+	if (!port->tty) {
+		tty->driver_data = priv;
+		tty->port = port;
+		port->tty = tty;
+		mod_timer(&priv->timer, jiffies);
+	}
+
+	spin_unlock_irqrestore(&port->lock, flags);
+
+	return 0;
+}
+
+static void sbi_tty_close(struct tty_struct *tty, struct file *filp)
+{
+	struct sbi_console_private *priv = tty->driver_data;
+	struct tty_port *port = &priv->port;
+	unsigned long flags;
+
+	spin_lock_irqsave(&port->lock, flags);
+
+	if (tty->count == 1) {
+		port->tty = NULL;
+		del_timer(&priv->timer);
+	}
+
+	spin_unlock_irqrestore(&port->lock, flags);
+}
+
 static const struct tty_operations sbi_tty_ops = {
 	.open		= sbi_tty_open,
+	.close		= sbi_tty_close,
 	.write		= sbi_tty_write,
 	.write_room	= sbi_tty_write_room,
 };
@@ -86,37 +131,37 @@ static struct console sbi_console = {
 static int __init sbi_console_init(void)
 {
 	int ret;
+	static struct tty_driver *drv;
 
+	setup_timer(&sbi_console_singleton.timer, sbi_console_getchars,
+		    (uintptr_t)&sbi_console_singleton);
 	register_console(&sbi_console);
 
-	sbi_tty_driver = tty_alloc_driver(1,
-		TTY_DRIVER_REAL_RAW | TTY_DRIVER_DYNAMIC_DEV);
-	if (unlikely(IS_ERR(sbi_tty_driver)))
-		return PTR_ERR(sbi_tty_driver);
+	drv = tty_alloc_driver(1, TTY_DRIVER_REAL_RAW | TTY_DRIVER_DYNAMIC_DEV);
+	if (unlikely(IS_ERR(drv)))
+		return PTR_ERR(drv);
 
-	sbi_tty_driver->driver_name = "sbi";
-	sbi_tty_driver->name = "ttySBI";
-	sbi_tty_driver->major = TTY_MAJOR;
-	sbi_tty_driver->minor_start = 0;
-	sbi_tty_driver->type = TTY_DRIVER_TYPE_SERIAL;
-	sbi_tty_driver->subtype = SERIAL_TYPE_NORMAL;
-	sbi_tty_driver->init_termios = tty_std_termios;
-	tty_set_operations(sbi_tty_driver, &sbi_tty_ops);
+	drv->driver_name = "sbi";
+	drv->name = "ttySBI";
+	drv->major = TTY_MAJOR;
+	drv->minor_start = 0;
+	drv->type = TTY_DRIVER_TYPE_SERIAL;
+	drv->subtype = SERIAL_TYPE_NORMAL;
+	drv->init_termios = tty_std_termios;
+	tty_set_operations(drv, &sbi_tty_ops);
 
-	tty_port_init(&sbi_tty_port);
-	tty_port_link_device(&sbi_tty_port, sbi_tty_driver, 0);
+	tty_port_init(&sbi_console_singleton.port);
+	tty_port_link_device(&sbi_console_singleton.port, drv, 0);
 
-	ret = tty_register_driver(sbi_tty_driver);
+	ret = tty_register_driver(drv);
 	if (unlikely(ret))
 		goto out_tty_put;
 
-	/* Poll the console once, which will trigger future interrupts */
-	sbi_console_isr();
-
-	return ret;
+	sbi_tty_driver = drv;
+	return 0;
 
 out_tty_put:
-	put_tty_driver(sbi_tty_driver);
+	put_tty_driver(drv);
 	return ret;
 }
 

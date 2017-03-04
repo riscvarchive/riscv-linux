@@ -10,13 +10,13 @@
 /* Flush entire local TLB */
 static inline void local_flush_tlb_all(void)
 {
-	__asm__ __volatile__ ("sfence.vm");
+	__asm__ __volatile__ ("sfence.vma");
 }
 
 /* Flush one page from local TLB */
 static inline void local_flush_tlb_page(unsigned long addr)
 {
-	__asm__ __volatile__ ("sfence.vm %0" : : "r" (addr));
+	__asm__ __volatile__ ("sfence.vma %0" : : "r" (addr));
 }
 
 #ifndef CONFIG_SMP
@@ -29,10 +29,10 @@ static inline void local_flush_tlb_page(unsigned long addr)
 
 #include <asm/sbi.h>
 
-#define flush_tlb_all() sbi_remote_sfence_vm(0, 0)
-#define flush_tlb_page(vma, addr) flush_tlb_range(vma, (addr), (addr) + 1)
+#define flush_tlb_all() sbi_remote_sfence_vma(0, 0, -1)
+#define flush_tlb_page(vma, addr) flush_tlb_range(vma, addr, 0)
 #define flush_tlb_range(vma, start, end) \
-	sbi_remote_sfence_vm_range(0, 0, (start), (end) - (start))
+	sbi_remote_sfence_vma(0, start, (end) - (start))
 
 #endif /* CONFIG_SMP */
 

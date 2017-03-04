@@ -27,6 +27,17 @@
 #define SR_SD   _AC(0x8000000000000000,UL) /* FS/XS dirty */
 #endif
 
+/* SPTBR flags */
+#if __riscv_xlen == 32
+#define SPTBR_PPN     _AC(0x003FFFFF,UL)
+#define SPTBR_MODE_32 _AC(0x80000000,UL)
+#define SPTBR_MODE    SPTBR_MODE_32
+#else
+#define SPTBR_PPN     _AC(0x00000FFFFFFFFFFF,UL)
+#define SPTBR_MODE_39 _AC(0x8000000000000000,UL)
+#define SPTBR_MODE    SPTBR_MODE_39
+#endif
+
 /* Interrupt Enable and Interrupt Pending flags */
 #define SIE_SSIE _AC(0x00000002,UL) /* Software Interrupt Enable */
 #define SIE_STIE _AC(0x00000020,UL) /* Timer Interrupt Enable */
@@ -40,96 +51,57 @@
 
 #ifndef __ASSEMBLY__
 
-#define CSR_ZIMM(val) \
-	(__builtin_constant_p(val) && ((unsigned long)(val) < 0x20))
-
 #define csr_swap(csr,val)					\
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
-	if (CSR_ZIMM(__v)) { 					\
-		__asm__ __volatile__ (				\
-			"csrrw %0, " #csr ", %1"		\
-			: "=r" (__v) : "i" (__v));		\
-	} else {						\
-		__asm__ __volatile__ (				\
-			"csrrw %0, " #csr ", %1"		\
-			: "=r" (__v) : "r" (__v));		\
-	}							\
+	__asm__ __volatile__ ("csrrw %0, " #csr ", %1"		\
+			      : "=r" (__v) : "rK" (__v));	\
 	__v;							\
 })
 
 #define csr_read(csr)						\
 ({								\
 	register unsigned long __v;				\
-	__asm__ __volatile__ (					\
-		"csrr %0, " #csr : "=r" (__v));			\
+	__asm__ __volatile__ ("csrr %0, " #csr			\
+			      : "=r" (__v));			\
 	__v;							\
 })
 
 #define csr_write(csr,val)					\
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
-	if (CSR_ZIMM(__v)) {					\
-		__asm__ __volatile__ (				\
-			"csrw " #csr ", %0" : : "i" (__v));	\
-	} else {						\
-		__asm__ __volatile__ (				\
-			"csrw " #csr ", %0" : : "r" (__v));	\
-	}							\
+	__asm__ __volatile__ ("csrw " #csr ", %0"		\
+			      : : "rK" (__v));			\
 })
 
 #define csr_read_set(csr,val)					\
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
-	if (CSR_ZIMM(val)) {					\
-		__asm__ __volatile__ (				\
-			"csrrs %0, " #csr ", %1"		\
-			: "=r" (__v) : "i" (__v));		\
-	} else {						\
-		__asm__ __volatile__ (				\
-			"csrrs %0, " #csr ", %1"		\
-			: "=r" (__v) : "r" (__v));		\
-	}							\
+	__asm__ __volatile__ ("csrrs %0, " #csr ", %1"		\
+			      : "=r" (__v) : "rK" (__v));	\
 	__v;							\
 })
 
 #define csr_set(csr,val)					\
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
-	if (CSR_ZIMM(__v)) {					\
-		__asm__ __volatile__ (				\
-			"csrs " #csr ", %0" : : "i" (__v));	\
-	} else {						\
-		__asm__ __volatile__ (				\
-			"csrs " #csr ", %0" : : "r" (__v));	\
-	}							\
+	__asm__ __volatile__ ("csrs " #csr ", %0"		\
+			      : : "rK" (__v));			\
 })
 
 #define csr_read_clear(csr,val)					\
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
-	if (CSR_ZIMM(__v)) {					\
-		__asm__ __volatile__ (				\
-			"csrrc %0, " #csr ", %1"		\
-			: "=r" (__v) : "i" (__v));		\
-	} else {						\
-		__asm__ __volatile__ (				\
-			"csrrc %0, " #csr ", %1"		\
-			: "=r" (__v) : "r" (__v));		\
-	}							\
+	__asm__ __volatile__ ("csrrc %0, " #csr ", %1"		\
+			      : "=r" (__v) : "rK" (__v));	\
 	__v;							\
 })
 
 #define csr_clear(csr,val)					\
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
-	if (CSR_ZIMM(__v)) {					\
-		__asm__ __volatile__ (				\
-			"csrc " #csr ", %0" : : "i" (__v));	\
-	} else {						\
-		__asm__ __volatile__ (				\
-			"csrc " #csr ", %0" : : "r" (__v));	\
-	}							\
+	__asm__ __volatile__ ("csrc " #csr ", %0"		\
+			      : : "rK" (__v));			\
 })
 
 #endif /* __ASSEMBLY__ */

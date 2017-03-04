@@ -51,12 +51,11 @@ struct thread_info {
 
 /*
  * Pointer to the thread_info struct of the current process
- * Assumes that the kernel mode stack (thread_union) is THREAD_SIZE-aligned
  */
 static inline struct thread_info *current_thread_info(void)
 {
-	register unsigned long sp __asm__ ("sp");
-	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
+	register struct thread_info *tp __asm__ ("tp");
+	return tp;
 }
 
 #endif /* !__ASSEMBLY__ */

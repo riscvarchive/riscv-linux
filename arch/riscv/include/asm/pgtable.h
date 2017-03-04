@@ -47,11 +47,12 @@
 #define PAGE_SHARED_EXEC	PAGE_WRITE_EXEC
 
 #define PAGE_KERNEL		__pgprot(_PAGE_READ | _PAGE_WRITE |	\
-					 _PAGE_PRESENT | _PAGE_ACCESSED)
-#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_READ | _PAGE_WRITE |	_PAGE_EXEC | \
-					 _PAGE_PRESENT | _PAGE_ACCESSED)
+					 _PAGE_PRESENT |		\
+					 _PAGE_ACCESSED | _PAGE_DIRTY)
+#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC | \
+					 _PAGE_PRESENT | _PAGE_ACCESSED | _PAGE_DIRTY)
 
-#define swapper_pg_dir NULL
+extern pgd_t swapper_pg_dir[];
 
 /* MAP_PRIVATE permissions: xwr (copy-on-write) */
 #define __P000	PAGE_NONE
@@ -245,12 +246,12 @@ static inline pte_t pte_mkclean(pte_t pte)
 
 static inline pte_t pte_mkyoung(pte_t pte)
 {
-	return __pte(pte_val(pte) & ~(_PAGE_ACCESSED));
+	return __pte(pte_val(pte) | _PAGE_ACCESSED);
 }
 
 static inline pte_t pte_mkold(pte_t pte)
 {
-	return __pte(pte_val(pte) | _PAGE_ACCESSED);
+	return __pte(pte_val(pte) & ~(_PAGE_ACCESSED));
 }
 
 static inline pte_t pte_mkspecial(pte_t pte)

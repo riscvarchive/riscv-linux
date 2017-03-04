@@ -27,7 +27,8 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 
 void __init setup_smp(void)
 {
-	int i, num_cpus = sbi_num_harts();
+#warning FIXME CONFIG STRING: number of boot CPUs hard-wired to 1
+	int i, num_cpus = 1;
 
 	for (i = 0; i < min(num_cpus, NR_CPUS); i++) {
 		set_cpu_possible(i, true);
@@ -38,10 +39,11 @@ void __init setup_smp(void)
 int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 {
 	/* Signal cpu to start */
+	mb();
 	__cpu_up_stack_pointer[cpu] = task_stack_page(tidle) + THREAD_SIZE;
 
 	while (!cpu_online(cpu))
-		;
+		cpu_relax();
 	
 	return 0;
 }

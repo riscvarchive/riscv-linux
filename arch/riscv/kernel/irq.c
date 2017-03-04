@@ -4,7 +4,6 @@
 
 #include <asm/ptrace.h>
 #include <asm/sbi.h>
-#include <asm/sbi-con.h>
 #include <asm/smp.h>
 
 struct plic_context {
@@ -24,10 +23,6 @@ static void riscv_software_interrupt(void)
 	if (ret != IRQ_NONE)
 		return;
 #endif
-
-	ret = sbi_console_isr();
-	if (ret != IRQ_NONE)
-		return;
 
 	BUG();
 }
@@ -97,6 +92,4 @@ struct irq_chip plic_irq_chip = {
 
 void __init init_IRQ(void)
 {
-	/* Enable software interrupts (and disable the others) */
-	csr_write(sie, SIE_SSIE);
 }
