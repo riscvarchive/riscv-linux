@@ -49,6 +49,8 @@
 #define PAGE_KERNEL		__pgprot(_PAGE_READ | _PAGE_WRITE |	\
 					 _PAGE_PRESENT |		\
 					 _PAGE_ACCESSED | _PAGE_DIRTY)
+#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_READ | _PAGE_WRITE | _PAGE_EXEC | \
+					 _PAGE_PRESENT | _PAGE_ACCESSED | _PAGE_DIRTY)
 
 extern pgd_t swapper_pg_dir[];
 
