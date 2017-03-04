@@ -46,9 +46,14 @@
 #define PAGE_SHARED		PAGE_WRITE
 #define PAGE_SHARED_EXEC	PAGE_WRITE_EXEC
 
-#define PAGE_KERNEL		__pgprot(_PAGE_READ | _PAGE_WRITE |	\
-					 _PAGE_PRESENT |		\
-					 _PAGE_ACCESSED | _PAGE_DIRTY)
+#define _PAGE_KERNEL		_PAGE_READ \
+				| _PAGE_WRITE \
+				| _PAGE_PRESET \
+				| _PAGE_ACESSED \
+				| _PAGE_DIRTY
+
+#define PAGE_KERNEL		__pgprot(_PAGE_KERNEL)
+#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_KERNEL | _PAGE_EXEC)
 
 extern pgd_t swapper_pg_dir[];
 
