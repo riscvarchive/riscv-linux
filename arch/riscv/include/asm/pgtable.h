@@ -48,6 +48,8 @@
 
 #define PAGE_KERNEL		__pgprot(_PAGE_READ | _PAGE_WRITE |	\
 					 _PAGE_PRESENT | _PAGE_ACCESSED)
+#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_READ | _PAGE_WRITE |	_PAGE_EXEC | \
+					 _PAGE_PRESENT | _PAGE_ACCESSED)
 
 #define swapper_pg_dir NULL
 
