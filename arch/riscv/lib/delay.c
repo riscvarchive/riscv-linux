@@ -5,7 +5,7 @@
 
 void __delay(unsigned long cycles)
 {
-	cycle_t t0 = get_cycles();
+	u64 t0 = get_cycles();
 	while ((unsigned long)(get_cycles() - t0) < cycles)
 		cpu_relax();
 }

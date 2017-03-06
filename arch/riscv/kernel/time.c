@@ -32,7 +32,7 @@ static int riscv_timer_set_shutdown(struct clock_event_device *evt)
 	return 0;
 }
 
-static cycle_t riscv_rdtime(struct clocksource *cs)
+static u64 riscv_rdtime(struct clocksource *cs)
 {
 	return get_cycles();
 }
