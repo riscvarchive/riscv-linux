@@ -61,11 +61,6 @@ static inline void release_thread(struct task_struct *dead_task)
 {
 }
 
-/* Free current thread data structures, etc. */
-static inline void exit_thread(void)
-{
-}
-
 extern unsigned long get_wchan(struct task_struct *p);
 
 
