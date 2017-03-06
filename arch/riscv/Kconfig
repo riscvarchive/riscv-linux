@@ -73,6 +73,9 @@ config PGTABLE_LEVELS
 config HAVE_KPROBES
 	def_bool n
 
+config DMA_NOOP_OPS
+	def_bool y
+
 menu "Platform type"
 
 config SMP
