@@ -30,6 +30,7 @@ config RISCV
 	select SPARSE_IRQ
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
+	select MODULES_USE_ELF_RELA if MODULES
 
 config MMU
 	def_bool y
