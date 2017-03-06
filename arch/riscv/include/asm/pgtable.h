@@ -48,8 +48,8 @@
 
 #define _PAGE_KERNEL		_PAGE_READ \
 				| _PAGE_WRITE \
-				| _PAGE_PRESET \
-				| _PAGE_ACESSED \
+				| _PAGE_PRESENT \
+				| _PAGE_ACCESSED \
 				| _PAGE_DIRTY
 
 #define PAGE_KERNEL		__pgprot(_PAGE_KERNEL)
