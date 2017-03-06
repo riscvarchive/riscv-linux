@@ -24,12 +24,9 @@
 /* Use ops->dma_mapping_error (if it exists) or assume success */
 // #undef DMA_ERROR_CODE
 
-static inline struct dma_map_ops *get_dma_ops(struct device *dev)
+static inline struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 {
-	if (unlikely(dev->archdata.dma_ops))
-		return dev->archdata.dma_ops;
-	else
-		return &dma_noop_ops;
+	return &dma_noop_ops;
 }
 
 static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
