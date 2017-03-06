@@ -13,5 +13,6 @@ CFLAGS_setup.o := -mcmodel=medany
 obj-$(CONFIG_SMP)		+= smpboot.o smp.o
 obj-$(CONFIG_SBI_CONSOLE)	+= sbi-con.o
 obj-$(CONFIG_PCI)		+= pci.o
+obj-$(CONFIG_MODULES)		+= module.o
 
 clean:
