@@ -10,6 +10,8 @@ typedef struct user_regs_struct elf_gregset_t;
 
 typedef struct user_fpregs_struct elf_fpregset_t;
 
+#define ELF_RISCV_R_SYM(r_info) ((r_info) >> 32)
+#define ELF_RISCV_R_TYPE(r_info) ((r_info) & 0xffffffff)
 
 /*
  * RISC-V relocation types
@@ -60,5 +62,11 @@ typedef struct user_fpregs_struct elf_fpregset_t;
 #define R_RISCV_ALIGN		43
 #define R_RISCV_RVC_BRANCH	44
 #define R_RISCV_RVC_JUMP	45
+#define R_RISCV_LUI			46
+#define R_RISCV_GPREL_I		47
+#define R_RISCV_GPREL_S		48
+#define R_RISCV_TPREL_I		49
+#define R_RISCV_TPREL_S		50
+#define R_RISCV_RELAX		51
 
 #endif /* _UAPI_ASM_ELF_H */
