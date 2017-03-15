@@ -23,7 +23,7 @@
  *
  * This assumes you have a 1.8432 MHz clock for your UART.
  */
-#define BASE_BAUD ( 1843200 / 16 )
+#define BASE_BAUD (1843200 / 16)
 
 /* Standard COM flags */
 #ifdef CONFIG_SERIAL_DETECT_IRQ
@@ -32,7 +32,7 @@
 #define STD_COM_FLAGS (ASYNC_BOOT_AUTOCONF | ASYNC_SKIP_TEST)
 #endif
 
-#define SERIAL_PORT_DFNS 			\
+#define SERIAL_PORT_DFNS			\
 	{	/* ttyS0 */			\
 		.baud_base = BASE_BAUD,		\
 		.port      = 0x3F8,		\

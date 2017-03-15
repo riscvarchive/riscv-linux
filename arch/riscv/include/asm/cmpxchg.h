@@ -89,7 +89,7 @@
 	__ret;								\
 })
 
-#define __cmpxchg_mb(ptr, old, new, size) 			\
+#define __cmpxchg_mb(ptr, old, new, size)			\
 ({								\
 	__typeof__(*(ptr)) __ret;				\
 	smp_mb();						\

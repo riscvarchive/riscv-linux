@@ -60,6 +60,7 @@ static inline void atomic_add(int i, atomic_t *v)
 static inline int atomic_fetch_add(unsigned int mask, atomic_t *v)
 {
 	int out;
+
 	__asm__ __volatile__ (
 		"amoadd.w %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -72,6 +73,7 @@ static inline int atomic_fetch_add(unsigned int mask, atomic_t *v)
 static inline long atomic64_fetch_add(unsigned long mask, atomic64_t *v)
 {
 	long out;
+
 	__asm__ __volatile__ (
 		"amoadd.d %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -96,6 +98,7 @@ static inline void atomic_sub(int i, atomic_t *v)
 static inline int atomic_fetch_sub(unsigned int mask, atomic_t *v)
 {
 	int out;
+
 	__asm__ __volatile__ (
 		"amosub.w %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -108,6 +111,7 @@ static inline int atomic_fetch_sub(unsigned int mask, atomic_t *v)
 static inline long atomic64_fetch_sub(unsigned long mask, atomic64_t *v)
 {
 	long out;
+
 	__asm__ __volatile__ (
 		"amosub.d %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -126,6 +130,7 @@ static inline long atomic64_fetch_sub(unsigned long mask, atomic64_t *v)
 static inline int atomic_add_return(int i, atomic_t *v)
 {
 	register int c;
+
 	__asm__ __volatile__ (
 		"amoadd.w %0, %2, %1"
 		: "=r" (c), "+A" (v->counter)
@@ -221,7 +226,7 @@ static inline int atomic_dec_and_test(atomic_t *v)
  * atomic_add_negative - add and test if negative
  * @i: integer value to add
  * @v: pointer of type atomic_t
- * 
+ *
  * Atomically adds @i to @v and returns true
  * if the result is negative, or false when
  * result is greater than or equal to zero.
@@ -235,6 +240,7 @@ static inline int atomic_add_negative(int i, atomic_t *v)
 static inline int atomic_xchg(atomic_t *v, int n)
 {
 	register int c;
+
 	__asm__ __volatile__ (
 		"amoswap.w %0, %2, %1"
 		: "=r" (c), "+A" (v->counter)
@@ -259,6 +265,7 @@ static inline int atomic_cmpxchg(atomic_t *v, int o, int n)
 static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
 	register int prev, rc;
+
 	__asm__ __volatile__ (
 	"0:"
 		"lr.w %0, %2\n"
@@ -291,6 +298,7 @@ static inline void atomic_and(unsigned int mask, atomic_t *v)
 static inline int atomic_fetch_and(unsigned int mask, atomic_t *v)
 {
 	int out;
+
 	__asm__ __volatile__ (
 		"amoand.w %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -303,6 +311,7 @@ static inline int atomic_fetch_and(unsigned int mask, atomic_t *v)
 static inline long atomic64_fetch_and(unsigned long mask, atomic64_t *v)
 {
 	long out;
+
 	__asm__ __volatile__ (
 		"amoand.d %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -330,6 +339,7 @@ static inline void atomic_or(unsigned int mask, atomic_t *v)
 static inline int atomic_fetch_or(unsigned int mask, atomic_t *v)
 {
 	int out;
+
 	__asm__ __volatile__ (
 		"amoor.w %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -342,6 +352,7 @@ static inline int atomic_fetch_or(unsigned int mask, atomic_t *v)
 static inline long atomic64_fetch_or(unsigned long mask, atomic64_t *v)
 {
 	long out;
+
 	__asm__ __volatile__ (
 		"amoor.d %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -369,6 +380,7 @@ static inline void atomic_xor(unsigned int mask, atomic_t *v)
 static inline int atomic_fetch_xor(unsigned int mask, atomic_t *v)
 {
 	int out;
+
 	__asm__ __volatile__ (
 		"amoxor.w %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)
@@ -381,6 +393,7 @@ static inline int atomic_fetch_xor(unsigned int mask, atomic_t *v)
 static inline long atomic64_fetch_xor(unsigned long mask, atomic64_t *v)
 {
 	long out;
+
 	__asm__ __volatile__ (
 		"amoxor.d %2, %1, %0"
 		: "+A" (v->counter), "=r" (out)

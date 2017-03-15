@@ -53,6 +53,7 @@ static inline long syscall_get_error(struct task_struct *task,
 				     struct pt_regs *regs)
 {
 	unsigned long error = regs->a0;
+
 	return IS_ERR_VALUE(error) ? error : 0;
 }
 

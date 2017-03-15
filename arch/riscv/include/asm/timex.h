@@ -25,12 +25,14 @@ static inline cycles_t get_cycles(void)
 {
 #if __riscv_xlen >= 64
 	cycles_t n;
+
 	__asm__ __volatile__ (
 		"rdtime %0"
 		: "=r" (n));
 	return n;
 #else
 	u32 lo, hi, tmp;
+
 	__asm__ __volatile__ (
 		"1:\n"
 		"rdtimeh %0\n"

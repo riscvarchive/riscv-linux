@@ -321,7 +321,7 @@ do {								\
 #define __put_user_8(x, ptr, err)				\
 do {								\
 	u32 __user *__ptr = (u32 __user *)(ptr);		\
-	u64 __x = (__typeof__((x)-(x)))(x);	 		\
+	u64 __x = (__typeof__((x)-(x)))(x);			\
 	uintptr_t __tmp;					\
 	__enable_user_access();					\
 	__asm__ __volatile__ (					\
@@ -444,7 +444,7 @@ static inline long __must_check __copy_to_user(void __user *to,
 	__copy_to_user((to), (from), (n))
 
 static inline long copy_from_user(void *to,
-		const void __user * from, unsigned long n)
+		const void __user *from, unsigned long n)
 {
 	might_fault();
 	return access_ok(VERIFY_READ, from, n) ?

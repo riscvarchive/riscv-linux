@@ -164,7 +164,7 @@ static inline pte_t mk_pte(struct page *page, pgprot_t prot)
 	return pfn_pte(page_to_pfn(page), prot);
 }
 
-#define pte_index(addr) (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)) 
+#define pte_index(addr) (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
 
 static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long addr)
 {
@@ -406,7 +406,8 @@ static inline void pgtable_cache_init(void)
 #define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
 
 /* Task size is 0x40000000000 for RV64 or 0xb800000 for RV32.
-   Note that PGDIR_SIZE must evenly divide TASK_SIZE. */
+ * Note that PGDIR_SIZE must evenly divide TASK_SIZE.
+ */
 #ifdef CONFIG_64BIT
 #define TASK_SIZE (PGDIR_SIZE * PTRS_PER_PGD / 2)
 #else

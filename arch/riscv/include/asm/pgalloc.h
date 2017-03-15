@@ -23,6 +23,7 @@ static inline void pmd_populate_kernel(struct mm_struct *mm,
 	pmd_t *pmd, pte_t *pte)
 {
 	unsigned long pfn = virt_to_pfn(pte);
+
 	set_pmd(pmd, __pmd((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 }
 
@@ -30,6 +31,7 @@ static inline void pmd_populate(struct mm_struct *mm,
 	pmd_t *pmd, pgtable_t pte)
 {
 	unsigned long pfn = virt_to_pfn(page_address(pte));
+
 	set_pmd(pmd, __pmd((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 }
 
@@ -37,6 +39,7 @@ static inline void pmd_populate(struct mm_struct *mm,
 static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 	unsigned long pfn = virt_to_pfn(pmd);
+
 	set_pud(pud, __pud((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 }
 #endif /* __PAGETABLE_PMD_FOLDED */
@@ -91,6 +94,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
 	unsigned long address)
 {
 	struct page *pte;
+
 	pte = alloc_page(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
 	if (likely(pte != NULL)) {
 		pgtable_page_ctor(pte);

@@ -22,9 +22,9 @@
 #endif
 
 #if __riscv_xlen == 64
-#define __REG_SEL(a,b)	__ASM_STR(a)
+#define __REG_SEL(a, b)	__ASM_STR(a)
 #elif __riscv_xlen == 32
-#define __REG_SEL(a,b)	__ASM_STR(b)
+#define __REG_SEL(a, b)	__ASM_STR(b)
 #else
 #error "Unexpected __riscv_xlen"
 #endif
@@ -35,9 +35,9 @@
 #define LGREG		__REG_SEL(3, 2)
 
 #if __SIZEOF_POINTER__ == 8
-#define __PTR_SEL(a,b)	__ASM_STR(a)
+#define __PTR_SEL(a, b)	__ASM_STR(a)
 #elif __SIZEOF_POINTER__ == 4
-#define __PTR_SEL(a,b)	__ASM_STR(b)
+#define __PTR_SEL(a, b)	__ASM_STR(b)
 #else
 #error "Unexpected __SIZEOF_POINTER__"
 #endif

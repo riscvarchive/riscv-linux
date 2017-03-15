@@ -50,8 +50,9 @@ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t dev_addr)
 static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size, enum dma_data_direction dir)
 {
 	/*
-	 * RISC-V is cache-coherent, so this is mostly a no-op.  However, we do need to
-	 * ensure that dma_cache_sync() enforces order, hence the mb().
+	 * RISC-V is cache-coherent, so this is mostly a no-op.
+	 * However, we do need to ensure that dma_cache_sync()
+	 * enforces order, hence the mb().
 	 */
 	mb();
 }

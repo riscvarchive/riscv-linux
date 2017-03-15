@@ -22,7 +22,7 @@
 #include <asm/asm.h>
 
 #ifdef CONFIG_GENERIC_BUG
-#define __BUG_INSN	_AC(0x00100073,UL) /* sbreak */
+#define __BUG_INSN	_AC(0x00100073, UL) /* sbreak */
 
 #ifndef __ASSEMBLY__
 typedef u32 bug_insn_t;

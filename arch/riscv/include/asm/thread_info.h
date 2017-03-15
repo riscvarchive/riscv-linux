@@ -22,8 +22,8 @@
 #include <linux/const.h>
 
 /* thread information allocation */
-#define THREAD_SIZE_ORDER 	(1)
-#define THREAD_SIZE 		(PAGE_SIZE << THREAD_SIZE_ORDER)
+#define THREAD_SIZE_ORDER	(1)
+#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
 
 #ifndef __ASSEMBLY__
 

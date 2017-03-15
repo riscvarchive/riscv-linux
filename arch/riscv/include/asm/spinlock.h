@@ -99,7 +99,7 @@ static inline void arch_write_lock(arch_rwlock_t *lock)
 		:: "memory");
 }
 
-static inline int arch_read_trylock(arch_rwlock_t * lock)
+static inline int arch_read_trylock(arch_rwlock_t *lock)
 {
 	int busy;
 
@@ -116,7 +116,7 @@ static inline int arch_read_trylock(arch_rwlock_t * lock)
 	return !busy;
 }
 
-static inline int arch_write_trylock(arch_rwlock_t * lock)
+static inline int arch_write_trylock(arch_rwlock_t *lock)
 {
 	int busy;
 
@@ -129,11 +129,11 @@ static inline int arch_write_trylock(arch_rwlock_t * lock)
 		"1:\n"
 		: "+A" (lock->lock), "=&r" (busy)
 		:: "memory");
-	
+
 	return !busy;
 }
 
-static inline void arch_read_unlock(arch_rwlock_t * lock)
+static inline void arch_read_unlock(arch_rwlock_t *lock)
 {
 	__asm__ __volatile__(
 		"amoadd.w.rl x0, %1, %0"
@@ -142,7 +142,7 @@ static inline void arch_read_unlock(arch_rwlock_t * lock)
 		: "memory");
 }
 
-static inline void arch_write_unlock(arch_rwlock_t * lock)
+static inline void arch_write_unlock(arch_rwlock_t *lock)
 {
 	__asm__ __volatile__ (
 		"amoswap.w.rl x0, x0, %0"

@@ -79,6 +79,7 @@ static inline void atomic64_sub(s64 a, atomic64_t *v)
 static inline s64 atomic64_add_return(s64 a, atomic64_t *v)
 {
 	register s64 c;
+
 	__asm__ __volatile__ (
 		"amoadd.d %0, %2, %1"
 		: "=r" (c), "+A" (v->counter)
@@ -181,6 +182,7 @@ static inline int atomic64_add_negative(s64 a, atomic64_t *v)
 static inline s64 atomic64_xchg(atomic64_t *v, s64 n)
 {
 	register s64 c;
+
 	__asm__ __volatile__ (
 		"amoswap.d %0, %2, %1"
 		: "=r" (c), "+A" (v->counter)
@@ -203,6 +205,7 @@ static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
 static inline s64 atomic64_dec_if_positive(atomic64_t *v)
 {
 	register s64 prev, rc;
+
 	__asm__ __volatile__ (
 	"0:"
 		"lr.d %0, %2\n"

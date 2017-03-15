@@ -19,12 +19,12 @@
 
 #define PGDIR_SHIFT     30
 /* Size of region mapped by a page global directory */
-#define PGDIR_SIZE      (_AC(1,UL) << PGDIR_SHIFT)
+#define PGDIR_SIZE      (_AC(1, UL) << PGDIR_SHIFT)
 #define PGDIR_MASK      (~(PGDIR_SIZE - 1))
 
 #define PMD_SHIFT       21
 /* Size of region mapped by a page middle directory */
-#define PMD_SIZE        (_AC(1,UL) << PMD_SHIFT)
+#define PMD_SIZE        (_AC(1, UL) << PMD_SHIFT)
 #define PMD_MASK        (~(PMD_SIZE - 1))
 
 /* Page Middle Directory entry */
