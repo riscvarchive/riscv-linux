@@ -1,4 +1,3 @@
-#
 # This file is included by the global makefile so that you can add your own
 # architecture-specific flags and dependencies. Remember to do have actions
 # for "archclean" and "archdep" for cleaning up and making dependencies for
