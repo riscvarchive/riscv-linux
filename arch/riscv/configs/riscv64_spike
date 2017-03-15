@@ -1,7 +1,4 @@
-# CONFIG_COMPACTION is not set
-CONFIG_HZ_100=y
 CONFIG_PCI=y
-CONFIG_CROSS_COMPILE="riscv64-unknown-linux-gnu-"
 CONFIG_DEFAULT_HOSTNAME="ucbvax"
 # CONFIG_CROSS_MEMORY_ATTACH is not set
 # CONFIG_FHANDLE is not set
