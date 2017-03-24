@@ -5,6 +5,7 @@
 #include <linux/initrd.h>
 #include <linux/console.h>
 #include <linux/screen_info.h>
+#include <linux/of_fdt.h>
 
 #include <asm/setup.h>
 #include <asm/sections.h>
@@ -24,7 +25,6 @@ struct screen_info screen_info = {
 };
 #endif
 
-static char __initdata command_line[COMMAND_LINE_SIZE];
 #ifdef CONFIG_CMDLINE_BOOL
 static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
 #endif /* CONFIG_CMDLINE_BOOL */
@@ -67,23 +67,9 @@ disable:
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
-static resource_size_t __initdata mem_size;
-
-/* Parse "mem=nn[KkMmGg]" */
-static int __init early_mem(char *p)
-{
-	if (!p)
-		return -EINVAL;
-	mem_size = memparse(p, &p) & PMD_MASK;
-	if (mem_size == 0)
-		return -EINVAL;
-	return 0;
-}
-early_param("mem", early_mem);
-
 #define NUM_SWAPPER_PMDS ((uintptr_t)-PAGE_OFFSET >> PGDIR_SHIFT)
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
-pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
+pmd_t swapper_pmd[PTRS_PER_PMD*((-PAGE_OFFSET)/PGDIR_SIZE)] __page_aligned_bss;
 
 pgd_t trampoline_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
 pmd_t trampoline_pmd[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
@@ -93,7 +79,6 @@ asmlinkage void __init setup_vm(void)
 	extern char _start;
 	uintptr_t i;
 	uintptr_t pa = (uintptr_t) &_start;
-	uintptr_t size = roundup((uintptr_t) _end - pa, PMD_SIZE);
 	uintptr_t pmd_pfn = PFN_DOWN((uintptr_t)swapper_pmd);
 	uintptr_t prot = pgprot_val(PAGE_KERNEL) | _PAGE_EXEC;
 	pgd_t pmd = __pgd((pmd_pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
@@ -101,37 +86,56 @@ asmlinkage void __init setup_vm(void)
 	/* Sanity check alignment and size */
 	BUG_ON((pa % PMD_SIZE) != 0);
 	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
-	BUG_ON(size > PGDIR_SIZE);
 
 	va_pa_offset = PAGE_OFFSET - pa;
 	pfn_base = PFN_DOWN(pa);
-	mem_size = size;
 
 	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
 	trampoline_pmd[0] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
 
-	swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
-	for (i = 0; i < size / PMD_SIZE; i++, pa += PMD_SIZE)
+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
+		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
+			__pgd(((pmd_pfn+i) << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
+	for (i = 0; i < sizeof(swapper_pmd)/sizeof(swapper_pmd[0]); i++, pa += PMD_SIZE)
 		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
 }
 
+void __init early_init_devtree(void *dtb)
+{
+	early_init_dt_scan(__va(dtb));
+}
+
+/* Allow the user to manually add a memory region (in case DTS is broken); "mem_end=nn[KkMmGg]" */
+static int __init mem_end_override(char *p)
+{
+	resource_size_t base, end;
+	if (!p)
+		return -EINVAL;
+	base = (uintptr_t) __pa(PAGE_OFFSET);
+	end = memparse(p, &p) & PMD_MASK;
+	if (end == 0)
+		return -EINVAL;
+	memblock_add(base, end - base);
+	return 0;
+}
+early_param("mem_end", mem_end_override);
+
 static void __init setup_bootmem(void)
 {
-	extern char _start;
+	struct memblock_region *reg;
+	phys_addr_t mem_size = 0;
 
-#warning FIXME CONFIG STRING: enumerate physical memory
-	{
-		/* Assume we have 4 * (kernel size) memory in total */
-		uintptr_t i, extra = 3 * (mem_size / PMD_SIZE);
-		uintptr_t va = (uintptr_t) &_start + mem_size;
-		mem_size += extra * PMD_SIZE;
-		for (i = 0; i < extra; i++, va += PMD_SIZE) {
-			uintptr_t prot = pgprot_val(PAGE_KERNEL);
-			pmd_t pte = __pmd((PFN_DOWN(__pa(va)) << _PAGE_PFN_SHIFT) | prot);
-			swapper_pmd[(va >> PMD_SHIFT) % PTRS_PER_PMD] = pte;
+	/* Find the memory region containing the kernel */
+	for_each_memblock(memory, reg) {
+		phys_addr_t vmlinux_end = __pa(_end);
+		phys_addr_t end = reg->base + reg->size;
+		if (reg->base <= vmlinux_end && vmlinux_end <= end) {
+			/* Reserve from the start of the region to the end of the kernel */
+			memblock_reserve(reg->base, vmlinux_end - reg->base);
+			mem_size = min(reg->size, (phys_addr_t)-PAGE_OFFSET);
 		}
-		local_flush_tlb_all();
 	}
+	BUG_ON(mem_size == 0);
 
 	set_max_mapnr(PFN_DOWN(mem_size));
 	max_low_pfn = pfn_base + PFN_DOWN(mem_size);
@@ -140,8 +144,10 @@ static void __init setup_bootmem(void)
 	setup_initrd();
 #endif /* CONFIG_BLK_DEV_INITRD */
 
-	memblock_reserve(__pa(&_start), (uintptr_t) _end - (uintptr_t) &_start);
+	early_init_fdt_reserve_self();
+	early_init_fdt_scan_reserved_mem();
 	memblock_allow_resize();
+	memblock_dump_all();
 }
 
 void __init setup_arch(char **cmdline_p)
@@ -158,8 +164,7 @@ void __init setup_arch(char **cmdline_p)
 	}
 #endif /* CONFIG_CMDLINE_OVERRIDE */
 #endif /* CONFIG_CMDLINE_BOOL */
-	strlcpy(command_line, boot_command_line, COMMAND_LINE_SIZE);
-	*cmdline_p = command_line;
+	*cmdline_p = boot_command_line;
 
 	parse_early_param();
 
@@ -169,10 +174,12 @@ void __init setup_arch(char **cmdline_p)
 	init_mm.brk        = (unsigned long) _end;
 
 	setup_bootmem();
+
 #ifdef CONFIG_SMP
 	setup_smp();
 #endif
 	paging_init();
+	unflatten_device_tree();
 
 #ifdef CONFIG_DUMMY_CONSOLE
 	conswitchp = &dummy_con;

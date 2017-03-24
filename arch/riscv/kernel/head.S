@@ -23,15 +23,22 @@ ENTRY(_start)
 	/* By SBI convention, hart ID is in a0 */
 	bnez a0, .Lsecondary_start
 
+	/* Save DTB physical address */
+	mv s0, a1
+
 	/* Initialize page tables and relocate to virtual addresses */
 	la sp, init_thread_union + THREAD_SIZE
 	call setup_vm
 	call relocate
 
-	/* Start the kernel */
+	/* Restore C environment */
 	la tp, init_thread_union
 	li sp, THREAD_SIZE
 	add sp, sp, tp
+
+	/* Start the kernel */
+	mv a0, s0
+	call early_init_devtree
 	tail start_kernel
 
 relocate:
