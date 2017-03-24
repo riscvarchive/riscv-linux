@@ -174,12 +174,12 @@ void __init setup_arch(char **cmdline_p)
 	init_mm.brk        = (unsigned long) _end;
 
 	setup_bootmem();
+	paging_init();
+	unflatten_device_tree();
 
 #ifdef CONFIG_SMP
 	setup_smp();
 #endif
-	paging_init();
-	unflatten_device_tree();
 
 #ifdef CONFIG_DUMMY_CONSOLE
 	conswitchp = &dummy_con;
