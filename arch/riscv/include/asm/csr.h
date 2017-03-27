@@ -48,6 +48,9 @@
 #define EXC_LOAD_ACCESS         5
 #define EXC_STORE_ACCESS        7
 #define EXC_SYSCALL             8
+#define EXC_INST_PAGE_FAULT     12
+#define EXC_LOAD_PAGE_FAULT     13
+#define EXC_STORE_PAGE_FAULT    15
 
 #ifndef __ASSEMBLY__
 

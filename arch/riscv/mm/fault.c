@@ -76,15 +76,15 @@ good_area:
 	code = SEGV_ACCERR;
 
 	switch (cause) {
-	case EXC_INST_ACCESS:
+	case EXC_INST_PAGE_FAULT:
 		if (!(vma->vm_flags & VM_EXEC))
 			goto bad_area;
 		break;
-	case EXC_LOAD_ACCESS:
+	case EXC_LOAD_PAGE_FAULT:
 		if (!(vma->vm_flags & VM_READ))
 			goto bad_area;
 		break;
-	case EXC_STORE_ACCESS:
+	case EXC_STORE_PAGE_FAULT:
 		if (!(vma->vm_flags & VM_WRITE))
 			goto bad_area;
 		flags |= FAULT_FLAG_WRITE;
