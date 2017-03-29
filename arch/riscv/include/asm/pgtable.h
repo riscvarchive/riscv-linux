@@ -12,6 +12,7 @@
 /* Page Upper Directory not used in RISC-V */
 #include <asm-generic/pgtable-nopud.h>
 #include <asm/page.h>
+#include <asm/tlbflush.h>
 #include <linux/mm_types.h>
 
 #ifdef CONFIG_64BIT
@@ -276,6 +277,24 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 static inline void update_mmu_cache(struct vm_area_struct *vma,
 	unsigned long address, pte_t *ptep)
 {
+	/* The kernel assumes that TLBs don't cache invalid entries, but
+	 * in RISC-V, SFENCE.VMA specifies an ordering constraint, not a
+	 * cache flush; it is necessary even after writing invalid entries.
+	 * Relying on flush_tlb_fix_spurious_fault would suffice, but
+	 * the extra traps reduce performance.  So, eagerly SFENCE.VMA. */
+	local_flush_tlb_page(address);
+}
+
+#define __HAVE_ARCH_PTEP_SET_ACCESS_FLAGS
+static inline int ptep_set_access_flags(struct vm_area_struct *vma,
+					unsigned long address, pte_t *ptep,
+					pte_t entry, int dirty)
+{
+	if (pte_val(*ptep) != pte_val(entry))
+		set_pte_at(vma->vm_mm, address, ptep, entry);
+	/* update_mmu_cache will unconditionally execute, handling both
+	 * the case that the PTE changed and the spurious fault case. */
+	return true;
 }
 
 /*
