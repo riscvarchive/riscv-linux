@@ -259,12 +259,6 @@ static inline void atomic_xor(unsigned int mask, atomic_t *v)
 		: "r" (mask));
 }
 
-/* Assume that atomic operations are already serializing */
-#define smp_mb__before_atomic_dec()	barrier()
-#define smp_mb__after_atomic_dec()	barrier()
-#define smp_mb__before_atomic_inc()	barrier()
-#define smp_mb__after_atomic_inc()	barrier()
-
 #else /* !CONFIG_RV_ATOMIC */
 
 #include <asm-generic/atomic.h>
