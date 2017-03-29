@@ -2,13 +2,9 @@
 #define _ASM_RISCV_PGTABLE_BITS_H
 
 /*
- * RV32Sv32 page table entry:
- * | 31 10 | 9             7 | 6 | 5 | 4  1 | 0
- *    PFN    reserved for SW   D   R   TYPE   V
- *
- * RV64Sv39 / RV64Sv48 page table entry:
- * | 63           48 | 47 10 | 9             7 | 6 | 5 | 4  1 | 0
- *   reserved for HW    PFN    reserved for SW   D   R   TYPE   V
+ * PTE format:
+ * | XLEN-1  10 | 9             8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0
+ *       PFN      reserved for SW   D   A   G   U   X   W   R   V
  */
 
 #define _PAGE_PRESENT   (1 << 0)
