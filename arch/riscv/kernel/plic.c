@@ -25,7 +25,7 @@ struct plic_data {
 	void __iomem		*reg;
 	int			handlers;
 	struct plic_handler	*handler;
-	char			name[20];
+	char			name[30];
 };
 
 struct plic_handler {
@@ -85,8 +85,8 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 
 static int plic_init(struct device_node *node, struct device_node *parent)
 {
-	static int plic_instance;
 	struct plic_data *data;
+	struct resource resource;
 	int i;
 
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
@@ -107,7 +107,8 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	data->domain = irq_domain_add_linear(node, data->ndev+1, &plic_irqdomain_ops, data);
 	if (WARN_ON(!data->domain)) return -ENOMEM;
 
-	snprintf(data->name, sizeof(data->name), "riscv,plic0,%d", plic_instance);
+	of_address_to_resource(node, 0, &resource);
+	snprintf(data->name, sizeof(data->name), "riscv,plic0,%llx", resource.start);
 	data->chip.name = data->name;
 	data->chip.irq_mask = plic_irq_mask;
 	data->chip.irq_unmask = plic_irq_unmask;
@@ -121,7 +122,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 		irq_set_chained_handler_and_data(irq, plic_chained_handle_irq, handler);
 	}
 
-	printk("PLIC %d mapped %d interrupts to %d handlers\n", plic_instance++, data->ndev, data->handlers);
+	printk("%s: mapped %d interrupts to %d handlers\n", data->name, data->ndev, data->handlers);
 	return 0;
 }
 

@@ -87,8 +87,9 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 	u32 cpu;
 	const char *isa;
 
-	if (of_property_read_u32(parent, "reg", &cpu)) return 0;
-	if (of_property_read_string(parent, "riscv,isa", &isa)) return 0;
+	if (parent) return 0; // should have no interrupt parent
+	if (of_property_read_u32(node->parent, "reg", &cpu)) return 0;
+	if (of_property_read_string(node->parent, "riscv,isa", &isa)) return 0;
 
 	if (cpu < NR_CPUS) {
 		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, cpu);
@@ -98,6 +99,8 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 		data->chip.irq_unmask = riscv_irq_unmask;
 		data->domain = irq_domain_add_linear(node, 8*sizeof(uintptr_t), &riscv_irqdomain_ops, data);
 		WARN_ON(!data->domain);
+		printk("%s: %d local interrupts mapped\n", data->name, 8*(int)sizeof(uintptr_t));
+
 	}
 	return 0;
 }
