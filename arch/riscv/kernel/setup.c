@@ -6,6 +6,7 @@
 #include <linux/console.h>
 #include <linux/screen_info.h>
 #include <linux/of_fdt.h>
+#include <linux/of_platform.h>
 
 #include <asm/setup.h>
 #include <asm/sections.h>
@@ -185,3 +186,9 @@ void __init setup_arch(char **cmdline_p)
 	conswitchp = &dummy_con;
 #endif
 }
+
+static int __init riscv_device_init(void)
+{
+	return of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
+}
+subsys_initcall_sync(riscv_device_init);
