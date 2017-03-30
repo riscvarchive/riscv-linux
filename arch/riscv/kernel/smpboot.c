@@ -29,17 +29,14 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 void __init setup_smp(void)
 {
 	struct device_node *dn = NULL;
-	const __be32 *cell;
-	int cpu;
-
 	while ((dn = of_find_node_by_type(dn, "cpu"))) {
-		cell = of_get_property(dn, "reg", NULL);
-		if (!cell) continue;
-		cpu = of_read_number(cell, of_n_addr_cells(dn));
-		cell = of_get_property(dn, "riscv,isa", NULL);
-		if (!cell) continue;
+		u32 cpu;
+		const char *isa;
 
-		printk("CPU %d: %s ... ", cpu, (const char *)cell);
+		if (of_property_read_u32(dn, "reg", &cpu)) continue;
+		if (of_property_read_string(dn, "riscv,isa", &isa)) continue;
+
+		printk("CPU %d: %s ... ", cpu, isa);
 		if (cpu < NR_CPUS) {
 			set_cpu_possible(cpu, true);
 			set_cpu_present(cpu, true);
