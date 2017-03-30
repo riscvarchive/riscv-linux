@@ -19,9 +19,9 @@ DEFINE_PER_CPU(struct riscv_irq_data, riscv_irq_data);
 
 static void riscv_software_interrupt(void)
 {
+#ifdef CONFIG_SMP
 	irqreturn_t ret;
 
-#ifdef CONFIG_SMP
 	ret = handle_ipi();
 	if (ret != IRQ_NONE)
 		return;
