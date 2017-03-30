@@ -1,18 +1,21 @@
+#include <linux/irq.h>
+#include <linux/irqchip.h>
+#include <linux/irqdomain.h>
 #include <linux/interrupt.h>
 #include <linux/ftrace.h>
+#include <linux/of.h>
 #include <linux/seq_file.h>
 
 #include <asm/ptrace.h>
 #include <asm/sbi.h>
 #include <asm/smp.h>
 
-struct plic_context {
-	volatile int priority_threshold;
-	volatile int claim;
+struct riscv_irq_data {
+	struct irq_chip		chip;
+	struct irq_domain	*domain;
+	char			name[20];
 };
-
-static DEFINE_PER_CPU(struct plic_context *, plic_context);
-static DEFINE_PER_CPU(unsigned int, irq_in_progress);
+DEFINE_PER_CPU(struct riscv_irq_data, riscv_irq_data);
 
 static void riscv_software_interrupt(void)
 {
@@ -25,19 +28,6 @@ static void riscv_software_interrupt(void)
 #endif
 
 	BUG();
-}
-
-static void plic_interrupt(void)
-{
-	unsigned int cpu = smp_processor_id();
-	unsigned int irq = per_cpu(plic_context, cpu)->claim;
-
-	BUG_ON(per_cpu(irq_in_progress, cpu) != 0);
-
-	if (irq) {
-		per_cpu(irq_in_progress, cpu) = irq;
-		generic_handle_irq(irq);
-	}
 }
 
 asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
@@ -55,41 +45,66 @@ asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
 		case INTERRUPT_CAUSE_SOFTWARE:
 			riscv_software_interrupt();
 			break;
-		case INTERRUPT_CAUSE_EXTERNAL:
-			plic_interrupt();
+		default: {
+			struct irq_domain *domain = per_cpu(riscv_irq_data, smp_processor_id()).domain;
+			generic_handle_irq(irq_find_mapping(domain, cause));
 			break;
-		default:
-			BUG();
+		}
 	}
 
 	irq_exit();
 	set_irq_regs(old_regs);
 }
 
-static void plic_irq_mask(struct irq_data *d)
+static int riscv_irqdomain_map(struct irq_domain *d, unsigned int irq, irq_hw_number_t hwirq)
 {
-	unsigned int cpu = smp_processor_id();
+	struct riscv_irq_data *data = d->host_data;
 
-	BUG_ON(d->irq != per_cpu(irq_in_progress, cpu));
+        irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
+        irq_set_chip_data(irq, data);
+        irq_set_noprobe(irq);
+
+        return 0;
 }
 
-static void plic_irq_unmask(struct irq_data *d)
-{
-	unsigned int cpu = smp_processor_id();
-
-	BUG_ON(d->irq != per_cpu(irq_in_progress, cpu));
-
-	per_cpu(plic_context, cpu)->claim = per_cpu(irq_in_progress, cpu);
-	per_cpu(irq_in_progress, cpu) = 0;
-}
-
-struct irq_chip plic_irq_chip = {
-	.name = "riscv",
-	.irq_mask = plic_irq_mask,
-	.irq_mask_ack = plic_irq_mask,
-	.irq_unmask = plic_irq_unmask,
+static const struct irq_domain_ops riscv_irqdomain_ops = {
+	.map	= riscv_irqdomain_map,
+	.xlate	= irq_domain_xlate_onecell,
 };
+
+static void riscv_irq_mask(struct irq_data *d)
+{
+	csr_clear(sie, d->hwirq);
+}
+
+static void riscv_irq_unmask(struct irq_data *d)
+{
+	csr_set(sie, d->hwirq);
+}
+
+static int riscv_intc_init(struct device_node *node, struct device_node *parent)
+{
+	u32 cpu;
+	const char *isa;
+
+	if (of_property_read_u32(parent, "reg", &cpu)) return 0;
+	if (of_property_read_string(parent, "riscv,isa", &isa)) return 0;
+
+	if (cpu < NR_CPUS) {
+		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, cpu);
+		snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", cpu);
+		data->chip.name = data->name;
+		data->chip.irq_mask = riscv_irq_mask;
+		data->chip.irq_unmask = riscv_irq_unmask;
+		data->domain = irq_domain_add_linear(node, 8*sizeof(uintptr_t), &riscv_irqdomain_ops, data);
+		WARN_ON(!data->domain);
+	}
+	return 0;
+}
+
+IRQCHIP_DECLARE(riscv, "riscv,cpu-intc", riscv_intc_init);
 
 void __init init_IRQ(void)
 {
+	irqchip_init();
 }
