@@ -387,7 +387,7 @@ static inline void pgtable_cache_init(void)
 
 #endif /* CONFIG_MMU */
 
-#define VMALLOC_SIZE     _AC(0x8000000,UL)
+#define VMALLOC_SIZE     (KERN_VIRT_SIZE >> 1)
 #define VMALLOC_END      (PAGE_OFFSET - 1)
 #define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
 
