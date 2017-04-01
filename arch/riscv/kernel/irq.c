@@ -13,9 +13,11 @@
 struct riscv_irq_data {
 	struct irq_chip		chip;
 	struct irq_domain	*domain;
+	int			hart;
 	char			name[20];
 };
 DEFINE_PER_CPU(struct riscv_irq_data, riscv_irq_data);
+DEFINE_PER_CPU(atomic_long_t, riscv_early_sie);
 
 static void riscv_software_interrupt(void)
 {
@@ -74,12 +76,48 @@ static const struct irq_domain_ops riscv_irqdomain_ops = {
 
 static void riscv_irq_mask(struct irq_data *d)
 {
-	csr_clear(sie, d->hwirq);
+	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
+	BUG_ON(smp_processor_id() != data->hart);
+	csr_clear(sie, 1 << (long)d->hwirq);
 }
 
 static void riscv_irq_unmask(struct irq_data *d)
 {
-	csr_set(sie, d->hwirq);
+	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
+	BUG_ON(smp_processor_id() != data->hart);
+	csr_set(sie, 1 << (long)d->hwirq);
+}
+
+static void riscv_irq_enable_helper(void *d)
+{
+	riscv_irq_unmask(d);
+}
+
+static void riscv_irq_enable(struct irq_data *d)
+{
+	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
+	atomic_long_or((1 << (long)d->hwirq), &per_cpu(riscv_early_sie, data->hart));
+	if (data->hart == smp_processor_id()) {
+		riscv_irq_unmask(d);
+	} else if (cpu_online(data->hart)) {
+		smp_call_function_single(data->hart, riscv_irq_enable_helper, d, true);
+	}
+}
+
+static void riscv_irq_disable_helper(void *d)
+{
+	riscv_irq_mask(d);
+}
+
+static void riscv_irq_disable(struct irq_data *d)
+{
+	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
+	atomic_long_and(~(1 << (long)d->hwirq), &per_cpu(riscv_early_sie, data->hart));
+	if (data->hart == smp_processor_id()) {
+		riscv_irq_mask(d);
+	} else if (cpu_online(data->hart)) {
+		smp_call_function_single(data->hart, riscv_irq_disable_helper, d, true);
+	}
 }
 
 static int riscv_intc_init(struct device_node *node, struct device_node *parent)
@@ -94,9 +132,12 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 	if (cpu < NR_CPUS) {
 		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, cpu);
 		snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", cpu);
+		data->hart = cpu;
 		data->chip.name = data->name;
 		data->chip.irq_mask = riscv_irq_mask;
 		data->chip.irq_unmask = riscv_irq_unmask;
+		data->chip.irq_enable = riscv_irq_enable;
+		data->chip.irq_disable = riscv_irq_disable;
 		data->domain = irq_domain_add_linear(node, 8*sizeof(uintptr_t), &riscv_irqdomain_ops, data);
 		WARN_ON(!data->domain);
 		printk("%s: %d local interrupts mapped\n", data->name, 8*(int)sizeof(uintptr_t));

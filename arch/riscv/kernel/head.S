@@ -9,6 +9,9 @@
 
 __INIT
 ENTRY(_start)
+	/* Mask all interrupts */
+	csrw sie, zero
+
 	/* Disable FPU to detect illegal usage of
 	   floating point in kernel space */
 	li t0, SR_FS

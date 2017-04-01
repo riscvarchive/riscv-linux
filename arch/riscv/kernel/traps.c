@@ -6,6 +6,7 @@
 #include <linux/uaccess.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/irq.h>
 
 #include <asm/processor.h>
 #include <asm/ptrace.h>
@@ -138,11 +139,13 @@ int is_valid_bugaddr(unsigned long pc)
 
 void __init trap_init(void)
 {
+	int hart = smp_processor_id();
+
 	/* Set sup0 scratch register to 0, indicating to exception vector
 	   that we are presently executing in the kernel */
 	csr_write(sscratch, 0);
 	/* Set the exception vector address */
 	csr_write(stvec, &handle_exception);
-	/* Enable software interrupts (and disable the others) */
-	csr_write(sie, SIE_SSIE);
+	/* Enable software interrupts and setup initial mask */
+	csr_write(sie, SIE_SSIE | atomic_long_read(&per_cpu(riscv_early_sie, hart)));
 }

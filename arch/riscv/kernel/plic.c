@@ -10,6 +10,8 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 
+#define ENABLE_BASE	0x2000
+#define ENABLE_SIZE	0x80
 #define HART_BASE	0x200000
 #define HART_SIZE	0x1000
 
@@ -97,6 +99,8 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 
 	of_property_read_u32(node, "riscv,ndev", &data->ndev);
 	if (WARN_ON(!data->ndev)) return -EINVAL;
+
+	// TODO: mask all interrupts (and then unmask them as drivers load)
 
 	data->handlers = of_irq_count(node);
 	if (WARN_ON(!data->handlers)) return -EINVAL;
