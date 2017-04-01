@@ -80,6 +80,7 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 		} else {
 			handle_bad_irq(desc);
 		}
+		iowrite32(what, &handler->context->claim);
 	}
 
 	chained_irq_exit(chip, desc);
