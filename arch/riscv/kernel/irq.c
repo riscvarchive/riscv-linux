@@ -120,16 +120,51 @@ static void riscv_irq_disable(struct irq_data *d)
 	}
 }
 
+static void riscv_irq_mask_noop(struct irq_data *d) { }
+
+static void riscv_irq_unmask_noop(struct irq_data *d) { }
+
+static void riscv_irq_enable_noop(struct irq_data *d)
+{
+	struct device_node *data = irq_data_get_irq_chip_data(d);
+	u32 hart;
+
+	if (!of_property_read_u32(data, "reg", &hart)) {
+		printk("WARNING: enabled interrupt %d for missing hart %d (this interrupt has no handler)\n", (int)d->hwirq, hart);
+	}
+}
+
+static struct irq_chip riscv_noop_chip = {
+	.name = "riscv,cpu-intc,noop",
+	.irq_mask = riscv_irq_mask_noop,
+	.irq_unmask = riscv_irq_unmask_noop,
+	.irq_enable = riscv_irq_enable_noop,
+};
+
+static int riscv_irqdomain_map_noop(struct irq_domain *d, unsigned int irq, irq_hw_number_t hwirq)
+{
+	struct device_node *data = d->host_data;
+	irq_set_chip_and_handler(irq, &riscv_noop_chip, handle_simple_irq);
+	irq_set_chip_data(irq, data);
+	return 0;
+}
+
+static const struct irq_domain_ops riscv_irqdomain_ops_noop = {
+	.map    = riscv_irqdomain_map_noop,
+	.xlate  = irq_domain_xlate_onecell,
+};
+
 static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 {
 	u32 cpu;
-	const char *isa;
+	const char *isa, *status;
 
 	if (parent) return 0; // should have no interrupt parent
 	if (of_property_read_u32(node->parent, "reg", &cpu)) return 0;
 	if (of_property_read_string(node->parent, "riscv,isa", &isa)) return 0;
+	if (of_property_read_string(node->parent, "status", &status)) return 0;
 
-	if (cpu < NR_CPUS) {
+	if (cpu < NR_CPUS && !strcmp(status, "okay")) {
 		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, cpu);
 		snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", cpu);
 		data->hart = cpu;
@@ -141,7 +176,12 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 		data->domain = irq_domain_add_linear(node, 8*sizeof(uintptr_t), &riscv_irqdomain_ops, data);
 		WARN_ON(!data->domain);
 		printk("%s: %d local interrupts mapped\n", data->name, 8*(int)sizeof(uintptr_t));
-
+	} else {
+		/* If a hart is disabled, create a no-op irq domain.
+		 * Devices may still have interrupts connected to those harts.
+		 * This is not wrong... unless they actually load a driver that needs it!
+		 */
+		irq_domain_add_linear(node, 8*sizeof(uintptr_t), &riscv_irqdomain_ops_noop, node->parent);
 	}
 	return 0;
 }
