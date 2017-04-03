@@ -10,14 +10,30 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 
+#define MAX_DEVICES	1024 // 0 is reserved
+#define MAX_CONTEXTS	15872
+
+#define PRIORITY_BASE	0
 #define ENABLE_BASE	0x2000
 #define ENABLE_SIZE	0x80
 #define HART_BASE	0x200000
 #define HART_SIZE	0x1000
 
-struct plic_context {
-	volatile u32 priority_threshold;
+#define PLIC_HART_CONTEXT(data, i)	(struct plic_hart_context *)((char*)data->reg + HART_BASE + HART_SIZE*i)
+#define PLIC_ENABLE_CONTEXT(data, i)	(struct plic_enable_context *)((char*)data->reg + ENABLE_BASE + ENABLE_SIZE*i)
+#define PLIC_PRIORITY(data)		(struct plic_priority *)((char *)data->reg + PRIORITY_BASE)
+
+struct plic_hart_context {
+	volatile u32 threshold;
 	volatile u32 claim;
+};
+
+struct plic_enable_context {
+	atomic_t mask[32]; // 32-bit * 32-entry
+};
+
+struct plic_priority {
+	volatile u32 prio[MAX_DEVICES];
 };
 
 struct plic_data {
@@ -31,21 +47,47 @@ struct plic_data {
 };
 
 struct plic_handler {
-	struct plic_context	*context;
-	struct plic_data	*data;
+	struct plic_hart_context	*context;
+	struct plic_data		*data;
 };
 
-// TODO: add a /sys interface to set priority + steering
-
-static void plic_irq_mask(struct irq_data *d)
+static void plic_disable(struct plic_data *data, int i, int hwirq)
 {
-	// TODO: disable interrupt ... globally
+	struct plic_enable_context *enable = PLIC_ENABLE_CONTEXT(data, i);
+	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 }
 
-static void plic_irq_unmask(struct irq_data *d)
+static void plic_enable(struct plic_data *data, int i, int hwirq)
 {
-	// struct plic_data *data = irq_data_get_irq_chip_data(d);
-	// TODO: enable interrupt ... globally
+	struct plic_enable_context *enable = PLIC_ENABLE_CONTEXT(data, i);
+	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
+}
+
+// There is no need to mask/unmask PLIC interrupts
+// They are "masked" by reading claim and "unmasked" when writing it back.
+static void plic_irq_mask(struct irq_data *d) { }
+static void plic_irq_unmask(struct irq_data *d) { }
+
+static void plic_irq_enable(struct irq_data *d)
+{
+	struct plic_data *data = irq_data_get_irq_chip_data(d);
+	struct plic_priority *priority = PLIC_PRIORITY(data);
+	int i;
+	iowrite32(1, &priority->prio[d->hwirq]);
+	for (i = 0; i < data->handlers; ++i)
+		if (data->handler[i].context)
+			plic_enable(data, i, d->hwirq);
+}
+
+static void plic_irq_disable(struct irq_data *d)
+{
+	struct plic_data *data = irq_data_get_irq_chip_data(d);
+	struct plic_priority *priority = PLIC_PRIORITY(data);
+	int i;
+	iowrite32(0, &priority->prio[d->hwirq]);
+	for (i = 0; i < data->handlers; ++i)
+		if (data->handler[i].context)
+			plic_disable(data, i, d->hwirq);
 }
 
 static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq, irq_hw_number_t hwirq)
@@ -86,11 +128,13 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 	chained_irq_exit(chip, desc);
 }
 
+// TODO: add a /sys interface to set priority + per-hart enables for steering
+
 static int plic_init(struct device_node *node, struct device_node *parent)
 {
 	struct plic_data *data;
 	struct resource resource;
-	int i;
+	int i, ok = 0;
 
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (WARN_ON(!data)) return -ENOMEM;
@@ -100,8 +144,6 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 
 	of_property_read_u32(node, "riscv,ndev", &data->ndev);
 	if (WARN_ON(!data->ndev)) return -EINVAL;
-
-	// TODO: mask all interrupts (and then unmask them as drivers load)
 
 	data->handlers = of_irq_count(node);
 	if (WARN_ON(!data->handlers)) return -EINVAL;
@@ -117,17 +159,25 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	data->chip.name = data->name;
 	data->chip.irq_mask = plic_irq_mask;
 	data->chip.irq_unmask = plic_irq_unmask;
+	data->chip.irq_enable = plic_irq_enable;
+	data->chip.irq_disable = plic_irq_disable;
 
 	for (i = 0; i < data->handlers; ++i) {
 		struct plic_handler *handler = &data->handler[i];
-		int irq = irq_of_parse_and_map(node, i);
-		if (WARN_ON(!irq)) continue;
-		handler->context = data->reg + HART_BASE + i*HART_SIZE;
+		int parent_irq = irq_of_parse_and_map(node, i);
+		int hwirq;
+
+		if (WARN_ON(!parent_irq)) continue; // skip bad
+
+		handler->context = PLIC_HART_CONTEXT(data, i);
 		handler->data = data;
-		irq_set_chained_handler_and_data(irq, plic_chained_handle_irq, handler);
+		iowrite32(0, &handler->context->threshold); // hwirq prio must be > this to trigger an interrupt
+		for (hwirq = 1; hwirq <= data->ndev; ++hwirq) plic_disable(data, i, hwirq);
+		irq_set_chained_handler_and_data(parent_irq, plic_chained_handle_irq, handler);
+		++ok;
 	}
 
-	printk("%s: mapped %d interrupts to %d handlers\n", data->name, data->ndev, data->handlers);
+	printk("%s: mapped %d interrupts to %d/%d handlers\n", data->name, data->ndev, ok, data->handlers);
 	return 0;
 }
 
