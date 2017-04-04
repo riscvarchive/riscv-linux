@@ -32,20 +32,20 @@ void __init setup_smp(void)
 	struct device_node *dn = NULL;
 	while ((dn = of_find_node_by_type(dn, "cpu"))) {
 		u32 cpu;
-		const char *isa, *status;
+		const char *isa, *status, *state;
 
 		if (of_property_read_u32(dn, "reg", &cpu)) continue;
 		if (of_property_read_string(dn, "riscv,isa", &isa)) continue;
 		if (of_property_read_string(dn, "status", &status)) continue;
 
-		printk("CPU %d: %s ... ", cpu, isa);
 		if (cpu < NR_CPUS && !strcmp(status, "okay")) {
 			set_cpu_possible(cpu, true);
 			set_cpu_present(cpu, true);
-			printk("enabled\n");
+			state = "enabled";
 		} else {
-			printk("disabled\n");
+			state = "disabled";
 		}
+		printk("CPU %d: %s ... %s\n", cpu, isa, state);
 	}
 }
 
