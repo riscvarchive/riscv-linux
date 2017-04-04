@@ -3,20 +3,16 @@
 
 #ifdef CONFIG_MMU
 
-#include <linux/mm.h>
-#include <linux/bug.h>
-#include <asm/csr.h>
-
 /* Flush entire local TLB */
 static inline void local_flush_tlb_all(void)
 {
-	__asm__ __volatile__ ("sfence.vma");
+	__asm__ __volatile__ ("sfence.vma" : : : "memory");
 }
 
 /* Flush one page from local TLB */
 static inline void local_flush_tlb_page(unsigned long addr)
 {
-	__asm__ __volatile__ ("sfence.vma %0" : : "r" (addr));
+	__asm__ __volatile__ ("sfence.vma %0" : : "r" (addr) : "memory");
 }
 
 #ifndef CONFIG_SMP

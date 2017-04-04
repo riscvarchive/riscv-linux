@@ -11,4 +11,7 @@ void riscv_timer_interrupt(void);
 
 #include <asm-generic/irq.h>
 
+/* The value of csr sie before init_traps runs (core is up) */
+DECLARE_PER_CPU(atomic_long_t, riscv_early_sie);
+
 #endif /* _ASM_RISCV_IRQ_H */

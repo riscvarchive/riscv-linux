@@ -9,29 +9,39 @@
 
 __INIT
 ENTRY(_start)
+	/* Mask all interrupts */
+	csrw sie, zero
+
 	/* Disable FPU to detect illegal usage of
 	   floating point in kernel space */
 	li t0, SR_FS
 	csrc sstatus, t0
 
-#ifdef CONFIG_RV_PUM
-	/* Prevent inadvertent access to user memory */
-	li t0, SR_PUM
+#ifndef CONFIG_RV_PUM
+	/* Allow access to user memory */
+	li t0, SR_SUM
 	csrs sstatus, t0
 #endif
 
 	/* By SBI convention, hart ID is in a0 */
 	bnez a0, .Lsecondary_start
 
+	/* Save DTB physical address */
+	mv s0, a1
+
 	/* Initialize page tables and relocate to virtual addresses */
 	la sp, init_thread_union + THREAD_SIZE
 	call setup_vm
 	call relocate
 
-	/* Start the kernel */
+	/* Restore C environment */
 	la tp, init_thread_union
 	li sp, THREAD_SIZE
 	add sp, sp, tp
+
+	/* Start the kernel */
+	mv a0, s0
+	call early_init_devtree
 	tail start_kernel
 
 relocate:

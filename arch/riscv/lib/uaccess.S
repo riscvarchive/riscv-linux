@@ -17,8 +17,8 @@ ENTRY(__copy_user)
 
 #ifdef CONFIG_RV_PUM
 	/* Enable access to user memory */
-	li t6, SR_PUM
-	csrc sstatus, t6
+	li t6, SR_SUM
+	csrs sstatus, t6
 #endif
 
 	add a3, a1, a2
@@ -48,7 +48,7 @@ ENTRY(__copy_user)
 3:
 #ifdef CONFIG_RV_PUM
 	/* Disable access to user memory */
-	csrs sstatus, t6
+	csrc sstatus, t6
 #endif
 	li a0, 0
 	ret
@@ -73,8 +73,8 @@ ENTRY(__clear_user)
 
 #ifdef CONFIG_RV_PUM
 	/* Enable access to user memory */
-	li t6, SR_PUM
-	csrc sstatus, t6
+	li t6, SR_SUM
+	csrs sstatus, t6
 #endif
 
 	add a3, a0, a1
@@ -97,7 +97,7 @@ ENTRY(__clear_user)
 3:
 #ifdef CONFIG_RV_PUM
 	/* Disable access to user memory */
-	csrs sstatus, t6
+	csrc sstatus, t6
 #endif
 	li a0, 0
 	ret

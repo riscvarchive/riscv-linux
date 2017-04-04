@@ -379,15 +379,21 @@ ENDPROC(__fstate_restore)
 	/* Exception vector table */
 ENTRY(excp_vect_table)
 	PTR do_trap_insn_misaligned
-	PTR do_page_fault
+	PTR do_trap_unknown /* instruction access exception */
 	PTR do_trap_insn_illegal
-	PTR do_trap_unknown
-	PTR do_trap_unknown
-	PTR do_page_fault
-	PTR do_trap_amo_misaligned
-	PTR do_page_fault
-	PTR 0 /* handle_syscall */
 	PTR do_trap_break
+	PTR do_trap_unknown
+	PTR do_trap_unknown /* load access exception */
+	PTR do_trap_amo_misaligned
+	PTR do_trap_unknown /* store access exception */
+	PTR do_trap_unknown /* handle_syscall */
+	PTR do_trap_unknown
+	PTR do_trap_unknown
+	PTR do_trap_unknown
+	PTR do_page_fault   /* instruction page fault */
+	PTR do_page_fault   /* load page fault */
+	PTR do_trap_unknown
+	PTR do_page_fault   /* store page fault */
 excp_vect_table_end:
 END(excp_vect_table)
 

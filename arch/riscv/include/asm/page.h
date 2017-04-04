@@ -21,6 +21,8 @@
 #define PAGE_OFFSET		_AC(0xc0000000,UL)
 #endif
 
+#define KERN_VIRT_SIZE (-PAGE_OFFSET)
+
 #ifndef __ASSEMBLY__
 
 #define PAGE_UP(addr)	(((addr)+((PAGE_SIZE)-1))&(~((PAGE_SIZE)-1)))

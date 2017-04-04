@@ -10,6 +10,7 @@
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/irq.h>
+#include <linux/of.h>
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
@@ -27,12 +28,23 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 
 void __init setup_smp(void)
 {
-#warning FIXME CONFIG STRING: number of boot CPUs hard-wired to 1
-	int i, num_cpus = 1;
+	struct device_node *dn = NULL;
+	while ((dn = of_find_node_by_type(dn, "cpu"))) {
+		u32 cpu;
+		const char *isa, *status;
 
-	for (i = 0; i < min(num_cpus, NR_CPUS); i++) {
-		set_cpu_possible(i, true);
-		set_cpu_present(i, true);
+		if (of_property_read_u32(dn, "reg", &cpu)) continue;
+		if (of_property_read_string(dn, "riscv,isa", &isa)) continue;
+		if (of_property_read_string(dn, "status", &status)) continue;
+
+		printk("CPU %d: %s ... ", cpu, isa);
+		if (cpu < NR_CPUS && !strcmp(status, "okay")) {
+			set_cpu_possible(cpu, true);
+			set_cpu_present(cpu, true);
+			printk("enabled\n");
+		} else {
+			printk("disabled\n");
+		}
 	}
 }
 

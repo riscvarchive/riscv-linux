@@ -7,7 +7,7 @@
 #define SR_IE   _AC(0x00000002,UL) /* Interrupt Enable */
 #define SR_PIE  _AC(0x00000020,UL) /* Previous IE */
 #define SR_PS   _AC(0x00000100,UL) /* Previously Supervisor */
-#define SR_PUM  _AC(0x00040000,UL) /* Protect User Memory */
+#define SR_SUM  _AC(0x00040000,UL) /* Supervisor may access User Memory */
 
 #define SR_FS           _AC(0x00006000,UL) /* Floating-point Status */
 #define SR_FS_OFF       _AC(0x00000000,UL)
@@ -48,6 +48,9 @@
 #define EXC_LOAD_ACCESS         5
 #define EXC_STORE_ACCESS        7
 #define EXC_SYSCALL             8
+#define EXC_INST_PAGE_FAULT     12
+#define EXC_LOAD_PAGE_FAULT     13
+#define EXC_STORE_PAGE_FAULT    15
 
 #ifndef __ASSEMBLY__
 

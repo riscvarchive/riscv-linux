@@ -3,6 +3,7 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/delay.h>
+#include <linux/of.h>
 
 #include <asm/irq.h>
 #include <asm/csr.h>
@@ -77,10 +78,22 @@ void __init init_clockevent(void)
 	clockevents_config_and_register(ce, timebase, 100, 0x7fffffff);
 }
 
+static unsigned long __init of_timebase(void)
+{
+	struct device_node *cpu;
+	const __be32 *prop;
+
+	if ((cpu = of_find_node_by_path("/cpus")) &&
+	    (prop = of_get_property(cpu, "timebase-frequency", NULL))) {
+		return be32_to_cpu(*prop);
+	} else {
+		return 10000000;
+	}
+}
+
 void __init time_init(void)
 {
-#warning FIXME CONFIG STRING: timer frequency
-	timebase = 10000000;
+	timebase = of_timebase();
 	lpj_fine = timebase;
 	do_div(lpj_fine, HZ);
 
