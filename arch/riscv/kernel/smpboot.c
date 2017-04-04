@@ -11,6 +11,7 @@
 #include <linux/err.h>
 #include <linux/irq.h>
 #include <linux/of.h>
+#include <linux/sched/task_stack.h>
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
