@@ -156,18 +156,14 @@ static const struct irq_domain_ops riscv_irqdomain_ops_noop = {
 
 static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 {
-	u32 cpu;
-	const char *isa, *status;
+	int hart;
 
 	if (parent) return 0; // should have no interrupt parent
-	if (of_property_read_u32(node->parent, "reg", &cpu)) return 0;
-	if (of_property_read_string(node->parent, "riscv,isa", &isa)) return 0;
-	if (of_property_read_string(node->parent, "status", &status)) return 0;
 
-	if (cpu < NR_CPUS && !strcmp(status, "okay")) {
-		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, cpu);
-		snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", cpu);
-		data->hart = cpu;
+	if ((hart = riscv_of_processor_hart(node->parent)) >= 0) {
+		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, hart);
+		snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", hart);
+		data->hart = hart;
 		data->chip.name = data->name;
 		data->chip.irq_mask = riscv_irq_mask;
 		data->chip.irq_unmask = riscv_irq_unmask;

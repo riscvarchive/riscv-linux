@@ -79,6 +79,9 @@ static inline void wait_for_interrupt(void)
 	__asm__ __volatile__ ("wfi");
 }
 
+struct device_node;
+extern int riscv_of_processor_hart(struct device_node *node);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* _ASM_RISCV_PROCESSOR_H */
