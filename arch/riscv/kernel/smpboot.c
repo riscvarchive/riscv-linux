@@ -30,6 +30,8 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 void __init setup_smp(void)
 {
 	struct device_node *dn = NULL;
+	int im_okay_therefore_i_am = 0;
+
 	while ((dn = of_find_node_by_type(dn, "cpu"))) {
 		u32 cpu;
 		const char *isa, *status, *state;
@@ -42,11 +44,18 @@ void __init setup_smp(void)
 			set_cpu_possible(cpu, true);
 			set_cpu_present(cpu, true);
 			state = "enabled";
+			if (cpu == smp_processor_id()) {
+				state = "enabled (boot)";
+				BUG_ON(im_okay_therefore_i_am);
+				im_okay_therefore_i_am = 1;
+			}
 		} else {
 			state = "disabled";
 		}
 		printk("CPU %d: %s ... %s\n", cpu, isa, state);
 	}
+
+	BUG_ON(!im_okay_therefore_i_am);
 }
 
 int __cpu_up(unsigned int cpu, struct task_struct *tidle)

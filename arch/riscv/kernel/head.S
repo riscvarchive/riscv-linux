@@ -23,11 +23,15 @@ ENTRY(_start)
 	csrs sstatus, t0
 #endif
 
-	/* By SBI convention, hart ID is in a0 */
-	bnez a0, .Lsecondary_start
+	/* Pick one hart to run the main boot sequence */
+	la a3, hart_lottery
+	li a2, 1
+	amoadd.w a3, a2, (a3)
+	bnez a3, .Lsecondary_start
 
-	/* Save DTB physical address */
-	mv s0, a1
+	/* Save hart ID and DTB physical address */
+	mv s0, a0
+	mv s1, a1
 
 	/* Initialize page tables and relocate to virtual addresses */
 	la sp, init_thread_union + THREAD_SIZE
@@ -41,7 +45,8 @@ ENTRY(_start)
 
 	/* Start the kernel */
 	mv a0, s0
-	call early_init_devtree
+	mv a1, s1
+	call sbi_save
 	tail start_kernel
 
 relocate:

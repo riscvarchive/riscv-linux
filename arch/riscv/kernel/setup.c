@@ -7,6 +7,7 @@
 #include <linux/screen_info.h>
 #include <linux/of_fdt.h>
 #include <linux/of_platform.h>
+#include <linux/sched/task.h>
 
 #include <asm/setup.h>
 #include <asm/sections.h>
@@ -14,6 +15,7 @@
 #include <asm/smp.h>
 #include <asm/sbi.h>
 #include <asm/tlbflush.h>
+#include <asm/thread_info.h>
 
 #ifdef CONFIG_DUMMY_CONSOLE
 struct screen_info screen_info = {
@@ -32,6 +34,9 @@ static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
 
 unsigned long va_pa_offset;
 unsigned long pfn_base;
+
+/* The lucky hart to first increment this variable will boot the other cores */
+atomic_t hart_lottery;
 
 #ifdef CONFIG_BLK_DEV_INITRD
 static void __init setup_initrd(void)
@@ -101,8 +106,9 @@ asmlinkage void __init setup_vm(void)
 		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
 }
 
-void __init early_init_devtree(void *dtb)
+void __init sbi_save(unsigned hartid, void *dtb)
 {
+	init_thread_info.cpu = hartid;
 	early_init_dt_scan(__va(dtb));
 }
 
