@@ -164,10 +164,19 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 
 	for (i = 0; i < data->handlers; ++i) {
 		struct plic_handler *handler = &data->handler[i];
-		int parent_irq = irq_of_parse_and_map(node, i);
-		int hwirq;
+		struct of_phandle_args parent;
+		int parent_irq, hwirq;
 
-		if (WARN_ON(!parent_irq)) continue; // skip bad
+		if (of_irq_parse_one(node, i, &parent)) continue;
+		if (parent.args[0] == -1) continue; // skip context holes
+
+		// skip any contexts that lead to inactive harts
+		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
+		    parent.np->parent &&
+		    riscv_of_processor_hart(parent.np->parent) < 0) continue;
+
+		parent_irq = irq_create_of_mapping(&parent);
+		if (!parent_irq) continue;
 
 		handler->context = PLIC_HART_CONTEXT(data, i);
 		handler->data = data;
@@ -178,6 +187,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	}
 
 	printk("%s: mapped %d interrupts to %d/%d handlers\n", data->name, data->ndev, ok, data->handlers);
+	WARN_ON(!ok);
 	return 0;
 }
 
