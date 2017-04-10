@@ -144,6 +144,14 @@ config RV_PUM
 	  and kernel size increase if this is enabled.
 
 	  If unsure, say Y.
+	  
+config RV_NO_EXEC_BIT
+         def_bool y
+         prompt "Execute bit not used in the data and stack Memory" if EXPERT
+         ---help---
+           Protect User data and stack Memory from executing after loaded by the kernel, protect the user process from code inject    ion attacks.  There is no performance cost.
+ 
+           If unsure, say Y.
 
 endmenu
 
