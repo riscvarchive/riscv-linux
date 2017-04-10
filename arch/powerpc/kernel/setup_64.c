@@ -236,6 +236,15 @@ static void cpu_ready_for_interrupts(void)
 		mtspr(SPRN_LPCR, lpcr | LPCR_AIL_3);
 	}
 
+	/*
+	 * Fixup HFSCR:TM based on CPU features. The bit is set by our
+	 * early asm init because at that point we haven't updated our
+	 * CPU features from firmware and device-tree. Here we have,
+	 * so let's do it.
+	 */
+	if (cpu_has_feature(CPU_FTR_HVMODE) && !cpu_has_feature(CPU_FTR_TM_COMP))
+		mtspr(SPRN_HFSCR, mfspr(SPRN_HFSCR) & ~HFSCR_TM);
+
 	/* Set IR and DR in PACA MSR */
 	get_paca()->kernel_msr = MSR_KERNEL;
 }
@@ -408,7 +417,10 @@ static void init_cache_info(struct ppc_cache_info *info, u32 size, u32 lsize,
 	info->line_size = lsize;
 	info->block_size = bsize;
 	info->log_block_size = __ilog2(bsize);
-	info->blocks_per_page = PAGE_SIZE / bsize;
+	if (bsize)
+		info->blocks_per_page = PAGE_SIZE / bsize;
+	else
+		info->blocks_per_page = 0;
 
 	if (sets == 0)
 		info->assoc = 0xffff;
