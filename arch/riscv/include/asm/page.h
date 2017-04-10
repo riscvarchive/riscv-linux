@@ -106,8 +106,13 @@ extern unsigned long min_low_pfn;
 
 #endif /* __KERNEL__ */
 
+#ifdef CONFIG_RV_NO_EXEC_BIT
+#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | \
+                                   VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+#else
 #define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
 				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+#endif
 
 #include <asm-generic/memory_model.h>
 #include <asm-generic/getorder.h>
