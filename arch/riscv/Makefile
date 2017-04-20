@@ -20,6 +20,8 @@
 LDFLAGS         :=
 OBJCOPYFLAGS    := -O binary
 LDFLAGS_vmlinux :=
+KBUILD_AFLAGS_MODULE += -fPIC
+KBUILD_CFLAGS_MODULE += -fPIC
 
 ifeq ($(ARCH),riscv)
 	KBUILD_DEFCONFIG = riscv64_spike
