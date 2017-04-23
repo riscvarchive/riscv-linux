@@ -80,25 +80,38 @@ asmlinkage void __init setup_vm(void)
 	extern char _start;
 	uintptr_t i;
 	uintptr_t pa = (uintptr_t) &_start;
+	pgprot_t prot = __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_EXEC);
+#ifdef PMD_SIZE
 	uintptr_t pmd_pfn = PFN_DOWN((uintptr_t)swapper_pmd);
-	uintptr_t prot = pgprot_val(PAGE_KERNEL) | _PAGE_EXEC;
-	pgd_t pmd = __pgd((pmd_pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
 
 	/* Sanity check alignment and size */
 	BUG_ON((pa % PMD_SIZE) != 0);
 	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
 
-	va_pa_offset = PAGE_OFFSET - pa;
-	pfn_base = PFN_DOWN(pa);
-
-	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
-	trampoline_pmd[0] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
+		pfn_pgd(pmd_pfn, __pgprot(_PAGE_TABLE));
+	trampoline_pmd[0] = pfn_pmd(PFN_DOWN(pa), prot);
 
 	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
 		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
-			__pgd(((pmd_pfn+i) << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
+			pfn_pgd(pmd_pfn + i, __pgprot(_PAGE_TABLE));
 	for (i = 0; i < sizeof(swapper_pmd)/sizeof(swapper_pmd[0]); i++, pa += PMD_SIZE)
-		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
+		swapper_pmd[i] = pfn_pmd(PFN_DOWN(pa), prot);
+#else
+	/* Sanity check alignment and size */
+	BUG_ON((pa % PGDIR_SIZE) != 0);
+	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
+
+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
+		pfn_pgd(PFN_DOWN(pa), prot);
+
+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
+		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
+			pfn_pgd(PFN_DOWN(pa + i * PGDIR_SIZE), prot);
+#endif
+
+	va_pa_offset = PAGE_OFFSET - pa;
+	pfn_base = PFN_DOWN(pa);
 }
 
 void __init early_init_devtree(void *dtb)

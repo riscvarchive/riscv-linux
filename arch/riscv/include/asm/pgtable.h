@@ -111,6 +111,11 @@ static inline void pmd_clear(pmd_t *pmdp)
 }
 
 
+static inline pgd_t pfn_pgd(unsigned long pfn, pgprot_t prot)
+{
+	return __pgd((pfn << _PAGE_PFN_SHIFT) | pgprot_val(prot));
+}
+
 #define pgd_index(addr) (((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
 
 /* Locate an entry in the page global directory */
