@@ -68,37 +68,49 @@ disable:
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
-#define NUM_SWAPPER_PMDS ((uintptr_t)-PAGE_OFFSET >> PGDIR_SHIFT)
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
-pmd_t swapper_pmd[PTRS_PER_PMD*((-PAGE_OFFSET)/PGDIR_SIZE)] __page_aligned_bss;
-
 pgd_t trampoline_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
+
+#ifdef PMD_SIZE
+#define NUM_SWAPPER_PMDS ((uintptr_t)-PAGE_OFFSET >> PGDIR_SHIFT)
+pmd_t swapper_pmd[PTRS_PER_PMD*((-PAGE_OFFSET)/PGDIR_SIZE)] __page_aligned_bss;
 pmd_t trampoline_pmd[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
+#endif
 
 asmlinkage void __init setup_vm(void)
 {
 	extern char _start;
 	uintptr_t i;
 	uintptr_t pa = (uintptr_t) &_start;
-	uintptr_t pmd_pfn = PFN_DOWN((uintptr_t)swapper_pmd);
-	uintptr_t prot = pgprot_val(PAGE_KERNEL) | _PAGE_EXEC;
-	pgd_t pmd = __pgd((pmd_pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
-
-	/* Sanity check alignment and size */
-	BUG_ON((pa % PMD_SIZE) != 0);
-	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
+	pgprot_t prot = __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_EXEC);
 
 	va_pa_offset = PAGE_OFFSET - pa;
 	pfn_base = PFN_DOWN(pa);
 
-	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] = pmd;
-	trampoline_pmd[0] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
+	/* Sanity check alignment and size */
+	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
+	BUG_ON((pa % (PAGE_SIZE * PTRS_PER_PTE)) != 0);
+
+#ifdef PMD_SIZE
+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
+		pfn_pgd(PFN_DOWN((uintptr_t)trampoline_pmd),
+			__pgprot(_PAGE_TABLE));
+	trampoline_pmd[0] = pfn_pmd(PFN_DOWN(pa), prot);
 
 	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
 		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
-			__pgd(((pmd_pfn+i) << _PAGE_PFN_SHIFT) | _PAGE_TABLE);
-	for (i = 0; i < sizeof(swapper_pmd)/sizeof(swapper_pmd[0]); i++, pa += PMD_SIZE)
-		swapper_pmd[i] = __pmd((PFN_DOWN(pa) << _PAGE_PFN_SHIFT) | prot);
+			pfn_pgd(PFN_DOWN((uintptr_t)swapper_pmd) + i,
+				__pgprot(_PAGE_TABLE));
+	for (i = 0; i < sizeof(swapper_pmd)/sizeof(swapper_pmd[0]); i++)
+		swapper_pmd[i] = pfn_pmd(PFN_DOWN(pa + i * PMD_SIZE), prot);
+#else
+	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
+		pfn_pgd(PFN_DOWN(pa), prot);
+
+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
+		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
+			pfn_pgd(PFN_DOWN(pa + i * PGDIR_SIZE), prot);
+#endif
 }
 
 void __init early_init_devtree(void *dtb)
