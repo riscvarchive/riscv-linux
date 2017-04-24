@@ -71,7 +71,7 @@ disable:
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pgd_t trampoline_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
 
-#ifdef PMD_SIZE
+#ifndef __PAGETABLE_PMD_FOLDED
 #define NUM_SWAPPER_PMDS ((uintptr_t)-PAGE_OFFSET >> PGDIR_SHIFT)
 pmd_t swapper_pmd[PTRS_PER_PMD*((-PAGE_OFFSET)/PGDIR_SIZE)] __page_aligned_bss;
 pmd_t trampoline_pmd[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
@@ -91,7 +91,7 @@ asmlinkage void __init setup_vm(void)
 	BUG_ON((PAGE_OFFSET % PGDIR_SIZE) != 0);
 	BUG_ON((pa % (PAGE_SIZE * PTRS_PER_PTE)) != 0);
 
-#ifdef PMD_SIZE
+#ifndef __PAGETABLE_PMD_FOLDED
 	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
 		pfn_pgd(PFN_DOWN((uintptr_t)trampoline_pmd),
 			__pgprot(_PAGE_TABLE));
