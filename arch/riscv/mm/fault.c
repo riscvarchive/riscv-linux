@@ -201,6 +201,7 @@ vmalloc_fault:
 	{
 		pgd_t *pgd, *pgd_k;
 		pud_t *pud, *pud_k;
+		p4d_t *p4d, *p4d_k;
 		pmd_t *pmd, *pmd_k;
 		pte_t *pte_k;
 		int index;
@@ -224,8 +225,13 @@ vmalloc_fault:
 			goto no_context;
 		set_pgd(pgd, *pgd_k);
 
-		pud = pud_offset(pgd, addr);
-		pud_k = pud_offset(pgd_k, addr);
+		p4d = p4d_offset(pgd, addr);
+		p4d_k = p4d_offset(pgd_k, addr);
+		if (!p4d_present(*p4d_k))
+			goto no_context;
+
+		pud = pud_offset(p4d, addr);
+		pud_k = pud_offset(p4d_k, addr);
 		if (!pud_present(*pud_k))
 			goto no_context;
 
