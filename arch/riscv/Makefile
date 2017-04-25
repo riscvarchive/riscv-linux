@@ -1,4 +1,3 @@
-# BK Id: %F% %I% %G% %U% %#%
 #
 # This file is included by the global makefile so that you can add your own
 # architecture-specific flags and dependencies. Remember to do have actions
@@ -9,13 +8,6 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# Copyright (C) 1994 by Linus Torvalds
-# Modifications for the RISC-V architecture:
-# Quan Nguyen <quannguyen@eecs.berkeley.edu>
-# Albert Ou <a_ou@eecs.berkeley.edu>
-#
-# Based on:
-# arch/score/Makefile
 
 LDFLAGS         :=
 OBJCOPYFLAGS    := -O binary
