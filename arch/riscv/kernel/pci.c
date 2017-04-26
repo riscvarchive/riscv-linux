@@ -1,3 +1,16 @@
+/*
+ * Code borrowed from arch/arm64/kernel/pci.c
+ *
+ * Copyright (C) 2003 Anton Blanchard <anton@au.ibm.com>, IBM
+ * Copyright (C) 2014 ARM Ltd.
+ * Copyright (C) 2017 SiFive
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ */
+
 #include <linux/init.h>
 #include <linux/io.h>
 #include <linux/kernel.h>

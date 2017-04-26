@@ -1,3 +1,17 @@
+/*
+ * Copyright (C) 2012 Regents of the University of California
+ *
+ *   This program is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU General Public License
+ *   as published by the Free Software Foundation, version 2.
+ *
+ *   This program is distributed in the hope that it will be useful, but
+ *   WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
+ *   NON INFRINGEMENT.  See the GNU General Public License for
+ *   more details.
+ */
+
 #ifndef _ASM_RISCV_BITOPS_H
 #define _ASM_RISCV_BITOPS_H
 
@@ -19,69 +33,13 @@
 #define smp_mb__after_clear_bit()   smp_mb()
 #endif /* smp_mb__before_clear_bit */
 
-/**
- * __ffs - find first bit in word.
- * @word: The word to search
- *
- * Undefined if no bit exists, so code should check against 0 first.
- */
-/*
-static __always_inline unsigned long __ffs(unsigned long word)
-{
-	return 0;
-}
-*/
 #include <asm-generic/bitops/__ffs.h>
-
 #include <asm-generic/bitops/ffz.h>
-
-/**
- * fls - find last (most-significant) bit set
- * @x: the word to search
- *
- * This is defined the same way as ffs.
- * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
- */
-/*
-static __always_inline int fls(int x)
-{
-	return 0;
-}
-*/
 #include <asm-generic/bitops/fls.h>
-
-/**
- * __fls - find last (most-significant) set bit in a long word
- * @word: the word to search
- *
- * Undefined if no set bit exists, so code should check against 0 first.
- */
-/*
-static __always_inline unsigned long __fls(unsigned long word)
-{
-	return 0;
-}
-*/
 #include <asm-generic/bitops/__fls.h>
-
 #include <asm-generic/bitops/fls64.h>
 #include <asm-generic/bitops/find.h>
 #include <asm-generic/bitops/sched.h>
-
-/**
- * ffs - find first bit set
- * @x: the word to search
- *
- * This is defined the same way as
- * the libc and compiler builtin ffs routines, therefore
- * differs in spirit from the above ffz (man ffs).
- */
-/*
-static __always_inline int ffs(int x)
-{
-	return 0;
-}
-*/
 #include <asm-generic/bitops/ffs.h>
 
 #include <asm-generic/bitops/hweight.h>
