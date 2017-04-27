@@ -57,6 +57,17 @@ static inline void atomic64_add(s64 a, atomic64_t *v)
 		: "r" (a));
 }
 
+static inline long atomic64_fetch_add(unsigned long mask, atomic64_t *v)
+{
+        long out;
+
+        __asm__ __volatile__ (
+                "amoadd.d %2, %1, %0"
+                : "+A" (v->counter), "=r" (out)
+                : "r" (mask));
+        return out;
+}
+
 /**
  * atomic64_sub - subtract the atomic64 variable
  * @i: integer value to subtract
@@ -67,6 +78,17 @@ static inline void atomic64_add(s64 a, atomic64_t *v)
 static inline void atomic64_sub(s64 a, atomic64_t *v)
 {
 	atomic64_add(-a, v);
+}
+
+static inline long atomic64_fetch_sub(unsigned long mask, atomic64_t *v)
+{
+        long out;
+
+        __asm__ __volatile__ (
+                "amosub.d %2, %1, %0"
+                : "+A" (v->counter), "=r" (out)
+                : "r" (mask));
+        return out;
 }
 
 /**
@@ -265,6 +287,17 @@ static inline void atomic64_and(s64 mask, atomic64_t *v)
 		: "r" (mask));
 }
 
+static inline long atomic64_fetch_and(unsigned long mask, atomic64_t *v)
+{
+        long out;
+
+        __asm__ __volatile__ (
+                "amoand.d %2, %1, %0"
+                : "+A" (v->counter), "=r" (out)
+                : "r" (mask));
+        return out;
+}
+
 /**
  * atomic64_or - Atomically set bits in atomic variable
  * @mask: Mask of the bits to be set
@@ -280,6 +313,17 @@ static inline void atomic64_or(s64 mask, atomic64_t *v)
 		: "r" (mask));
 }
 
+static inline long atomic64_fetch_or(unsigned long mask, atomic64_t *v)
+{
+        long out;
+
+        __asm__ __volatile__ (
+                "amoor.d %2, %1, %0"
+                : "+A" (v->counter), "=r" (out)
+                : "r" (mask));
+        return out;
+}
+
 /**
  * atomic64_xor - Atomically flips bits in atomic variable
  * @mask: Mask of the bits to be flipped
@@ -293,6 +337,17 @@ static inline void atomic64_xor(s64 mask, atomic64_t *v)
 		"amoxor.d zero, %1, %0"
 		: "+A" (v->counter)
 		: "r" (mask));
+}
+
+static inline long atomic64_fetch_xor(unsigned long mask, atomic64_t *v)
+{
+        long out;
+
+        __asm__ __volatile__ (
+                "amoxor.d %2, %1, %0"
+                : "+A" (v->counter), "=r" (out)
+                : "r" (mask));
+        return out;
 }
 
 #endif /* CONFIG_GENERIC_ATOMIC64 */

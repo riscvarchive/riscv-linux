@@ -68,20 +68,6 @@ static inline int atomic_fetch_add(unsigned int mask, atomic_t *v)
 	return out;
 }
 
-#if __riscv_xlen == 64
-#define atomic64_fetch_add atomic64_fetch_add
-static inline long atomic64_fetch_add(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amoadd.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-#endif
-
 /**
  * atomic_sub - subtract integer from atomic variable
  * @i: integer value to subtract
@@ -105,20 +91,6 @@ static inline int atomic_fetch_sub(unsigned int mask, atomic_t *v)
 		: "r" (mask));
 	return out;
 }
-
-#if __riscv_xlen == 64
-#define atomic64_fetch_sub atomic64_fetch_sub
-static inline long atomic64_fetch_sub(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amosub.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-#endif
 
 /**
  * atomic_add_return - add integer to atomic variable
@@ -306,20 +278,6 @@ static inline int atomic_fetch_and(unsigned int mask, atomic_t *v)
 	return out;
 }
 
-#if __riscv_xlen == 64
-#define atomic64_fetch_and atomic64_fetch_and
-static inline long atomic64_fetch_and(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amoand.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-#endif
-
 /**
  * atomic_or - Atomically set bits in atomic variable
  * @mask: Mask of the bits to be set
@@ -347,20 +305,6 @@ static inline int atomic_fetch_or(unsigned int mask, atomic_t *v)
 	return out;
 }
 
-#if __riscv_xlen == 64
-#define atomic64_fetch_or atomic64_fetch_or
-static inline long atomic64_fetch_or(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amoor.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-#endif
-
 /**
  * atomic_xor - Atomically flips bits in atomic variable
  * @mask: Mask of the bits to be flipped
@@ -387,20 +331,6 @@ static inline int atomic_fetch_xor(unsigned int mask, atomic_t *v)
 		: "r" (mask));
 	return out;
 }
-
-#if __riscv_xlen == 64
-#define atomic64_fetch_xor atomic64_fetch_xor
-static inline long atomic64_fetch_xor(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amoxor.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-#endif
 
 /* Assume that atomic operations are already serializing */
 #define smp_mb__before_atomic_dec()	barrier()
