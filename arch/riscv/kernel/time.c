@@ -39,14 +39,14 @@ static int riscv_timer_set_next_event(unsigned long delta,
 static int riscv_timer_set_oneshot(struct clock_event_device *evt)
 {
 	/* no-op; only one mode */
-	BUG("unimplemented");
+	BUG();
 	return 0;
 }
 
 static int riscv_timer_set_shutdown(struct clock_event_device *evt)
 {
 	/* can't stop the clock! */
-	BUG("unimplemented");
+	BUG();
 	return 0;
 }
 
