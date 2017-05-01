@@ -47,7 +47,6 @@ static inline void syscall_rollback(struct task_struct *task,
 				    struct pt_regs *regs)
 {
 	/* FIXME: We can't do this... */
-	BUG();
 }
 
 static inline long syscall_get_error(struct task_struct *task,
