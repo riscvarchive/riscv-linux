@@ -74,6 +74,11 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
 	return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(addr);
 }
 
+static inline pmd_t pfn_pmd(unsigned long pfn, pgprot_t prot)
+{
+	return __pmd((pfn << _PAGE_PFN_SHIFT) | pgprot_val(prot));
+}
+
 #define pmd_ERROR(e) \
 	pr_err("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
 
