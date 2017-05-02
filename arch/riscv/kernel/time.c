@@ -109,8 +109,7 @@ static unsigned long __init of_timebase(void)
 void __init time_init(void)
 {
 	timebase = of_timebase();
-	lpj_fine = timebase;
-	do_div(lpj_fine, HZ);
+	lpj_fine = timebase / HZ;
 
 	clocksource_register_hz(&riscv_clocksource, timebase);
 	init_clockevent();

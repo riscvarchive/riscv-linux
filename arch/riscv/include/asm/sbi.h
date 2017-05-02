@@ -54,7 +54,7 @@ static inline int sbi_console_getchar(void)
 	return SBI_CALL_0(SBI_CONSOLE_GETCHAR);
 }
 
-static inline void sbi_set_timer(unsigned long stime_value)
+static inline void sbi_set_timer(uint64_t stime_value)
 {
 #if __riscv_xlen == 32
 	SBI_CALL_2(SBI_SET_TIMER, stime_value, stime_value >> 32);
