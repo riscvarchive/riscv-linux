@@ -28,6 +28,7 @@
 #ifdef __KERNEL__
 #define STACK_TOP		TASK_SIZE
 #define STACK_TOP_MAX		STACK_TOP
+#define STACK_ALIGN		16
 #endif /* __KERNEL__ */
 
 #ifndef __ASSEMBLY__
@@ -59,8 +60,9 @@ struct thread_struct {
 #define thread_saved_sp(t)	((t)->thread.sp)
 #define thread_saved_fp(t)	((t)->thread.s[0])
 
-#define task_pt_regs(tsk) \
-	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE) - 1)
+#define task_pt_regs(tsk)						\
+	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE		\
+			    - ALIGN(sizeof(struct pt_regs), STACK_ALIGN)))
 
 #define KSTK_EIP(tsk)		(task_pt_regs(tsk)->sepc)
 #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)
