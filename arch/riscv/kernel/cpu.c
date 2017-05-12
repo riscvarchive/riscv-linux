@@ -53,10 +53,21 @@ static void c_stop(struct seq_file *m, void *v)
 static int c_show(struct seq_file *m, void *v)
 {
 	unsigned long hart_id = (unsigned long)v - 1;
+	struct device_node *node = of_get_cpu_node(hart_id, NULL);
+	const char *compat, *isa, *mmu;
 
 	seq_printf(m, "hart\t: %lu\n", hart_id);
-	seq_printf(m, "isa\t: RV%zuG\n", sizeof(void *) * 8);
+	if (!of_property_read_string(node, "riscv,isa", &isa) && isa[0] == 'r' && isa[1] == 'v') {
+		seq_printf(m, "isa\t: %s\n", isa);
+	}
+	if (!of_property_read_string(node, "mmu-type", &mmu) && !strncmp(mmu, "riscv,", 6)) {
+		seq_printf(m, "mmu\t: %s\n", mmu+6);
+	}
+	if (!of_property_read_string(node, "compatible", &compat) && strcmp(compat, "riscv")) {
+		seq_printf(m, "uarch\t: %s\n", compat);
+	}
 	seq_printf(m, "\n");
+
 	return 0;
 }
 
