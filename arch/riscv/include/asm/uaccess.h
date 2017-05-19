@@ -426,37 +426,16 @@ do {								\
 extern unsigned long __must_check __copy_user(void __user *to,
 	const void __user *from, unsigned long n);
 
-static inline long __must_check __copy_from_user(void *to,
-		const void __user *from, unsigned long n)
+static inline unsigned long
+raw_copy_from_user(void *to, const void __user *from, unsigned long n)
 {
 	return __copy_user(to, from, n);
 }
 
-static inline long __must_check __copy_to_user(void __user *to,
-		const void *from, unsigned long n)
+static inline unsigned long
+raw_copy_to_user(void __user *to, const void *from, unsigned long n)
 {
 	return __copy_user(to, from, n);
-}
-
-#define __copy_from_user_inatomic(to, from, n) \
-	__copy_from_user((to), (from), (n))
-#define __copy_to_user_inatomic(to, from, n) \
-	__copy_to_user((to), (from), (n))
-
-static inline long copy_from_user(void *to,
-		const void __user *from, unsigned long n)
-{
-	might_fault();
-	return access_ok(VERIFY_READ, from, n) ?
-		__copy_from_user(to, from, n) : n;
-}
-
-static inline long copy_to_user(void __user *to,
-		const void *from, unsigned long n)
-{
-	might_fault();
-	return access_ok(VERIFY_WRITE, to, n) ?
-		__copy_to_user(to, from, n) : n;
 }
 
 extern long strncpy_from_user(char *dest, const char __user *src, long count);
