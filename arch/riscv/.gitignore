@@ -1,0 +1,35 @@
+# Now un-ignore all files.
+!*
+
+# But then re-ignore the files listed in the Linux .gitignore
+# Normal rules
+#
+.*
+*.o
+*.o.*
+*.a
+*.s
+*.ko
+*.so
+*.so.dbg
+*.mod.c
+*.i
+*.lst
+*.symtypes
+*.order
+modules.builtin
+*.elf
+*.bin
+*.gz
+*.bz2
+*.lzma
+*.xz
+*.lzo
+*.patch
+*.gcno
+
+include/generated
+kernel/vmlinux.lds
+
+# Then reinclude .gitignore.
+!.gitignore
