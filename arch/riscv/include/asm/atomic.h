@@ -11,7 +11,7 @@
 #ifndef _ASM_RISCV_ATOMIC_H
 #define _ASM_RISCV_ATOMIC_H
 
-#ifdef CONFIG_RV_ATOMIC
+#ifdef CONFIG_ISA_A
 
 #include <asm/cmpxchg.h>
 #include <asm/barrier.h>
@@ -338,11 +338,11 @@ static inline int atomic_fetch_xor(unsigned int mask, atomic_t *v)
 #define smp_mb__before_atomic_inc()	barrier()
 #define smp_mb__after_atomic_inc()	barrier()
 
-#else /* !CONFIG_RV_ATOMIC */
+#else /* !CONFIG_ISA_A */
 
 #include <asm-generic/atomic.h>
 
-#endif /* CONFIG_RV_ATOMIC */
+#endif /* CONFIG_ISA_A */
 
 #include <asm/atomic64.h>
 
