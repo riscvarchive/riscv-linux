@@ -110,4 +110,197 @@ void asm_offsets(void)
 	OFFSET(PT_SSTATUS, pt_regs, sstatus);
 	OFFSET(PT_SBADADDR, pt_regs, sbadaddr);
 	OFFSET(PT_SCAUSE, pt_regs, scause);
+
+	/* THREAD_{F,X}* might be larger than a S-type offset can handle, but
+	 * these are used in performance-sensitive assembly so we can't resort
+	 * to loading the long immediate every time. */
+	DEFINE(THREAD_RA_RA,
+		  offsetof(struct task_struct, thread.ra)
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_SP_RA,
+		  offsetof(struct task_struct, thread.sp)
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S0_RA,
+		  offsetof(struct task_struct, thread.s[0])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S1_RA,
+		  offsetof(struct task_struct, thread.s[1])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S2_RA,
+		  offsetof(struct task_struct, thread.s[2])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S3_RA,
+		  offsetof(struct task_struct, thread.s[3])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S4_RA,
+		  offsetof(struct task_struct, thread.s[4])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S5_RA,
+		  offsetof(struct task_struct, thread.s[5])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S6_RA,
+		  offsetof(struct task_struct, thread.s[6])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S7_RA,
+		  offsetof(struct task_struct, thread.s[7])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S8_RA,
+		  offsetof(struct task_struct, thread.s[8])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S9_RA,
+		  offsetof(struct task_struct, thread.s[9])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S10_RA,
+		  offsetof(struct task_struct, thread.s[10])
+		- offsetof(struct task_struct, thread.ra)
+	);
+	DEFINE(THREAD_S11_RA,
+		  offsetof(struct task_struct, thread.s[11])
+		- offsetof(struct task_struct, thread.ra)
+	);
+
+	DEFINE(THREAD_F0_F0,
+		  offsetof(struct task_struct, thread.fstate.f[0])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F1_F0,
+		  offsetof(struct task_struct, thread.fstate.f[1])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F2_F0,
+		  offsetof(struct task_struct, thread.fstate.f[2])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F3_F0,
+		  offsetof(struct task_struct, thread.fstate.f[3])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F4_F0,
+		  offsetof(struct task_struct, thread.fstate.f[4])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F5_F0,
+		  offsetof(struct task_struct, thread.fstate.f[5])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F6_F0,
+		  offsetof(struct task_struct, thread.fstate.f[6])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F7_F0,
+		  offsetof(struct task_struct, thread.fstate.f[7])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F8_F0,
+		  offsetof(struct task_struct, thread.fstate.f[8])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F9_F0,
+		  offsetof(struct task_struct, thread.fstate.f[9])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F10_F0,
+		  offsetof(struct task_struct, thread.fstate.f[10])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F11_F0,
+		  offsetof(struct task_struct, thread.fstate.f[11])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F12_F0,
+		  offsetof(struct task_struct, thread.fstate.f[12])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F13_F0,
+		  offsetof(struct task_struct, thread.fstate.f[13])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F14_F0,
+		  offsetof(struct task_struct, thread.fstate.f[14])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F15_F0,
+		  offsetof(struct task_struct, thread.fstate.f[15])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F16_F0,
+		  offsetof(struct task_struct, thread.fstate.f[16])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F17_F0,
+		  offsetof(struct task_struct, thread.fstate.f[17])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F18_F0,
+		  offsetof(struct task_struct, thread.fstate.f[18])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F19_F0,
+		  offsetof(struct task_struct, thread.fstate.f[19])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F20_F0,
+		  offsetof(struct task_struct, thread.fstate.f[20])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F21_F0,
+		  offsetof(struct task_struct, thread.fstate.f[21])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F22_F0,
+		  offsetof(struct task_struct, thread.fstate.f[22])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F23_F0,
+		  offsetof(struct task_struct, thread.fstate.f[23])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F24_F0,
+		  offsetof(struct task_struct, thread.fstate.f[24])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F25_F0,
+		  offsetof(struct task_struct, thread.fstate.f[25])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F26_F0,
+		  offsetof(struct task_struct, thread.fstate.f[26])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F27_F0,
+		  offsetof(struct task_struct, thread.fstate.f[27])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F28_F0,
+		  offsetof(struct task_struct, thread.fstate.f[28])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F29_F0,
+		  offsetof(struct task_struct, thread.fstate.f[29])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F30_F0,
+		  offsetof(struct task_struct, thread.fstate.f[30])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_F31_F0,
+		  offsetof(struct task_struct, thread.fstate.f[31])
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
+	DEFINE(THREAD_FCSR_F0,
+		  offsetof(struct task_struct, thread.fstate.fcsr)
+		- offsetof(struct task_struct, thread.fstate.f[0])
+	);
 }
