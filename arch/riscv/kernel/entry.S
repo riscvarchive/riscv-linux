@@ -268,7 +268,7 @@ ENDPROC(ret_from_kernel_thread)
 /*
  * Integer register context switch
  * The callee-saved registers must be saved and restored.
- * 
+ *
  *   a0: previous task_struct (must be preserved across the switch)
  *   a1: next task_struct
  */

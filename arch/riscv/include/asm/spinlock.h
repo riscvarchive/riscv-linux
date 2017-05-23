@@ -112,7 +112,7 @@ static inline int arch_read_trylock(arch_rwlock_t *lock)
 		"1:\n"
 		: "+A" (lock->lock), "=&r" (busy)
 		:: "memory");
-	
+
 	return !busy;
 }
 
