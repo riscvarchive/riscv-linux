@@ -100,13 +100,23 @@ config NR_CPUS
 	default "8"
 
 choice
-	prompt "CPU selection"
-	default CPU_RV_GENERIC
+	prompt "Base ISA"
+	default ARCH_RV64I
 
-config CPU_RV_GENERIC
-	bool "Generic RISC-V"
+config ARCH_RV32I
+	bool "RV32I"
 	select CPU_SUPPORTS_32BIT_KERNEL
+
+config ARCH_RV64I
+	bool "RV64I"
 	select CPU_SUPPORTS_64BIT_KERNEL
+
+choice
+	prompt "CPU Tuning"
+	default TUNE_GENERIC
+
+config TUNE_GENERIC
+	bool "generic"
 
 endchoice
 
@@ -120,11 +130,6 @@ config PLIC
 	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
 
 	   If you don't know what to do here, say Y.
-
-config CPU_SUPPORTS_32BIT_KERNEL
-	bool
-config CPU_SUPPORTS_64BIT_KERNEL
-	bool
 
 config SBI_CONSOLE
 	tristate "SBI console support"
