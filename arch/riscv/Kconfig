@@ -131,6 +131,10 @@ config SBI_CONSOLE
 	select TTY
 	default y
 
+config SBI_DISK
+	tristate "SBI disk support"
+	default y
+
 config RVC
 	bool "Use compressed instructions (RV32C or RV64C)"
 	default n
