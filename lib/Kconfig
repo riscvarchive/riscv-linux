@@ -576,3 +576,21 @@ config PRIME_NUMBERS
 	tristate
 
 endmenu
+
+config GENERIC_ASHLDI3
+	def_bool n
+
+config GENERIC_ASHRDI3
+	def_bool n
+
+config GENERIC_LSHRDI3
+	def_bool n
+
+config GENERIC_MULDI3
+	def_bool n
+
+config GENERIC_CMPDI2
+	def_bool n
+
+config GENERIC_UCMPDI2
+	def_bool n
