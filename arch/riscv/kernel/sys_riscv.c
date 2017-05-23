@@ -39,7 +39,7 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 }
 #endif /* !CONFIG_64BIT */
 
-#ifdef CONFIG_RV_SYSRISCV_ATOMIC
+#ifdef CONFIG_SYSRISCV_ATOMIC
 SYSCALL_DEFINE4(sysriscv, unsigned long, cmd, unsigned long, arg1,
 	unsigned long, arg2, unsigned long, arg3)
 {
@@ -82,4 +82,4 @@ SYSCALL_DEFINE4(sysriscv, unsigned long, cmd, unsigned long, arg1,
 
 	return -EINVAL;
 }
-#endif /* CONFIG_RV_SYSRISCV_ATOMIC */
+#endif /* CONFIG_SYSRISCV_ATOMIC */

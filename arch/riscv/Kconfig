@@ -19,7 +19,7 @@ config RISCV
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
 	select GENERIC_SMP_IDLE_THREAD
-	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
+	select GENERIC_ATOMIC64 if !64BIT || !ARCH_A
 	select ARCH_WANT_OPTIONAL_GPIOLIB
 	select HAVE_MEMBLOCK
 	select HAVE_DMA_API_DEBUG
@@ -27,8 +27,8 @@ config RISCV
 	select HAVE_GENERIC_DMA_COHERENT
 	select IRQ_DOMAIN
 	select NO_BOOTMEM
-	select RV_ATOMIC if SMP
-	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
+	select ARCH_A if SMP
+	select SYSRISCV_ATOMIC if !ARCH_A
 	select SPARSE_IRQ
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
@@ -111,6 +111,8 @@ config ARCH_RV64I
 	bool "RV64I"
 	select CPU_SUPPORTS_64BIT_KERNEL
 
+endchoice
+
 choice
 	prompt "CPU Tuning"
 	default TUNE_GENERIC
@@ -136,15 +138,15 @@ config SBI_CONSOLE
 	select TTY
 	default y
 
-config RVC
+config ARCH_C
 	bool "Use compressed instructions (RV32C or RV64C)"
 	default n
 
-config RV_ATOMIC
+config ARCH_A
 	bool "Use atomic memory instructions (RV32A or RV64A)"
 	default y
 
-config RV_SYSRISCV_ATOMIC
+config SYSRISCV_ATOMIC
 	bool "Include support for atomic operation syscalls"
 	default n
 	help
