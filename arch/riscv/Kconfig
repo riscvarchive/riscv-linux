@@ -139,11 +139,11 @@ config SBI_CONSOLE
 	default y
 
 config ARCH_C
-	bool "Use compressed instructions (RV32C or RV64C)"
+	bool "Emit compressed instructions when building Linux"
 	default n
 
 config ARCH_A
-	bool "Use atomic memory instructions (RV32A or RV64A)"
+	bool "Emit atomic instructions when building Linux"
 	default y
 
 config SYSRISCV_ATOMIC
