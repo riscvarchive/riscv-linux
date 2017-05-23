@@ -74,7 +74,7 @@ void show_regs(struct pt_regs *regs)
 		regs->sstatus, regs->sbadaddr, regs->scause);
 }
 
-void start_thread(struct pt_regs *regs, unsigned long pc, 
+void start_thread(struct pt_regs *regs, unsigned long pc,
 	unsigned long sp)
 {
 	regs->sstatus = SR_PIE /* User mode, irqs on */ | SR_FS_INITIAL;

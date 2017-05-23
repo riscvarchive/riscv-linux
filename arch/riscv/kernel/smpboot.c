@@ -75,7 +75,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 
 	while (!cpu_online(cpu))
 		cpu_relax();
-	
+
 	return 0;
 }
 
