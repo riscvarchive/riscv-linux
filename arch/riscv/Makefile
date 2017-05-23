@@ -15,9 +15,9 @@ KBUILD_AFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS_MODULE += -fPIC
 
 ifeq ($(ARCH),riscv)
-	KBUILD_DEFCONFIG = riscv64_spike
+	KBUILD_DEFCONFIG = spike64_defconfig
 else
-	KBUILD_DEFCONFIG = $(ARCH)_spike
+	KBUILD_DEFCONFIG = $(subst riscv,spike,$(ARCH))_defconfig
 endif
 
 export BITS
@@ -38,6 +38,8 @@ else
 	KBUILD_MARCH = rv32im
 	LDFLAGS += -melf32lriscv
 endif
+
+KBUILD_CFLAGS += -Wall
 
 ifeq ($(CONFIG_RV_ATOMIC),y)
 	KBUILD_RV_ATOMIC = a
