@@ -26,8 +26,7 @@ obj-y	+= vdso/
 
 CFLAGS_setup.o := -mcmodel=medany
 
-obj-$(CONFIG_SMP)		+= smpboot.o
-obj-$(CONFIG_SMP)		+= smp.o
+obj-$(CONFIG_SMP)		+= smpboot.o smp.o
 obj-$(CONFIG_MODULES)		+= module.o
 
 clean:
