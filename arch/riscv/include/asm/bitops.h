@@ -26,7 +26,7 @@
 #include <asm/barrier.h>
 #include <asm/bitsperlong.h>
 
-#ifdef CONFIG_RV_ATOMIC
+#ifdef CONFIG_ISA_A
 
 #ifndef smp_mb__before_clear_bit
 #define smp_mb__before_clear_bit()  smp_mb()
@@ -218,11 +218,11 @@ static inline void __clear_bit_unlock(
 #include <asm-generic/bitops/le.h>
 #include <asm-generic/bitops/ext2-atomic.h>
 
-#else /* !CONFIG_RV_ATOMIC */
+#else /* !CONFIG_ISA_A */
 
 #include <asm-generic/bitops.h>
 
-#endif /* CONFIG_RV_ATOMIC */
+#endif /* CONFIG_ISA_A */
 
 #endif /* __KERNEL__ */
 

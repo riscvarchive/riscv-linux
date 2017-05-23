@@ -19,7 +19,7 @@ config RISCV
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
 	select GENERIC_SMP_IDLE_THREAD
-	select GENERIC_ATOMIC64 if !64BIT || !ARCH_A
+	select GENERIC_ATOMIC64 if !64BIT || !ISA_A
 	select ARCH_WANT_OPTIONAL_GPIOLIB
 	select HAVE_MEMBLOCK
 	select HAVE_DMA_API_DEBUG
@@ -27,8 +27,8 @@ config RISCV
 	select HAVE_GENERIC_DMA_COHERENT
 	select IRQ_DOMAIN
 	select NO_BOOTMEM
-	select ARCH_A if SMP
-	select SYSRISCV_ATOMIC if !ARCH_A
+	select ISA_A if SMP
+	select SYSRISCV_ATOMIC if !ISA_A
 	select SPARSE_IRQ
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
@@ -145,11 +145,11 @@ config SBI_CONSOLE
 	select TTY
 	default y
 
-config ARCH_C
+config ISA_C
 	bool "Emit compressed instructions when building Linux"
 	default n
 
-config ARCH_A
+config ISA_A
 	bool "Emit atomic instructions when building Linux"
 	default y
 
@@ -158,12 +158,12 @@ config SYSRISCV_ATOMIC
 	default n
 	help
 	  If atomic memory instructions are present, i.e.,
-	  CONFIG_RV_ATOMIC, this includes support for the syscall that
+	  CONFIG_ISA_A, this includes support for the syscall that
 	  provides atomic accesses.  This is only useful to run
 	  binaries that require atomic access but were compiled with
 	  -mno-atomic.
 
-	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
+	  If CONFIG_ISA_A is unset, this option is mandatory.
 
 config RV_PUM
 	def_bool y

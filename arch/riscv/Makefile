@@ -41,10 +41,10 @@ endif
 
 KBUILD_CFLAGS += -Wall
 
-ifeq ($(CONFIG_ARCH_A),y)
+ifeq ($(CONFIG_ISA_A),y)
 	KBUILD_ARCH_A = a
 endif
-ifeq ($(CONFIG_ARCH_C),y)
+ifeq ($(CONFIG_ISA_C),y)
 	KBUILD_ARCH_C = c
 endif
 
