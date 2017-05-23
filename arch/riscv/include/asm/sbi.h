@@ -25,6 +25,9 @@
 #define SBI_REMOTE_SFENCE_VMA 6
 #define SBI_REMOTE_SFENCE_VMA_ASID 7
 #define SBI_SHUTDOWN 8
+#define SBI_DISK_READ 9
+#define SBI_DISK_WRITE 10
+#define SBI_DISK_SIZE 11
 
 #define SBI_CALL(which, arg0, arg1, arg2) ({			\
 	register uintptr_t a0 asm ("a0") = (uintptr_t)(arg0);	\
@@ -95,6 +98,27 @@ static inline void sbi_remote_sfence_vma_asid(const unsigned long *hart_mask,
 					      unsigned long asid)
 {
 	SBI_CALL_1(SBI_REMOTE_SFENCE_VMA_ASID, hart_mask);
+}
+
+static inline void sbi_disk_read(
+		unsigned long addr,
+		unsigned long offset,
+		unsigned long size)
+{
+	SBI_CALL(SBI_DISK_READ, addr, offset, size);
+}
+
+static inline void sbi_disk_write(
+		unsigned long addr,
+		unsigned long offset,
+		unsigned long size)
+{
+	SBI_CALL(SBI_DISK_WRITE, addr, offset, size);
+}
+
+static inline unsigned long sbi_disk_size(void)
+{
+	return SBI_CALL_0(SBI_DISK_SIZE);
 }
 
 #endif
