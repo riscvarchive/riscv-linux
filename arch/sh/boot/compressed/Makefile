@@ -38,10 +38,10 @@ LDFLAGS_vmlinux := --oformat $(ld-bfd) -Ttext $(IMAGE_OFFSET) -e startup \
 #
 # Pull in the necessary libgcc bits from the in-kernel implementation.
 #
-lib1funcs-$(CONFIG_SUPERH32)	:= ashiftrt.S ashldi3.c ashrsi3.S ashlsi3.S \
-				   lshrsi3.S
+lib1funcs-$(CONFIG_SUPERH32)	:= ashiftrt.S ashrsi3.S ashlsi3.S lshrsi3.S
 lib1funcs-obj			:= \
-	$(addsuffix .o, $(basename $(addprefix $(obj)/, $(lib1funcs-y))))
+	$(addsuffix .o, $(basename $(addprefix $(obj)/, $(lib1funcs-y)))) \
+	$(srctree)/lib/ashldi3.o
 
 lib1funcs-dir		:= $(srctree)/arch/$(SRCARCH)/lib
 ifeq ($(BITS),64)
