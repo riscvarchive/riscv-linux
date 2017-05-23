@@ -167,6 +167,15 @@ config TUNE_GENERIC
 
 endchoice
 
+config SBI_CONSOLE
+	tristate "SBI console support"
+	select TTY
+	default y
+
+config SBI_DISK
+	tristate "SBI disk support"
+	default y
+
 config RISCV_ISA_C
 	bool "Emit compressed instructions when building Linux"
 	default n
