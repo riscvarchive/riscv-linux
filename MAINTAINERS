@@ -10880,7 +10880,7 @@ F:	drivers/memstick/host/r592.*
 RISC-V ARCHITECTURE
 M:	Palmer Dabbelt <palmer@sifive.com>
 M:	Albert Ou <albert@sifive.com>
-L:	patches@groups.riscv.org (moderated for non-subscribers)
+L:	patches@groups.riscv.org
 T:	git https://github.com/riscv/riscv-linux
 S:	Supported
 F:	arch/riscv/
