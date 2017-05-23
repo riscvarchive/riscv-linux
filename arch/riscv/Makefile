@@ -21,7 +21,7 @@ else
 endif
 
 export BITS
-ifeq ($(CONFIG_64BIT),y)
+ifeq ($(CONFIG_ARCH_RV64I),y)
 	BITS := 64
 	UTS_MACHINE := riscv64
 
@@ -42,13 +42,13 @@ endif
 KBUILD_CFLAGS += -Wall
 
 ifeq ($(CONFIG_ARCH_A),y)
-	KBUILD_RV_ATOMIC = a
+	KBUILD_ARCH_A = a
 endif
 ifeq ($(CONFIG_ARCH_C),y)
 	KBUILD_ARCH_C = c
 endif
 
-KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_A)
+KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_C)
 
 KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
 KBUILD_CFLAGS += -mno-save-restore

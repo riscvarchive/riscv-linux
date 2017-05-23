@@ -99,6 +99,11 @@ config NR_CPUS
 	depends on SMP
 	default "8"
 
+config CPU_SUPPORTS_32BIT_KERNEL
+	bool
+config CPU_SUPPORTS_64BIT_KERNEL
+	bool
+
 choice
 	prompt "Base ISA"
 	default ARCH_RV64I
@@ -106,10 +111,12 @@ choice
 config ARCH_RV32I
 	bool "RV32I"
 	select CPU_SUPPORTS_32BIT_KERNEL
+	select 32BIT
 
 config ARCH_RV64I
 	bool "RV64I"
 	select CPU_SUPPORTS_64BIT_KERNEL
+	select 64BIT
 
 endchoice
 
