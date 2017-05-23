@@ -18,8 +18,6 @@
 
 #ifdef __KERNEL__
 
-#define CLOCK_TICK_RATE (HZ * 100UL)
-
 typedef unsigned long cycles_t;
 
 static inline cycles_t get_cycles(void)
