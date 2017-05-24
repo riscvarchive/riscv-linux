@@ -34,19 +34,36 @@ static struct block_device_operations sbi_disk_fops = {
 	.owner = THIS_MODULE
 };
 
-void sbi_disk_transfer(struct request *req, int write)
+#ifdef CONFIG_SBI_DISK_MULTISEGMENT
+static inline void sbi_disk_transfer_segment(
+		struct bio_vec *bvec, unsigned long offset, int write)
 {
-	//struct bio_vec bvec;
-	//struct req_iterator iter;
-	//unsigned long offset = blk_rq_pos(req) << SECTOR_SHIFT;
-	//unsigned long addr;
+	unsigned long addr = page_to_phys(bvec->bv_page) + bvec->bv_offset;
+	if (write) {
+		printk(KERN_INFO "sbi_disk_write(%lx, %lx, %d)\n",
+				addr, offset, bvec->bv_len);
+		sbi_disk_write(addr, offset, bvec->bv_len);
+	} else {
+		printk(KERN_INFO "sbi_disk_read(%lx, %lx, %d)\n",
+				addr, offset, bvec->bv_len);
+		sbi_disk_read(addr, offset, bvec->bv_len);
+	}
+}
 
-	//rq_for_each_segment(bvec, req, iter) {
-	//	addr = page_to_phys(bvec.bv_page) + bvec.bv_offset;
-	//	sbi_disk_write(addr, offset, bvec.bv_len);
-	//	offset += bvec.bv_len;
-	//}
+static void sbi_disk_transfer(struct request *req, int write)
+{
+	struct bio_vec bvec;
+	struct req_iterator iter;
+	unsigned long offset = blk_rq_pos(req) << SECTOR_SHIFT;
 
+	rq_for_each_segment(bvec, req, iter) {
+		sbi_disk_transfer_segment(&bvec, offset, write);
+		offset += bvec.bv_len;
+	}
+}
+#else
+static void sbi_disk_transfer(struct request *req, int write)
+{
 	unsigned long addr = bio_to_phys(req->bio);
 	unsigned long offset = blk_rq_pos(req) << SECTOR_SHIFT;
 	unsigned long bytes = blk_rq_bytes(req);
@@ -59,8 +76,9 @@ void sbi_disk_transfer(struct request *req, int write)
 		sbi_disk_read(addr, offset, bytes);
 	}
 }
+#endif
 
-unsigned long sbi_disk_request(struct request *req)
+static unsigned long sbi_disk_request(struct request *req)
 {
 	switch (req_op(req)) {
 	case REQ_OP_DISCARD:
@@ -101,6 +119,9 @@ static int sbi_disk_setup(struct sbi_disk_dev *dev)
 	if (!dev->queue)
 		goto exit_queue;
 	blk_queue_logical_block_size(dev->queue, SECTOR_SIZE);
+#ifndef CONFIG_SBI_DISK_MULTISEGMENT
+	blk_queue_max_segments(dev->queue, 1);
+#endif
 
 	dev->gd = alloc_disk(SBI_DISK_MINORS);
 	if (!dev->gd)
