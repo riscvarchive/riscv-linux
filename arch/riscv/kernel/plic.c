@@ -44,13 +44,6 @@
 #define HART_BASE	0x200000
 #define HART_SIZE	0x1000
 
-#define PLIC_HART_CONTEXT(data, i) \
-	(struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i)
-#define PLIC_ENABLE_CONTEXT(data, i) \
-	(struct plic_enable_context *)((char *)data->reg + ENABLE_BASE + ENABLE_SIZE*i)
-#define PLIC_PRIORITY(data) \
-	(struct plic_priority *)((char *)data->reg + PRIORITY_BASE)
-
 struct plic_hart_context {
 	u32 threshold;
 	u32 claim;
@@ -79,16 +72,34 @@ struct plic_handler {
 	struct plic_data		*data;
 };
 
+static inline
+struct plic_hart_context *plic_hart_context(struct plic_data *data, size_t i)
+{
+	return (struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i);
+}
+
+static inline
+struct plic_enable_context *plic_enable_context(struct plic_data *data, size_t i)
+{
+	return (struct plic_enable_context *)((char *)data->reg + ENABLE_BASE + ENABLE_SIZE*i);
+}
+
+static inline
+struct plic_priority *plic_priority(struct plic_data *data)
+{
+	return (struct plic_priority *)((char *)data->reg + PRIORITY_BASE);
+}
+
 static void plic_disable(struct plic_data *data, int i, int hwirq)
 {
-	struct plic_enable_context *enable = PLIC_ENABLE_CONTEXT(data, i);
+	struct plic_enable_context *enable = plic_enable_context(data, i);
 
 	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 }
 
 static void plic_enable(struct plic_data *data, int i, int hwirq)
 {
-	struct plic_enable_context *enable = PLIC_ENABLE_CONTEXT(data, i);
+	struct plic_enable_context *enable = plic_enable_context(data, i);
 
 	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 }
@@ -101,7 +112,7 @@ static void plic_irq_unmask(struct irq_data *d) { }
 static void plic_irq_enable(struct irq_data *d)
 {
 	struct plic_data *data = irq_data_get_irq_chip_data(d);
-	struct plic_priority *priority = PLIC_PRIORITY(data);
+	struct plic_priority *priority = plic_priority(data);
 	int i;
 
 	iowrite32(1, &priority->prio[d->hwirq]);
@@ -113,7 +124,7 @@ static void plic_irq_enable(struct irq_data *d)
 static void plic_irq_disable(struct irq_data *d)
 {
 	struct plic_data *data = irq_data_get_irq_chip_data(d);
-	struct plic_priority *priority = PLIC_PRIORITY(data);
+	struct plic_priority *priority = plic_priority(data);
 	int i;
 
 	iowrite32(0, &priority->prio[d->hwirq]);
@@ -224,7 +235,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 		if (!parent_irq)
 			continue;
 
-		handler->context = PLIC_HART_CONTEXT(data, i);
+		handler->context = plic_hart_context(data, i);
 		handler->data = data;
 		// hwirq prio must be > this to trigger an interrupt
 		iowrite32(0, &handler->context->threshold);
