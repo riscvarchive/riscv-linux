@@ -15,7 +15,7 @@
 #ifndef _ASM_RISCV_DELAY_H
 #define _ASM_RISCV_DELAY_H
 
-extern unsigned long timebase;
+extern unsigned long riscv_timebase;
 
 #define udelay udelay
 extern void udelay(unsigned long usecs);

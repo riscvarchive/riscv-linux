@@ -24,7 +24,7 @@
 #include <asm/sbi.h>
 #include <asm/delay.h>
 
-unsigned long timebase;
+unsigned long riscv_timebase;
 
 static DEFINE_PER_CPU(struct clock_event_device, clock_event);
 
@@ -90,7 +90,7 @@ void __init init_clockevent(void)
 	/* Enable timer interrupts */
 	csr_set(sie, SIE_STIE);
 
-	clockevents_config_and_register(ce, timebase, 100, 0x7fffffff);
+	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
 }
 
 static unsigned long __init of_timebase(void)
@@ -110,9 +110,9 @@ static unsigned long __init of_timebase(void)
 
 void __init time_init(void)
 {
-	timebase = of_timebase();
-	lpj_fine = timebase / HZ;
+	riscv_timebase = of_timebase();
+	lpj_fine = riscv_timebase / HZ;
 
-	clocksource_register_hz(&riscv_clocksource, timebase);
+	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
 	init_clockevent();
 }
