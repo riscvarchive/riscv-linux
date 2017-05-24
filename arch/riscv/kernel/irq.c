@@ -49,6 +49,7 @@ static void riscv_software_interrupt(void)
 asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
+	struct irq_domain *domain;
 
 	irq_enter();
 
@@ -63,13 +64,10 @@ asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
 	case INTERRUPT_CAUSE_SOFTWARE:
 		riscv_software_interrupt();
 		break;
-	default: {
-		struct irq_domain *domain =
-			per_cpu(riscv_irq_data, smp_processor_id()).domain;
-
+	default:
+		domain = per_cpu(riscv_irq_data, smp_processor_id()).domain;
 		generic_handle_irq(irq_find_mapping(domain, cause));
 		break;
-	}
 	}
 
 	irq_exit();
