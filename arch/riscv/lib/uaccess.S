@@ -8,8 +8,8 @@
 _epc:
 	\op \reg, \addr
 	.section __ex_table,"a"
-	.balign SZPTR
-	PTR _epc, \lbl
+	.balign RISCV_SZPTR
+	RISCV_PTR _epc, \lbl
 	.previous
 	.endm
 

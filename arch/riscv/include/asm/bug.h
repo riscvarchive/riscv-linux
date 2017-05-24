@@ -31,8 +31,8 @@ typedef u32 bug_insn_t;
 #define __BUG_ENTRY_ADDR	INT " 1b - 2b"
 #define __BUG_ENTRY_FILE	INT " %0 - 2b"
 #else
-#define __BUG_ENTRY_ADDR	PTR " 1b"
-#define __BUG_ENTRY_FILE	PTR " %0"
+#define __BUG_ENTRY_ADDR	RISCV_PTR " 1b"
+#define __BUG_ENTRY_FILE	RISCV_PTR " %0"
 #endif
 
 #ifdef CONFIG_DEBUG_BUGVERBOSE
