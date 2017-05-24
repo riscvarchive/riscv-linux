@@ -197,30 +197,13 @@ static const struct irq_domain_ops riscv_irqdomain_ops_noop = {
 static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 {
 	int hart;
+	struct riscv_irq_data *data;
 
 	if (parent)
 		return 0;
 
 	hart = riscv_of_processor_hart(node->parent);
-	if (hart >= 0) {
-		struct riscv_irq_data *data = &per_cpu(riscv_irq_data, hart);
-
-		snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", hart);
-		data->hart = hart;
-		data->chip.name = data->name;
-		data->chip.irq_mask = riscv_irq_mask;
-		data->chip.irq_unmask = riscv_irq_unmask;
-		data->chip.irq_enable = riscv_irq_enable;
-		data->chip.irq_disable = riscv_irq_disable;
-		data->domain = irq_domain_add_linear(
-			node,
-			8*sizeof(uintptr_t),
-			&riscv_irqdomain_ops,
-			data);
-		WARN_ON(!data->domain);
-		printk(KERN_INFO "%s: %d local interrupts mapped\n",
-		       data->name, 8*(int)sizeof(uintptr_t));
-	} else {
+	if (hart < 0) {
 		/* If a hart is disabled, create a no-op irq domain.  Devices
 		 * may still have interrupts connected to those harts.  This is
 		 * not wrong... unless they actually load a driver that needs
@@ -231,7 +214,25 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 			8*sizeof(uintptr_t),
 			&riscv_irqdomain_ops_noop,
 			node->parent);
+		return 0;
 	}
+
+	data = &per_cpu(riscv_irq_data, hart);
+	snprintf(data->name, sizeof(data->name), "riscv,cpu_intc,%d", hart);
+	data->hart = hart;
+	data->chip.name = data->name;
+	data->chip.irq_mask = riscv_irq_mask;
+	data->chip.irq_unmask = riscv_irq_unmask;
+	data->chip.irq_enable = riscv_irq_enable;
+	data->chip.irq_disable = riscv_irq_disable;
+	data->domain = irq_domain_add_linear(
+		node,
+		8*sizeof(uintptr_t),
+		&riscv_irqdomain_ops,
+		data);
+	WARN_ON(!data->domain);
+	printk(KERN_INFO "%s: %d local interrupts mapped\n",
+	       data->name, 8*(int)sizeof(uintptr_t));
 	return 0;
 }
 
