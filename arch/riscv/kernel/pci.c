@@ -1,6 +1,13 @@
 /*
  * Code borrowed from arch/arm64/kernel/pci.c
+ *   which borrowed from powerpc/kernel/pci-common.c
+ *   which borrowed from arch/alpha/kernel/pci.c
  *
+ * Extruded from code written by
+ *      Dave Rusling (david.rusling@reo.mts.dec.com)
+ *      David Mosberger (davidm@cs.arizona.edu)
+ * Copyright (C) 1999 Andrea Arcangeli <andrea@suse.de>
+ * Copyright (C) 2000 Ivan Kokshaysky <ink@jurassic.park.msu.ru>
  * Copyright (C) 2003 Anton Blanchard <anton@au.ibm.com>, IBM
  * Copyright (C) 2014 ARM Ltd.
  * Copyright (C) 2017 SiFive
