@@ -23,7 +23,19 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 
-#define MAX_DEVICES	1024 // 0 is reserved
+/* From the RISC-V Privlidged Spec v1.10:
+ *
+ * Global interrupt sources are assigned small unsigned integer identifiers,
+ * beginning at the value 1.  An interrupt ID of 0 is reserved to mean “no
+ * interrupt”.  Interrupt identifiers are also used to break ties when two or
+ * more interrupt sources have the same assigned priority. Smaller values of
+ * interrupt ID take precedence over larger values of interrupt ID.
+ *
+ * It's not defined what the largest device ID is, so we're just fixing
+ * MAX_DEVICES right here (which is named oddly, as there will never be a
+ * device 0).
+ */
+#define MAX_DEVICES	1024
 #define MAX_CONTEXTS	15872
 
 #define PRIORITY_BASE	0
