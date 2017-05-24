@@ -154,7 +154,7 @@ ENTRY(handle_exception)
 	beq s4, t0, handle_syscall
 
 	/* Handle other exceptions */
-	slli t0, s4, LGPTR
+	slli t0, s4, RISCV_LGPTR
 	la t1, excp_vect_table
 	la t2, excp_vect_table_end
 	move a0, sp /* pt_regs */
@@ -184,7 +184,7 @@ check_syscall_nr:
 	/* Syscall number held in a7 */
 	bgeu a7, t0, 1f
 	la s0, sys_call_table
-	slli t0, a7, LGPTR
+	slli t0, a7, RISCV_LGPTR
 	add s0, s0, t0
 	REG_L s0, 0(s0)
 1:
@@ -400,22 +400,22 @@ ENDPROC(__fstate_restore)
 	.section ".rodata"
 	/* Exception vector table */
 ENTRY(excp_vect_table)
-	PTR do_trap_insn_misaligned
-	PTR do_trap_unknown /* instruction access exception */
-	PTR do_trap_insn_illegal
-	PTR do_trap_break
-	PTR do_trap_unknown
-	PTR do_trap_unknown /* load access exception */
-	PTR do_trap_amo_misaligned
-	PTR do_trap_unknown /* store access exception */
-	PTR do_trap_unknown /* handle_syscall */
-	PTR do_trap_unknown
-	PTR do_trap_unknown
-	PTR do_trap_unknown
-	PTR do_page_fault   /* instruction page fault */
-	PTR do_page_fault   /* load page fault */
-	PTR do_trap_unknown
-	PTR do_page_fault   /* store page fault */
+	RISCV_PTR do_trap_insn_misaligned
+	RISCV_PTR do_trap_unknown /* instruction access exception */
+	RISCV_PTR do_trap_insn_illegal
+	RISCV_PTR do_trap_break
+	RISCV_PTR do_trap_unknown
+	RISCV_PTR do_trap_unknown /* load access exception */
+	RISCV_PTR do_trap_amo_misaligned
+	RISCV_PTR do_trap_unknown /* store access exception */
+	RISCV_PTR do_trap_unknown /* handle_syscall */
+	RISCV_PTR do_trap_unknown
+	RISCV_PTR do_trap_unknown
+	RISCV_PTR do_trap_unknown
+	RISCV_PTR do_page_fault   /* instruction page fault */
+	RISCV_PTR do_page_fault   /* load page fault */
+	RISCV_PTR do_trap_unknown
+	RISCV_PTR do_page_fault   /* store page fault */
 excp_vect_table_end:
 END(excp_vect_table)
 

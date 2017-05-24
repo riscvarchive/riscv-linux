@@ -148,8 +148,8 @@ do {								\
 		"	jump 2b, %2\n"				\
 		"	.previous\n"				\
 		"	.section __ex_table,\"a\"\n"		\
-		"	.balign " SZPTR "\n"			\
-		"	" PTR " 1b, 3b\n"			\
+		"	.balign " RISCV_SZPTR "\n"			\
+		"	" RISCV_PTR " 1b, 3b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=&r" (x), "=r" (__tmp)		\
 		: "m" (*(ptr)), "i" (-EFAULT));			\
@@ -190,9 +190,9 @@ do {								\
 		"	jump 3b, %3\n"				\
 		"	.previous\n"				\
 		"	.section __ex_table,\"a\"\n"		\
-		"	.balign " SZPTR "\n"			\
-		"	" PTR " 1b, 4b\n"			\
-		"	" PTR " 2b, 4b\n"			\
+		"	.balign " RISCV_SZPTR "\n"			\
+		"	" RISCV_PTR " 1b, 4b\n"			\
+		"	" RISCV_PTR " 2b, 4b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=&r" (__lo), "=r" (__hi),	\
 			"=r" (__tmp)				\
@@ -297,8 +297,8 @@ do {								\
 		"	jump 2b, %1\n"				\
 		"	.previous\n"				\
 		"	.section __ex_table,\"a\"\n"		\
-		"	.balign " SZPTR "\n"			\
-		"	" PTR " 1b, 3b\n"			\
+		"	.balign " RISCV_SZPTR "\n"			\
+		"	" RISCV_PTR " 1b, 3b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=r" (__tmp), "=m" (*(ptr))	\
 		: "rJ" (__x), "i" (-EFAULT));			\
@@ -337,9 +337,9 @@ do {								\
 		"	jump 2b, %1\n"				\
 		"	.previous\n"				\
 		"	.section __ex_table,\"a\"\n"		\
-		"	.balign " SZPTR "\n"			\
-		"	" PTR " 1b, 4b\n"			\
-		"	" PTR " 2b, 4b\n"			\
+		"	.balign " RISCV_SZPTR "\n"			\
+		"	" RISCV_PTR " 1b, 4b\n"			\
+		"	" RISCV_PTR " 2b, 4b\n"			\
 		"	.previous"				\
 		: "+r" (err), "=r" (__tmp),			\
 			"=m" (__ptr[__LSW]),			\

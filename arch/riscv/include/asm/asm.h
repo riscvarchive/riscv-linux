@@ -35,16 +35,28 @@
 #define LGREG		__REG_SEL(3, 2)
 
 #if __SIZEOF_POINTER__ == 8
-#define __PTR_SEL(a, b)	__ASM_STR(a)
+#ifdef __ASSEMBLY__
+#define RISCV_PTR		.dword
+#define RISCV_SZPTR		8
+#define RISCV_LGPTR		3
+#else
+#define RISCV_PTR		".dword"
+#define RISCV_SZPTR		"8"
+#define RISCV_LGPTR		"3"
+#endif
 #elif __SIZEOF_POINTER__ == 4
-#define __PTR_SEL(a, b)	__ASM_STR(b)
+#ifdef __ASSEMBLY__
+#define RISCV_PTR		.word
+#define RISCV_SZPTR		4
+#define RISCV_LGPTR		2
+#else
+#define RISCV_PTR		".word"
+#define RISCV_SZPTR		"4"
+#define RISCV_LGPTR		"2"
+#endif
 #else
 #error "Unexpected __SIZEOF_POINTER__"
 #endif
-
-#define PTR		__PTR_SEL(.dword, .word)
-#define SZPTR		__PTR_SEL(8, 4)
-#define LGPTR		__PTR_SEL(3, 2)
 
 #if (__SIZEOF_INT__ == 4)
 #define INT		__ASM_STR(.word)
