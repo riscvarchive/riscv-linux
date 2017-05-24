@@ -40,8 +40,8 @@
 	(struct plic_priority *)((char *)data->reg + PRIORITY_BASE)
 
 struct plic_hart_context {
-	volatile u32 threshold;
-	volatile u32 claim;
+	u32 threshold;
+	u32 claim;
 };
 
 struct plic_enable_context {
@@ -49,7 +49,7 @@ struct plic_enable_context {
 };
 
 struct plic_priority {
-	volatile u32 prio[MAX_DEVICES];
+	u32 prio[MAX_DEVICES];
 };
 
 struct plic_data {
