@@ -116,8 +116,17 @@ static void riscv_irq_enable(struct irq_data *d)
 {
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
+	/* There are two phases to setting up an interrupt: first we set a bit
+	 * in this bookkeeping structure, which is used by trap_init to
+	 * initialize SIE for each hart as it comes up.
+	 */
 	atomic_long_or((1 << (long)d->hwirq),
 		       &per_cpu(riscv_early_sie, data->hart));
+
+	/* The CPU is usually online, so here we just attempt to enable the
+	 * interrupt by writing SIE directly.  We need to write SIE on the
+	 * correct hart, which might be another hart.
+	 */
 	if (data->hart == smp_processor_id())
 		riscv_irq_unmask(d);
 	else if (cpu_online(data->hart))
@@ -136,6 +145,7 @@ static void riscv_irq_disable(struct irq_data *d)
 {
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
+	/* This is the mirror of riscv_irq_enable. */
 	atomic_long_and(~(1 << (long)d->hwirq),
 			&per_cpu(riscv_early_sie, data->hart));
 	if (data->hart == smp_processor_id())
