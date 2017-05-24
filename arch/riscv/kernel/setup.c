@@ -139,6 +139,7 @@ asmlinkage void __init setup_vm(void)
 		size_t o = (PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i;
 		swapper_pg_dir[o] =
 			pfn_pgd(PFN_DOWN(pa + i * PGDIR_SIZE), prot);
+	}
 #endif
 }
 
