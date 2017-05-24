@@ -75,9 +75,11 @@ do {								\
 } while (0)
 
 
+#ifdef __KERNEL__
 #define ARCH_HAS_SETUP_ADDITIONAL_PAGES
 struct linux_binprm;
 extern int arch_setup_additional_pages(struct linux_binprm *bprm,
 	int uses_interp);
+#endif
 
 #endif /* _ASM_RISCV_ELF_H */

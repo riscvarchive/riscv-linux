@@ -28,5 +28,5 @@ void machine_halt(void)
 
 void machine_power_off(void)
 {
-  sbi_shutdown();
+	sbi_shutdown();
 }

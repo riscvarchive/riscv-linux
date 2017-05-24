@@ -95,9 +95,8 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
 	struct page *pte;
 
 	pte = alloc_page(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
-	if (likely(pte != NULL)) {
+	if (likely(pte != NULL))
 		pgtable_page_ctor(pte);
-	}
 	return pte;
 }
 

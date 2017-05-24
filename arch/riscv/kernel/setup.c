@@ -123,23 +123,26 @@ asmlinkage void __init setup_vm(void)
 			__pgprot(_PAGE_TABLE));
 	trampoline_pmd[0] = pfn_pmd(PFN_DOWN(pa), prot);
 
-	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
-		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i) {
+		size_t o = (PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i;
+		swapper_pg_dir[o] =
 			pfn_pgd(PFN_DOWN((uintptr_t)swapper_pmd) + i,
 				__pgprot(_PAGE_TABLE));
-	for (i = 0; i < sizeof(swapper_pmd)/sizeof(swapper_pmd[0]); i++)
+	}
+	for (i = 0; i < ARRAY_SIZE(swapper_pmd); i++)
 		swapper_pmd[i] = pfn_pmd(PFN_DOWN(pa + i * PMD_SIZE), prot);
 #else
 	trampoline_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD] =
 		pfn_pgd(PFN_DOWN(pa), prot);
 
-	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i)
-		swapper_pg_dir[(PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i] =
+	for (i = 0; i < (-PAGE_OFFSET)/PGDIR_SIZE; ++i) {
+		size_t o = (PAGE_OFFSET >> PGDIR_SHIFT) % PTRS_PER_PGD + i;
+		swapper_pg_dir[o] =
 			pfn_pgd(PFN_DOWN(pa + i * PGDIR_SIZE), prot);
 #endif
 }
 
-void __init sbi_save(unsigned hartid, void *dtb)
+void __init sbi_save(unsigned int hartid, void *dtb)
 {
 	init_thread_info.cpu = hartid;
 	early_init_dt_scan(__va(dtb));
@@ -149,6 +152,7 @@ void __init sbi_save(unsigned hartid, void *dtb)
 static int __init mem_end_override(char *p)
 {
 	resource_size_t base, end;
+
 	if (!p)
 		return -EINVAL;
 	base = (uintptr_t) __pa(PAGE_OFFSET);
@@ -169,8 +173,11 @@ static void __init setup_bootmem(void)
 	for_each_memblock(memory, reg) {
 		phys_addr_t vmlinux_end = __pa(_end);
 		phys_addr_t end = reg->base + reg->size;
+
 		if (reg->base <= vmlinux_end && vmlinux_end <= end) {
-			/* Reserve from the start of the region to the end of the kernel */
+			/* Reserve from the start of the region to the end of
+			 * the kernel
+			 */
 			memblock_reserve(reg->base, vmlinux_end - reg->base);
 			mem_size = min(reg->size, (phys_addr_t)-PAGE_OFFSET);
 		}

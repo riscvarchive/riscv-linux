@@ -10,10 +10,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 #include <linux/export.h>
@@ -97,9 +93,8 @@ static void notrace walk_stackframe(struct task_struct *task,
 
 	ksp = (unsigned long *)sp;
 	while (!kstack_end(ksp)) {
-		if (__kernel_text_address(pc) && unlikely(fn(pc, arg))) {
+		if (__kernel_text_address(pc) && unlikely(fn(pc, arg)))
 			break;
-		}
 		pc = (*ksp++) - 0x4;
 	}
 }
@@ -132,11 +127,10 @@ static bool save_wchan(unsigned long pc, void *arg)
 
 unsigned long get_wchan(struct task_struct *task)
 {
-	unsigned long pc;
-	pc = 0;
-	if (likely(task && task != current && task->state != TASK_RUNNING)) {
+	unsigned long pc = 0;
+
+	if (likely(task && task != current && task->state != TASK_RUNNING))
 		walk_stackframe(task, NULL, save_wchan, &pc);
-	}
 	return pc;
 }
 

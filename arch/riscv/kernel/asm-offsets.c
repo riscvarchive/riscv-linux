@@ -112,7 +112,8 @@ void asm_offsets(void)
 
 	/* THREAD_{F,X}* might be larger than a S-type offset can handle, but
 	 * these are used in performance-sensitive assembly so we can't resort
-	 * to loading the long immediate every time. */
+	 * to loading the long immediate every time.
+	 */
 	DEFINE(THREAD_RA_RA,
 		  offsetof(struct task_struct, thread.ra)
 		- offsetof(struct task_struct, thread.ra)

@@ -17,14 +17,17 @@
 #include <linux/of_device.h>
 
 static void ci_leaf_init(struct cacheinfo *this_leaf,
-                         struct device_node *node,
-                         enum cache_type type, unsigned int level)
+			 struct device_node *node,
+			 enum cache_type type, unsigned int level)
 {
-        this_leaf->of_node = node;
-        this_leaf->level = level;
-        this_leaf->type = type;
-        this_leaf->physical_line_partition = 1; // not a sector cache
-        this_leaf->attributes = CACHE_WRITE_BACK | CACHE_READ_ALLOCATE | CACHE_WRITE_ALLOCATE; // TODO: add to DTS
+	this_leaf->of_node = node;
+	this_leaf->level = level;
+	this_leaf->type = type;
+	this_leaf->physical_line_partition = 1; // not a sector cache
+	this_leaf->attributes =
+		CACHE_WRITE_BACK
+		| CACHE_READ_ALLOCATE
+		| CACHE_WRITE_ALLOCATE; // TODO: add to DTS
 }
 
 static int __init_cache_level(unsigned int cpu)
@@ -33,18 +36,28 @@ static int __init_cache_level(unsigned int cpu)
 	struct device_node *np = of_cpu_device_node_get(cpu);
 	int levels = 0, leaves = 0, level;
 
-	if (of_property_read_bool(np, "cache-size")) ++leaves;
-	if (of_property_read_bool(np, "i-cache-size")) ++leaves;
-	if (of_property_read_bool(np, "d-cache-size")) ++leaves;
-	if (leaves > 0) levels = 1;
+	if (of_property_read_bool(np, "cache-size"))
+		++leaves;
+	if (of_property_read_bool(np, "i-cache-size"))
+		++leaves;
+	if (of_property_read_bool(np, "d-cache-size"))
+		++leaves;
+	if (leaves > 0)
+		levels = 1;
 
 	while ((np = of_find_next_cache_node(np))) {
-		if (!of_device_is_compatible(np, "cache")) break;
-		if (of_property_read_u32(np, "cache-level", &level)) break;
-		if (level <= levels) break;
-		if (of_property_read_bool(np, "cache-size")) ++leaves;
-		if (of_property_read_bool(np, "i-cache-size")) ++leaves;
-		if (of_property_read_bool(np, "d-cache-size")) ++leaves;
+		if (!of_device_is_compatible(np, "cache"))
+			break;
+		if (of_property_read_u32(np, "cache-level", &level))
+			break;
+		if (level <= levels)
+			break;
+		if (of_property_read_bool(np, "cache-size"))
+			++leaves;
+		if (of_property_read_bool(np, "i-cache-size"))
+			++leaves;
+		if (of_property_read_bool(np, "d-cache-size"))
+			++leaves;
 		levels = level;
 	}
 
@@ -60,17 +73,26 @@ static int __populate_cache_leaves(unsigned int cpu)
 	struct device_node *np = of_cpu_device_node_get(cpu);
 	int levels = 1, level = 1;
 
-	if (of_property_read_bool(np, "cache-size"))   ci_leaf_init(this_leaf++, np, CACHE_TYPE_UNIFIED, level);
-	if (of_property_read_bool(np, "i-cache-size")) ci_leaf_init(this_leaf++, np, CACHE_TYPE_INST, level);
-	if (of_property_read_bool(np, "d-cache-size")) ci_leaf_init(this_leaf++, np, CACHE_TYPE_DATA, level);
+	if (of_property_read_bool(np, "cache-size"))
+		ci_leaf_init(this_leaf++, np, CACHE_TYPE_UNIFIED, level);
+	if (of_property_read_bool(np, "i-cache-size"))
+		ci_leaf_init(this_leaf++, np, CACHE_TYPE_INST, level);
+	if (of_property_read_bool(np, "d-cache-size"))
+		ci_leaf_init(this_leaf++, np, CACHE_TYPE_DATA, level);
 
 	while ((np = of_find_next_cache_node(np))) {
-		if (!of_device_is_compatible(np, "cache")) break;
-		if (of_property_read_u32(np, "cache-level", &level)) break;
-		if (level <= levels) break;
-		if (of_property_read_bool(np, "cache-size"))   ci_leaf_init(this_leaf++, np, CACHE_TYPE_UNIFIED, level);
-		if (of_property_read_bool(np, "i-cache-size")) ci_leaf_init(this_leaf++, np, CACHE_TYPE_INST, level);
-		if (of_property_read_bool(np, "d-cache-size")) ci_leaf_init(this_leaf++, np, CACHE_TYPE_DATA, level);
+		if (!of_device_is_compatible(np, "cache"))
+			break;
+		if (of_property_read_u32(np, "cache-level", &level))
+			break;
+		if (level <= levels)
+			break;
+		if (of_property_read_bool(np, "cache-size"))
+			ci_leaf_init(this_leaf++, np, CACHE_TYPE_UNIFIED, level);
+		if (of_property_read_bool(np, "i-cache-size"))
+			ci_leaf_init(this_leaf++, np, CACHE_TYPE_INST, level);
+		if (of_property_read_bool(np, "d-cache-size"))
+			ci_leaf_init(this_leaf++, np, CACHE_TYPE_DATA, level);
 		levels = level;
 	}
 

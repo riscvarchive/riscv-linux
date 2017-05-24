@@ -39,7 +39,7 @@ struct pt_regs;
  * Default implementation of macro that returns current
  * instruction pointer ("program counter").
  */
-#define current_text_addr()	({ __label__ _l; _l: &&_l;})
+#define current_text_addr()	({ __label__ _l; _l: &&_l; })
 
 /* CPU-specific state of a task */
 struct thread_struct {

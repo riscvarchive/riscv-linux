@@ -32,9 +32,12 @@
 #define HART_BASE	0x200000
 #define HART_SIZE	0x1000
 
-#define PLIC_HART_CONTEXT(data, i)	(struct plic_hart_context *)((char*)data->reg + HART_BASE + HART_SIZE*i)
-#define PLIC_ENABLE_CONTEXT(data, i)	(struct plic_enable_context *)((char*)data->reg + ENABLE_BASE + ENABLE_SIZE*i)
-#define PLIC_PRIORITY(data)		(struct plic_priority *)((char *)data->reg + PRIORITY_BASE)
+#define PLIC_HART_CONTEXT(data, i) \
+	(struct plic_hart_context *)((char *)data->reg + HART_BASE + HART_SIZE*i)
+#define PLIC_ENABLE_CONTEXT(data, i) \
+	(struct plic_enable_context *)((char *)data->reg + ENABLE_BASE + ENABLE_SIZE*i)
+#define PLIC_PRIORITY(data) \
+	(struct plic_priority *)((char *)data->reg + PRIORITY_BASE)
 
 struct plic_hart_context {
 	volatile u32 threshold;
@@ -67,12 +70,14 @@ struct plic_handler {
 static void plic_disable(struct plic_data *data, int i, int hwirq)
 {
 	struct plic_enable_context *enable = PLIC_ENABLE_CONTEXT(data, i);
+
 	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 }
 
 static void plic_enable(struct plic_data *data, int i, int hwirq)
 {
 	struct plic_enable_context *enable = PLIC_ENABLE_CONTEXT(data, i);
+
 	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 }
 
@@ -86,6 +91,7 @@ static void plic_irq_enable(struct irq_data *d)
 	struct plic_data *data = irq_data_get_irq_chip_data(d);
 	struct plic_priority *priority = PLIC_PRIORITY(data);
 	int i;
+
 	iowrite32(1, &priority->prio[d->hwirq]);
 	for (i = 0; i < data->handlers; ++i)
 		if (data->handler[i].context)
@@ -97,21 +103,23 @@ static void plic_irq_disable(struct irq_data *d)
 	struct plic_data *data = irq_data_get_irq_chip_data(d);
 	struct plic_priority *priority = PLIC_PRIORITY(data);
 	int i;
+
 	iowrite32(0, &priority->prio[d->hwirq]);
 	for (i = 0; i < data->handlers; ++i)
 		if (data->handler[i].context)
 			plic_disable(data, i, d->hwirq);
 }
 
-static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq, irq_hw_number_t hwirq)
+static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
+			      irq_hw_number_t hwirq)
 {
 	struct plic_data *data = d->host_data;
 
-        irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
-        irq_set_chip_data(irq, data);
-        irq_set_noprobe(irq);
+	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
+	irq_set_chip_data(irq, data);
+	irq_set_noprobe(irq);
 
-        return 0;
+	return 0;
 }
 
 static const struct irq_domain_ops plic_irqdomain_ops = {
@@ -121,7 +129,7 @@ static const struct irq_domain_ops plic_irqdomain_ops = {
 
 static void plic_chained_handle_irq(struct irq_desc *desc)
 {
-        struct plic_handler *handler = irq_desc_get_handler_data(desc);
+	struct plic_handler *handler = irq_desc_get_handler_data(desc);
 	struct irq_chip *chip = irq_desc_get_chip(desc);
 	struct irq_domain *domain = handler->data->domain;
 	u32 what;
@@ -130,11 +138,11 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 
 	while ((what = ioread32(&handler->context->claim))) {
 		int irq = irq_find_mapping(domain, what);
-		if (irq > 0) {
+
+		if (irq > 0)
 			generic_handle_irq(irq);
-		} else {
+		else
 			handle_bad_irq(desc);
-		}
 		iowrite32(what, &handler->context->claim);
 	}
 
@@ -150,25 +158,33 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	int i, ok = 0;
 
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
-	if (WARN_ON(!data)) return -ENOMEM;
+	if (WARN_ON(!data))
+		return -ENOMEM;
 
 	data->reg = of_iomap(node, 0);
-	if (WARN_ON(!data->reg)) return -EIO;
+	if (WARN_ON(!data->reg))
+		return -EIO;
 
 	of_property_read_u32(node, "riscv,ndev", &data->ndev);
-	if (WARN_ON(!data->ndev)) return -EINVAL;
+	if (WARN_ON(!data->ndev))
+		return -EINVAL;
 
 	data->handlers = of_irq_count(node);
-	if (WARN_ON(!data->handlers)) return -EINVAL;
+	if (WARN_ON(!data->handlers))
+		return -EINVAL;
 
-	data->handler = kzalloc(sizeof(*data->handler)*data->handlers, GFP_KERNEL);
-	if (WARN_ON(!data->handler)) return -ENOMEM;
+	data->handler =
+		kcalloc(data->handlers, sizeof(*data->handler), GFP_KERNEL);
+	if (WARN_ON(!data->handler))
+		return -ENOMEM;
 
 	data->domain = irq_domain_add_linear(node, data->ndev+1, &plic_irqdomain_ops, data);
-	if (WARN_ON(!data->domain)) return -ENOMEM;
+	if (WARN_ON(!data->domain))
+		return -ENOMEM;
 
 	of_address_to_resource(node, 0, &resource);
-	snprintf(data->name, sizeof(data->name), "riscv,plic0,%llx", resource.start);
+	snprintf(data->name, sizeof(data->name),
+		 "riscv,plic0,%llx", resource.start);
 	data->chip.name = data->name;
 	data->chip.irq_mask = plic_irq_mask;
 	data->chip.irq_unmask = plic_irq_unmask;
@@ -180,26 +196,35 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 		struct of_phandle_args parent;
 		int parent_irq, hwirq;
 
-		if (of_irq_parse_one(node, i, &parent)) continue;
-		if (parent.args[0] == -1) continue; // skip context holes
+		if (of_irq_parse_one(node, i, &parent))
+			continue;
+		// skip context holes
+		if (parent.args[0] == -1)
+			continue;
 
 		// skip any contexts that lead to inactive harts
 		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
 		    parent.np->parent &&
-		    riscv_of_processor_hart(parent.np->parent) < 0) continue;
+		    riscv_of_processor_hart(parent.np->parent) < 0)
+			continue;
 
 		parent_irq = irq_create_of_mapping(&parent);
-		if (!parent_irq) continue;
+		if (!parent_irq)
+			continue;
 
 		handler->context = PLIC_HART_CONTEXT(data, i);
 		handler->data = data;
-		iowrite32(0, &handler->context->threshold); // hwirq prio must be > this to trigger an interrupt
-		for (hwirq = 1; hwirq <= data->ndev; ++hwirq) plic_disable(data, i, hwirq);
+		// hwirq prio must be > this to trigger an interrupt
+		iowrite32(0, &handler->context->threshold);
+
+		for (hwirq = 1; hwirq <= data->ndev; ++hwirq)
+			plic_disable(data, i, hwirq);
 		irq_set_chained_handler_and_data(parent_irq, plic_chained_handle_irq, handler);
 		++ok;
 	}
 
-	printk("%s: mapped %d interrupts to %d/%d handlers\n", data->name, data->ndev, ok, data->handlers);
+	printk(KERN_INFO "%s: mapped %d interrupts to %d/%d handlers\n",
+	       data->name, data->ndev, ok, data->handlers);
 	WARN_ON(!ok);
 	return 0;
 }

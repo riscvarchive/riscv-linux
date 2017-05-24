@@ -5,9 +5,9 @@ RISC-V cores typically include a PLIC, which route interrupts from multiple
 devices to multiple hart contexts.  The PLIC is connected to the interrupt
 controller embedded in a RISC-V core via the interrupt-related CSRs.
 
-A hart context is a priviledge mode in a hardware execution thread.  For
+A hart context is a privilege mode in a hardware execution thread.  For
 example, in an 4 core system with 2-way SMT, you have 8 harts and probably
-at least two priviledge modes per hart; machine mode and supervisor mode.
+at least two privilege modes per hart; machine mode and supervisor mode.
 
 Each interrupt can be enabled on per-context basis. Any context can claim
 a pending enabled interrupt and then release it once it has been handled.

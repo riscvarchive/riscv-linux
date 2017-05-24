@@ -47,9 +47,9 @@ static void putregs(struct task_struct *child, struct pt_regs *uregs)
 }
 
 static int riscv_gpr_get(struct task_struct *target,
-                         const struct user_regset *regset,
-                         unsigned int pos, unsigned int count,
-                         void *kbuf, void __user *ubuf)
+			 const struct user_regset *regset,
+			 unsigned int pos, unsigned int count,
+			 void *kbuf, void __user *ubuf)
 {
 	struct pt_regs regs;
 
@@ -60,9 +60,9 @@ static int riscv_gpr_get(struct task_struct *target,
 }
 
 static int riscv_gpr_set(struct task_struct *target,
-                         const struct user_regset *regset,
-                         unsigned int pos, unsigned int count,
-                         const void *kbuf, const void __user *ubuf)
+			 const struct user_regset *regset,
+			 unsigned int pos, unsigned int count,
+			 const void *kbuf, const void __user *ubuf)
 {
 	int ret;
 	struct pt_regs regs;
@@ -103,11 +103,11 @@ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
 
 void ptrace_disable(struct task_struct *child)
 {
-        clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
+	clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
 }
 
 long arch_ptrace(struct task_struct *child, long request,
-                 unsigned long addr, unsigned long data)
+		 unsigned long addr, unsigned long data)
 {
 	long ret = -EIO;
 
@@ -121,13 +121,13 @@ long arch_ptrace(struct task_struct *child, long request,
 }
 
 /* Allows PTRACE_SYSCALL to work.  These are called from entry.S in
- * {handle,ret_from}_syscall. */
+ * {handle,ret_from}_syscall.
+ */
 void do_syscall_trace_enter(struct pt_regs *regs)
 {
-	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
+	if (test_thread_flag(TIF_SYSCALL_TRACE))
 		if (tracehook_report_syscall_entry(regs))
 			syscall_set_nr(current, regs, -1);
-	}
 
 #ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
 	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))

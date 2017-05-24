@@ -9,10 +9,6 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
  *  Copyright (C) 2017 Zihao Yu
  */
 
@@ -21,13 +17,16 @@
 #include <linux/errno.h>
 #include <linux/moduleloader.h>
 
-static int apply_r_riscv_64_rela(struct module *me, u32 *location, Elf_Addr v) {
+static int apply_r_riscv_64_rela(struct module *me, u32 *location, Elf_Addr v)
+{
 	*(u64 *)location = v;
 	return 0;
 }
 
-static int apply_r_riscv_branch_rela(struct module *me, u32 *location, Elf_Addr v) {
-	s64 offset = (void*)v - (void *)location;
+static int apply_r_riscv_branch_rela(struct module *me, u32 *location,
+				     Elf_Addr v)
+{
+	s64 offset = (void *)v - (void *)location;
 	u32 imm12 = (offset & 0x1000) << (31 - 12);
 	u32 imm11 = (offset & 0x800) >> (11 - 7);
 	u32 imm10_5 = (offset & 0x7e0) << (30 - 10);
@@ -37,8 +36,10 @@ static int apply_r_riscv_branch_rela(struct module *me, u32 *location, Elf_Addr 
 	return 0;
 }
 
-static int apply_r_riscv_jal_rela(struct module *me, u32 *location, Elf_Addr v) {
-	s64 offset = (void*)v - (void *)location;
+static int apply_r_riscv_jal_rela(struct module *me, u32 *location,
+				  Elf_Addr v)
+{
+	s64 offset = (void *)v - (void *)location;
 	u32 imm20 = (offset & 0x100000) << (31 - 20);
 	u32 imm19_12 = (offset & 0xff000);
 	u32 imm11 = (offset & 0x800) << (20 - 11);
@@ -48,12 +49,16 @@ static int apply_r_riscv_jal_rela(struct module *me, u32 *location, Elf_Addr v) 
 	return 0;
 }
 
-static int apply_r_riscv_pcrel_hi20_rela(struct module *me, u32 *location, Elf_Addr v) {
-	s64 offset = (void*)v - (void *)location;
+static int apply_r_riscv_pcrel_hi20_rela(struct module *me, u32 *location,
+					 Elf_Addr v)
+{
+	s64 offset = (void *)v - (void *)location;
 	s32 hi20;
 
-	if(offset != (s32)offset) {
-		pr_err("%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n", me->name, v, location);
+	if (offset != (s32)offset) {
+		pr_err(
+		  "%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n",
+		  me->name, v, location);
 		return -EINVAL;
 	}
 
@@ -62,14 +67,22 @@ static int apply_r_riscv_pcrel_hi20_rela(struct module *me, u32 *location, Elf_A
 	return 0;
 }
 
-static int apply_r_riscv_pcrel_lo12_i_rela(struct module *me, u32 *location, Elf_Addr v) {
-	/* v is the lo12 value to fill. It is calculated before calling this handler. */
+static int apply_r_riscv_pcrel_lo12_i_rela(struct module *me, u32 *location,
+					   Elf_Addr v)
+{
+	/* v is the lo12 value to fill. It is calculated before calling this
+	 * handler.
+	 */
 	*location = (*location & 0xfffff) | ((v & 0xfff) << 20);
 	return 0;
 }
 
-static int apply_r_riscv_pcrel_lo12_s_rela(struct module *me, u32 *location, Elf_Addr v) {
-	/* v is the lo12 value to fill. It is calculated before calling this handler. */
+static int apply_r_riscv_pcrel_lo12_s_rela(struct module *me, u32 *location,
+					   Elf_Addr v)
+{
+	/* v is the lo12 value to fill. It is calculated before calling this
+	 * handler.
+	 */
 	u32 imm11_5 = (v & 0xfe0) << (31 - 11);
 	u32 imm4_0 = (v & 0x1f) << (11 - 4);
 
@@ -77,12 +90,17 @@ static int apply_r_riscv_pcrel_lo12_s_rela(struct module *me, u32 *location, Elf
 	return 0;
 }
 
-static int apply_r_riscv_call_plt_rela(struct module *me, u32 *location, Elf_Addr v) {
-	s64 offset = (void*)v - (void *)location;
+static int apply_r_riscv_call_plt_rela(struct module *me, u32 *location,
+				       Elf_Addr v)
+{
+	s64 offset = (void *)v - (void *)location;
 	s32 fill_v = offset;
 	u32 hi20, lo12;
-	if(offset != fill_v) {
-		pr_err("%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n", me->name, v, location);
+
+	if (offset != fill_v) {
+		pr_err(
+		  "%s: target %016llx can not be addressed by the 32-bit offset from PC = %p\n",
+		  me->name, v, location);
 		return -EINVAL;
 	}
 
@@ -93,7 +111,9 @@ static int apply_r_riscv_call_plt_rela(struct module *me, u32 *location, Elf_Add
 	return 0;
 }
 
-static int apply_r_riscv_relax_rela(struct module *me, u32 *location, Elf_Addr v) {
+static int apply_r_riscv_relax_rela(struct module *me, u32 *location,
+				    Elf_Addr v)
+{
 	return 0;
 }
 
@@ -111,7 +131,8 @@ static int (*reloc_handlers_rela[]) (struct module *me, u32 *location,
 
 int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 		       unsigned int symindex, unsigned int relsec,
-		       struct module *me) {
+		       struct module *me)
+{
 	Elf_Rela *rel = (void *) sechdrs[relsec].sh_addr;
 	int (*handler)(struct module *me, u32 *location, Elf_Addr v);
 	Elf_Sym *sym;
@@ -154,14 +175,21 @@ int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 
 		v = sym->st_value + rel[i].r_addend;
 
-		if(type == R_RISCV_PCREL_LO12_I || type == R_RISCV_PCREL_LO12_S) {
-			unsigned j;
+		if (type == R_RISCV_PCREL_LO12_I || type == R_RISCV_PCREL_LO12_S) {
+			unsigned int j;
+
 			for (j = 0; j < sechdrs[relsec].sh_size / sizeof(*rel); j++) {
-				u64 hi20_loc = sechdrs[sechdrs[relsec].sh_info].sh_addr + rel[j].r_offset;
+				u64 hi20_loc =
+					sechdrs[sechdrs[relsec].sh_info].sh_addr
+					+ rel[j].r_offset;
 				/* Find the corresponding HI20 PC-relative relocation entry */
-				if(hi20_loc == sym->st_value) {
-					Elf_Sym *hi20_sym = (Elf_Sym *)sechdrs[symindex].sh_addr + ELF_RISCV_R_SYM(rel[j].r_info);
-					u64 hi20_sym_val = hi20_sym->st_value + rel[j].r_addend;
+				if (hi20_loc == sym->st_value) {
+					Elf_Sym *hi20_sym =
+						(Elf_Sym *)sechdrs[symindex].sh_addr
+						+ ELF_RISCV_R_SYM(rel[j].r_info);
+					u64 hi20_sym_val =
+						hi20_sym->st_value
+						+ rel[j].r_addend;
 					/* Calculate lo12 */
 					s64 offset = hi20_sym_val - hi20_loc;
 					s32 hi20 = (offset + 0x800) & 0xfffff000;
@@ -170,8 +198,10 @@ int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 					break;
 				}
 			}
-			if(j == sechdrs[relsec].sh_size / sizeof(*rel)) {
-				pr_err("%s: Can not find HI20 PC-relative relocation information\n", me->name);
+			if (j == sechdrs[relsec].sh_size / sizeof(*rel)) {
+				pr_err(
+				  "%s: Can not find HI20 PC-relative relocation information\n",
+				  me->name);
 				return -EINVAL;
 			}
 		}

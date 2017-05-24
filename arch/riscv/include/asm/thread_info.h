@@ -42,7 +42,7 @@ struct thread_info {
 	struct task_struct	*task;		/* main task structure */
 	unsigned long		flags;		/* low level flags */
 	__u32			cpu;		/* current CPU */
-	int                     preempt_count;  /* 0 => preemptable, <0 => BUG */
+	int                     preempt_count;  /* 0=>preemptible, <0=>BUG */
 	mm_segment_t		addr_limit;
 };
 
