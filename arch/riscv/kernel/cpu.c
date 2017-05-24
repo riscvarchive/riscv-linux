@@ -22,17 +22,17 @@ int riscv_of_processor_hart(struct device_node *node)
 	u32 hart;
 
 	if (!of_device_is_compatible(node, "riscv"))
-		return -1;
+		return -(ENODEV);
 	if (of_property_read_u32(node, "reg", &hart)
 	    || hart >= NR_CPUS)
-		return -1;
+		return -(ENODEV);
 	if (of_property_read_string(node, "status", &status)
 	    || strcmp(status, "okay"))
-		return -1;
+		return -(ENODEV);
 	if (of_property_read_string(node, "riscv,isa", &isa)
 	    || isa[0] != 'r'
 	    || isa[1] != 'v')
-		return -1;
+		return -(ENODEV);
 
 	return hart;
 }
