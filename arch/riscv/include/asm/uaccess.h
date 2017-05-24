@@ -92,6 +92,7 @@ static inline void set_fs(mm_segment_t fs)
 static inline int __access_ok(unsigned long addr, unsigned long size)
 {
 	const mm_segment_t fs = get_fs();
+
 	return (size <= fs) && (addr <= (fs - size));
 }
 
@@ -112,7 +113,7 @@ struct exception_table_entry {
 	unsigned long insn, fixup;
 };
 
-extern int fixup_exception(struct pt_regs *);
+extern int fixup_exception(struct pt_regs *state);
 
 #if defined(__LITTLE_ENDIAN)
 #define __MSW	1
@@ -203,7 +204,7 @@ do {								\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __get_user_8(x, ptr, err) \
-	(x) = (__typeof__(x))(*((u64 __user *)(ptr)))
+	((x) = (__typeof__(x))(*((u64 __user *)(ptr))))
 #endif /* CONFIG_MMU */
 #endif /* CONFIG_64BIT */
 
@@ -348,7 +349,7 @@ do {								\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __put_user_8(x, ptr, err)				\
-	*((u64 __user *)(ptr)) = (u64)(x)
+	(*((u64 __user *)(ptr)) = (u64)(x))
 #endif /* CONFIG_MMU */
 #endif /* CONFIG_64BIT */
 
@@ -442,9 +443,11 @@ extern long strncpy_from_user(char *dest, const char __user *src, long count);
 extern long __must_check strlen_user(const char __user *str);
 extern long __must_check strnlen_user(const char __user *str, long n);
 
-extern unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
+extern
+unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
 
-static inline unsigned long __must_check clear_user(void __user *to, unsigned long n)
+static inline
+unsigned long __must_check clear_user(void __user *to, unsigned long n)
 {
 	might_fault();
 	return access_ok(VERIFY_WRITE, to, n) ?

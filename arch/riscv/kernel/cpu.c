@@ -21,10 +21,18 @@ int riscv_of_processor_hart(struct device_node *node)
 	const char *isa, *status;
 	u32 hart;
 
-	if (!of_device_is_compatible(node, "riscv")) return -1;
-	if (of_property_read_u32(node, "reg", &hart) || hart >= NR_CPUS) return -1;
-	if (of_property_read_string(node, "status", &status) || strcmp(status, "okay")) return -1;
-	if (of_property_read_string(node, "riscv,isa", &isa) || isa[0] != 'r' || isa[1] != 'v') return -1;
+	if (!of_device_is_compatible(node, "riscv"))
+		return -1;
+	if (of_property_read_u32(node, "reg", &hart)
+	    || hart >= NR_CPUS)
+		return -1;
+	if (of_property_read_string(node, "status", &status)
+	    || strcmp(status, "okay"))
+		return -1;
+	if (of_property_read_string(node, "riscv,isa", &isa)
+	    || isa[0] != 'r'
+	    || isa[1] != 'v')
+		return -1;
 
 	return hart;
 }
@@ -56,16 +64,17 @@ static int c_show(struct seq_file *m, void *v)
 	const char *compat, *isa, *mmu;
 
 	seq_printf(m, "hart\t: %lu\n", hart_id);
-	if (!of_property_read_string(node, "riscv,isa", &isa) && isa[0] == 'r' && isa[1] == 'v') {
+	if (!of_property_read_string(node, "riscv,isa", &isa)
+	    && isa[0] == 'r'
+	    && isa[1] == 'v')
 		seq_printf(m, "isa\t: %s\n", isa);
-	}
-	if (!of_property_read_string(node, "mmu-type", &mmu) && !strncmp(mmu, "riscv,", 6)) {
+	if (!of_property_read_string(node, "mmu-type", &mmu)
+	    && !strncmp(mmu, "riscv,", 6))
 		seq_printf(m, "mmu\t: %s\n", mmu+6);
-	}
-	if (!of_property_read_string(node, "compatible", &compat) && strcmp(compat, "riscv")) {
+	if (!of_property_read_string(node, "compatible", &compat)
+	    && strcmp(compat, "riscv"))
 		seq_printf(m, "uarch\t: %s\n", compat);
-	}
-	seq_printf(m, "\n");
+	seq_puts(m, "\n");
 
 	return 0;
 }

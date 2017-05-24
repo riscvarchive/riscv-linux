@@ -146,10 +146,12 @@ good_area:
 	if (flags & FAULT_FLAG_ALLOW_RETRY) {
 		if (fault & VM_FAULT_MAJOR) {
 			tsk->maj_flt++;
-			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs, addr);
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ,
+				      1, regs, addr);
 		} else {
 			tsk->min_flt++;
-			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs, addr);
+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN,
+				      1, regs, addr);
 		}
 		if (fault & VM_FAULT_RETRY) {
 			/*
@@ -185,9 +187,8 @@ bad_area:
 
 no_context:
 	/* Are we prepared to handle this kernel fault? */
-	if (fixup_exception(regs)) {
+	if (fixup_exception(regs))
 		return;
-	}
 
 	/*
 	 * Oops. The kernel tried to access some bad page. We'll have to
@@ -228,7 +229,7 @@ vmalloc_fault:
 		pte_t *pte_k;
 		int index;
 
-	        if (user_mode(regs))
+		if (user_mode(regs))
 			goto bad_area;
 
 		/*
@@ -258,7 +259,8 @@ vmalloc_fault:
 			goto no_context;
 
 		/* Since the vmalloc area is global, it is unnecessary
-		   to copy individual PTEs */
+		 * to copy individual PTEs
+		 */
 		pmd = pmd_offset(pud, addr);
 		pmd_k = pmd_offset(pud_k, addr);
 		if (!pmd_present(*pmd_k))

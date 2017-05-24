@@ -42,7 +42,8 @@ static void sbi_console_getchars(uintptr_t data)
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	if ((ch = sbi_console_getchar()) >= 0) {
+	ch = sbi_console_getchar();
+	if (ch >= 0) {
 		tty_insert_flip_char(port, ch, TTY_NORMAL);
 		tty_flip_buffer_push(port);
 	}
@@ -57,9 +58,8 @@ static int sbi_tty_write(struct tty_struct *tty,
 {
 	const unsigned char *end;
 
-	for (end = buf + count; buf < end; buf++) {
+	for (end = buf + count; buf < end; buf++)
 		sbi_console_putchar(*buf);
-	}
 	return count;
 }
 
@@ -112,7 +112,8 @@ static const struct tty_operations sbi_tty_ops = {
 };
 
 
-static void sbi_console_write(struct console *co, const char *buf, unsigned n)
+static void sbi_console_write(struct console *co, const char *buf,
+			      unsigned int n)
 {
 	for ( ; n > 0; n--, buf++) {
 		if (*buf == '\n')

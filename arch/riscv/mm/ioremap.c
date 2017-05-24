@@ -37,9 +37,8 @@ static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
 
 	/* Disallow wrap-around or zero size */
 	last_addr = addr + size - 1;
-	if (!size || last_addr < addr) {
+	if (!size || last_addr < addr)
 		return NULL;
-	}
 
 	/* Page-align mappings */
 	offset = addr & (~PAGE_MASK);
@@ -47,9 +46,8 @@ static void __iomem *__ioremap_caller(phys_addr_t addr, size_t size,
 	size = PAGE_ALIGN(size + offset);
 
 	area = get_vm_area_caller(size, VM_IOREMAP, caller);
-	if (!area) {
+	if (!area)
 		return NULL;
-	}
 	vaddr = (unsigned long)area->addr;
 
 	if (ioremap_page_range(vaddr, vaddr + size, addr, prot)) {

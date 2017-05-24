@@ -82,8 +82,8 @@ SYSCALL_DEFINE0(rt_sigreturn)
 badframe:
 	task = current;
 	if (show_unhandled_signals) {
-		pr_info_ratelimited("%s[%d]: bad frame in %s: "
-			"frame=%p pc=%p sp=%p\n",
+		pr_info_ratelimited(
+			"%s[%d]: bad frame in %s: frame=%p pc=%p sp=%p\n",
 			task->comm, task_pid_nr(task), __func__,
 			frame, (void *)regs->sepc, (void *)regs->sp);
 	}
@@ -234,7 +234,8 @@ static void do_signal(struct pt_regs *regs)
 	}
 
 	/* If there is no signal to deliver, we just put the saved
-	   sigmask back. */
+	 * sigmask back.
+	 */
 	restore_saved_sigmask();
 }
 
@@ -246,9 +247,8 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
 	unsigned long thread_info_flags)
 {
 	/* Handle pending signal delivery */
-	if (thread_info_flags & _TIF_SIGPENDING) {
+	if (thread_info_flags & _TIF_SIGPENDING)
 		do_signal(regs);
-	}
 
 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
 		clear_thread_flag(TIF_NOTIFY_RESUME);

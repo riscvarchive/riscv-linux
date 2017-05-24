@@ -43,7 +43,8 @@ static int __init vdso_init(void)
 	unsigned int i;
 
 	vdso_pages = (vdso_end - vdso_start) >> PAGE_SHIFT;
-	vdso_pagelist = kzalloc(sizeof(struct page *) * (vdso_pages + 1), GFP_KERNEL);
+	vdso_pagelist =
+		kcalloc(vdso_pages + 1, sizeof(struct page *), GFP_KERNEL);
 	if (unlikely(vdso_pagelist == NULL)) {
 		pr_err("vdso: pagelist allocation failed\n");
 		return -ENOMEM;
@@ -51,6 +52,7 @@ static int __init vdso_init(void)
 
 	for (i = 0; i < vdso_pages; i++) {
 		struct page *pg;
+
 		pg = virt_to_page(vdso_start + (i << PAGE_SHIFT));
 		ClearPageReserved(pg);
 		vdso_pagelist[i] = pg;
@@ -88,9 +90,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
 		(VM_READ | VM_EXEC | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC),
 		vdso_pagelist);
 
-	if (unlikely(ret)) {
+	if (unlikely(ret))
 		mm->context.vdso = NULL;
-	}
 
 end:
 	up_write(&mm->mmap_sem);
@@ -99,9 +100,8 @@ end:
 
 const char *arch_vma_name(struct vm_area_struct *vma)
 {
-	if (vma->vm_mm && (vma->vm_start == (long)vma->vm_mm->context.vdso)) {
+	if (vma->vm_mm && (vma->vm_start == (long)vma->vm_mm->context.vdso))
 		return "[vdso]";
-	}
 	return NULL;
 }
 

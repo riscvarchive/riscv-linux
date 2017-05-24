@@ -60,11 +60,11 @@
 #define PAGE_SHARED		PAGE_WRITE
 #define PAGE_SHARED_EXEC	PAGE_WRITE_EXEC
 
-#define _PAGE_KERNEL		_PAGE_READ \
+#define _PAGE_KERNEL		(_PAGE_READ \
 				| _PAGE_WRITE \
 				| _PAGE_PRESENT \
 				| _PAGE_ACCESSED \
-				| _PAGE_DIRTY
+				| _PAGE_DIRTY)
 
 #define PAGE_KERNEL		__pgprot(_PAGE_KERNEL)
 #define PAGE_KERNEL_EXEC	__pgprot(_PAGE_KERNEL | _PAGE_EXEC)
@@ -299,7 +299,8 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 	 * in RISC-V, SFENCE.VMA specifies an ordering constraint, not a
 	 * cache flush; it is necessary even after writing invalid entries.
 	 * Relying on flush_tlb_fix_spurious_fault would suffice, but
-	 * the extra traps reduce performance.  So, eagerly SFENCE.VMA. */
+	 * the extra traps reduce performance.  So, eagerly SFENCE.VMA.
+	 */
 	local_flush_tlb_page(address);
 }
 
@@ -317,7 +318,8 @@ static inline int ptep_set_access_flags(struct vm_area_struct *vma,
 	if (!pte_same(*ptep, entry))
 		set_pte_at(vma->vm_mm, address, ptep, entry);
 	/* update_mmu_cache will unconditionally execute, handling both
-	 * the case that the PTE changed and the spurious fault case. */
+	 * the case that the PTE changed and the spurious fault case.
+	 */
 	return true;
 }
 
@@ -384,8 +386,8 @@ static inline int ptep_clear_flush_young(struct vm_area_struct *vma,
 #define MAX_SWAPFILES_CHECK()	\
 	BUILD_BUG_ON(MAX_SWAPFILES_SHIFT > __SWP_TYPE_BITS)
 
-#define __swp_type(x)		(((x).val >> __SWP_TYPE_SHIFT) & __SWP_TYPE_MASK)
-#define __swp_offset(x)		((x).val >> __SWP_OFFSET_SHIFT)
+#define __swp_type(x)	(((x).val >> __SWP_TYPE_SHIFT) & __SWP_TYPE_MASK)
+#define __swp_offset(x)	((x).val >> __SWP_OFFSET_SHIFT)
 #define __swp_entry(type, offset) ((swp_entry_t) \
 	{ ((type) << __SWP_TYPE_SHIFT) | ((offset) << __SWP_OFFSET_SHIFT) })
 

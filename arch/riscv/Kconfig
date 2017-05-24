@@ -144,14 +144,31 @@ config SBI_CONSOLE
 	tristate "SBI console support"
 	select TTY
 	default y
+	help
+	   This enables support for console output via RISC-V SBI calls, which
+	   is normally used only during boot to output printk.
+
+	   If you don't know what do to here, say Y.
 
 config ISA_C
 	bool "Emit compressed instructions when building Linux"
 	default n
+	help
+	   Adds "C" to the ISA subsets that the toolchain is allowed to emit
+	   when building Linux, which results in compressed instructions in the
+	   Linux binary.
+
+	   If you don't know what to do here, say Y.
 
 config ISA_A
 	bool "Emit atomic instructions when building Linux"
 	default y
+	help
+	   Adds "A" to the ISA subsets that the toolchain is allowed to emit
+	   when building Linux, which results in atomic instructions in the
+	   Linux binary.
+
+	   If you don't know what to do here, say Y.
 
 config SYSRISCV_ATOMIC
 	bool "Include support for atomic operation syscalls"
@@ -164,6 +181,8 @@ config SYSRISCV_ATOMIC
 	  -mno-atomic.
 
 	  If CONFIG_ISA_A is unset, this option is mandatory.
+
+	  If you don't know what to do here, say N.
 
 config RV_PUM
 	def_bool y
@@ -214,6 +233,8 @@ config PCI
 	  This feature enables support for PCI bus system. If you say Y
 	  here, the kernel will include drivers and infrastructure code
 	  to support PCI bus devices.
+
+	  If you don't know what to do here, say Y.
 
 config PCI_DOMAINS
 	def_bool PCI
@@ -285,6 +306,8 @@ config CMDLINE_OVERRIDE
 	  Set this option to 'Y' to have the kernel ignore the bootloader
 	  or firmware command line.  Instead, the built-in command line
 	  will be used exclusively.
+
+	  If you don't know what to do here, say N.
 
 config EARLY_PRINTK
 	bool "Early printk"

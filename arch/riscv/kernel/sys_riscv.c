@@ -30,7 +30,8 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 	unsigned long, fd, off_t, offset)
 {
 	/* Note that the shift for mmap2 is constant (12),
-	   regardless of PAGE_SIZE */
+	 * regardless of PAGE_SIZE
+	 */
 	if (unlikely(offset & (~PAGE_MASK >> 12)))
 		return -EINVAL;
 	return sys_mmap_pgoff(addr, len, prot, flags, fd,

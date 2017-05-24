@@ -68,6 +68,7 @@ void riscv_timer_interrupt(void)
 {
 	int cpu = smp_processor_id();
 	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+
 	evdev->event_handler(evdev);
 }
 
@@ -97,12 +98,14 @@ static unsigned long __init of_timebase(void)
 	struct device_node *cpu;
 	const __be32 *prop;
 
-	if ((cpu = of_find_node_by_path("/cpus")) &&
-	    (prop = of_get_property(cpu, "timebase-frequency", NULL))) {
-		return be32_to_cpu(*prop);
-	} else {
-		return 10000000;
+	cpu = of_find_node_by_path("/cpus");
+	if (cpu) {
+		prop = of_get_property(cpu, "timebase-frequency", NULL);
+		if (prop)
+			return be32_to_cpu(*prop);
 	}
+
+	return 10000000;
 }
 
 void __init time_init(void)

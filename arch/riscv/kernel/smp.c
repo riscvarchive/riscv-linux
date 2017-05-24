@@ -48,9 +48,11 @@ irqreturn_t handle_ipi(void)
 	while (true) {
 		unsigned long ops;
 
-		mb();	/* Order bit clearing and data access. */
+		/* Order bit clearing and data access. */
+		mb(); // test
 
-		if ((ops = xchg(pending_ipis, 0)) == 0)
+		ops = xchg(pending_ipis, 0);
+		if (ops == 0)
 			return IRQ_HANDLED;
 
 		if (ops & (1 << IPI_RESCHEDULE))
@@ -61,7 +63,8 @@ irqreturn_t handle_ipi(void)
 
 		BUG_ON((ops >> IPI_MAX) != 0);
 
-		mb();	/* Order data access and bit testing. */
+		/* Order data access and bit testing. */
+		mb();
 	}
 
 	return IRQ_HANDLED;

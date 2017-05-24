@@ -18,8 +18,8 @@
 #include <asm/ptrace.h>
 #include <asm/csr.h>
 
-extern void __fstate_save(struct task_struct *);
-extern void __fstate_restore(struct task_struct *);
+extern void __fstate_save(struct task_struct *save_to);
+extern void __fstate_restore(struct task_struct *restore_from);
 
 static inline void __fstate_clean(struct pt_regs *regs)
 {
@@ -27,7 +27,7 @@ static inline void __fstate_clean(struct pt_regs *regs)
 }
 
 static inline void fstate_save(struct task_struct *task,
-                               struct pt_regs *regs)
+			       struct pt_regs *regs)
 {
 	if ((regs->sstatus & SR_FS) == SR_FS_DIRTY) {
 		__fstate_save(task);
@@ -36,7 +36,7 @@ static inline void fstate_save(struct task_struct *task,
 }
 
 static inline void fstate_restore(struct task_struct *task,
-                                  struct pt_regs *regs)
+				  struct pt_regs *regs)
 {
 	if ((regs->sstatus & SR_FS) != SR_FS_OFF) {
 		__fstate_restore(task);
@@ -45,19 +45,18 @@ static inline void fstate_restore(struct task_struct *task,
 }
 
 static inline void __switch_to_aux(struct task_struct *prev,
-                                   struct task_struct *next)
+				   struct task_struct *next)
 {
 	struct pt_regs *regs;
 
 	regs = task_pt_regs(prev);
-	if (unlikely(regs->sstatus & SR_SD)) {
+	if (unlikely(regs->sstatus & SR_SD))
 		fstate_save(prev, regs);
-	}
 	fstate_restore(next, task_pt_regs(next));
 }
 
 extern struct task_struct *__switch_to(struct task_struct *,
-                                       struct task_struct *);
+				       struct task_struct *);
 
 #define switch_to(prev, next, last)			\
 do {							\

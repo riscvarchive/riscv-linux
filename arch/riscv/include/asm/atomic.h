@@ -26,7 +26,7 @@
  */
 static inline int atomic_read(const atomic_t *v)
 {
-	return *((volatile int *)(&(v->counter)));
+	return READ_ONCE(v->counter);
 }
 
 /**
@@ -239,7 +239,7 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
 	register int prev, rc;
 
 	__asm__ __volatile__ (
-	"0:"
+	"0:\n"
 		"lr.w %0, %2\n"
 		"beq  %0, %4, 1f\n"
 		"add  %1, %0, %3\n"

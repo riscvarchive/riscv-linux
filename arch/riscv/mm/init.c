@@ -26,6 +26,7 @@
 static void __init zone_sizes_init(void)
 {
 	unsigned long zones_size[MAX_NR_ZONES];
+
 	memset(zones_size, 0, sizeof(zones_size));
 	zones_size[ZONE_NORMAL] = pfn_base + max_mapnr;
 	free_area_init_node(0, zones_size, pfn_base, NULL);
