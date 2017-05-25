@@ -135,11 +135,6 @@ config SBI_DISK
 	tristate "SBI disk support"
 	default y
 
-config SBI_DISK_MULTISEGMENT
-        bool "Support multi-segment transfers in SBI disk driver"
-        depends on SBI_DISK
-        default y
-
 config RVC
 	bool "Use compressed instructions (RV32C or RV64C)"
 	default n
