@@ -15,7 +15,6 @@ config RISCV
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CPU_DEVICES
 	select GENERIC_IRQ_SHOW
-	select GENERIC_PCI_IOMAP
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
 	select GENERIC_SMP_IDLE_THREAD
@@ -33,6 +32,7 @@ config RISCV
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
 	select MODULES_USE_ELF_RELA if MODULES
+	select GENERIC_IOMAP
 
 config MMU
 	def_bool y
@@ -230,6 +230,9 @@ config PCI_DOMAINS
 
 config PCI_DOMAINS_GENERIC
 	def_bool PCI
+
+config NO_IOMEM
+	def_bool !PCI
 
 source "drivers/pci/Kconfig"
 
