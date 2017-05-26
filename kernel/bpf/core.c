@@ -394,27 +394,23 @@ static bool bpf_prog_kallsyms_verify_off(const struct bpf_prog *fp)
 
 void bpf_prog_kallsyms_add(struct bpf_prog *fp)
 {
-	unsigned long flags;
-
 	if (!bpf_prog_kallsyms_candidate(fp) ||
 	    !capable(CAP_SYS_ADMIN))
 		return;
 
-	spin_lock_irqsave(&bpf_lock, flags);
+	spin_lock_bh(&bpf_lock);
 	bpf_prog_ksym_node_add(fp->aux);
-	spin_unlock_irqrestore(&bpf_lock, flags);
+	spin_unlock_bh(&bpf_lock);
 }
 
 void bpf_prog_kallsyms_del(struct bpf_prog *fp)
 {
-	unsigned long flags;
-
 	if (!bpf_prog_kallsyms_candidate(fp))
 		return;
 
-	spin_lock_irqsave(&bpf_lock, flags);
+	spin_lock_bh(&bpf_lock);
 	bpf_prog_ksym_node_del(fp->aux);
-	spin_unlock_irqrestore(&bpf_lock, flags);
+	spin_unlock_bh(&bpf_lock);
 }
 
 static struct bpf_prog *bpf_prog_kallsyms_find(unsigned long addr)
@@ -1162,12 +1158,12 @@ out:
 	LD_ABS_W: /* BPF_R0 = ntohl(*(u32 *) (skb->data + imm32)) */
 		off = IMM;
 load_word:
-		/* BPF_LD + BPD_ABS and BPF_LD + BPF_IND insns are
-		 * only appearing in the programs where ctx ==
-		 * skb. All programs keep 'ctx' in regs[BPF_REG_CTX]
-		 * == BPF_R6, bpf_convert_filter() saves it in BPF_R6,
-		 * internal BPF verifier will check that BPF_R6 ==
-		 * ctx.
+		/* BPF_LD + BPD_ABS and BPF_LD + BPF_IND insns are only
+		 * appearing in the programs where ctx == skb
+		 * (see may_access_skb() in the verifier). All programs
+		 * keep 'ctx' in regs[BPF_REG_CTX] == BPF_R6,
+		 * bpf_convert_filter() saves it in BPF_R6, internal BPF
+		 * verifier will check that BPF_R6 == ctx.
 		 *
 		 * BPF_ABS and BPF_IND are wrappers of function calls,
 		 * so they scratch BPF_R1-BPF_R5 registers, preserve

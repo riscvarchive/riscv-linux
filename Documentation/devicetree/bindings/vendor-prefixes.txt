@@ -51,6 +51,7 @@ brcm	Broadcom Corporation
 buffalo	Buffalo, Inc.
 calxeda	Calxeda
 capella	Capella Microsystems, Inc
+cascoda	Cascoda, Ltd.
 cavium	Cavium, Inc.
 cdns	Cadence Design Systems Inc.
 ceva	Ceva, Inc.
@@ -265,6 +266,7 @@ sbs	Smart Battery System
 schindler	Schindler
 seagate	Seagate Technology PLC
 semtech	Semtech Corporation
+sensirion	Sensirion AG
 sgx	SGX Sensortech
 sharp	Sharp Corporation
 si-en	Si-En Technology Ltd.

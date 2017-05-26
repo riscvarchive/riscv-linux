@@ -2121,6 +2121,9 @@ extern int vfs_ustat(dev_t, struct kstatfs *);
 extern int freeze_super(struct super_block *super);
 extern int thaw_super(struct super_block *super);
 extern bool our_mnt(struct vfsmount *mnt);
+extern __printf(2, 3)
+int super_setup_bdi_name(struct super_block *sb, char *fmt, ...);
+extern int super_setup_bdi(struct super_block *sb);
 
 extern int current_umask(void);
 
@@ -2678,7 +2681,7 @@ static const char * const kernel_read_file_str[] = {
 
 static inline const char *kernel_read_file_id_str(enum kernel_read_file_id id)
 {
-	if (id < 0 || id >= READING_MAX_ID)
+	if ((unsigned)id >= READING_MAX_ID)
 		return kernel_read_file_str[READING_UNKNOWN];
 
 	return kernel_read_file_str[id];

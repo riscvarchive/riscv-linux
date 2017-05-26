@@ -32,6 +32,8 @@ struct user_struct;
 struct writeback_control;
 struct bdi_writeback;
 
+void init_mm_internals(void);
+
 #ifndef CONFIG_NEED_MULTIPLE_NODES	/* Don't use mapnrs, do it properly */
 extern unsigned long max_mapnr;
 
@@ -430,6 +432,10 @@ static inline int pud_devmap(pud_t pud)
 {
 	return 0;
 }
+static inline int pgd_devmap(pgd_t pgd)
+{
+	return 0;
+}
 #endif
 
 /*
@@ -756,19 +762,11 @@ static inline enum zone_type page_zonenum(const struct page *page)
 }
 
 #ifdef CONFIG_ZONE_DEVICE
-void get_zone_device_page(struct page *page);
-void put_zone_device_page(struct page *page);
 static inline bool is_zone_device_page(const struct page *page)
 {
 	return page_zonenum(page) == ZONE_DEVICE;
 }
 #else
-static inline void get_zone_device_page(struct page *page)
-{
-}
-static inline void put_zone_device_page(struct page *page)
-{
-}
 static inline bool is_zone_device_page(const struct page *page)
 {
 	return false;
@@ -784,9 +782,6 @@ static inline void get_page(struct page *page)
 	 */
 	VM_BUG_ON_PAGE(page_ref_count(page) <= 0, page);
 	page_ref_inc(page);
-
-	if (unlikely(is_zone_device_page(page)))
-		get_zone_device_page(page);
 }
 
 static inline void put_page(struct page *page)
@@ -795,9 +790,6 @@ static inline void put_page(struct page *page)
 
 	if (put_page_testzero(page))
 		__put_page(page);
-
-	if (unlikely(is_zone_device_page(page)))
-		put_zone_device_page(page);
 }
 
 #if defined(CONFIG_SPARSEMEM) && !defined(CONFIG_SPARSEMEM_VMEMMAP)
@@ -1560,14 +1552,24 @@ static inline pte_t *get_locked_pte(struct mm_struct *mm, unsigned long addr,
 	return ptep;
 }
 
-#ifdef __PAGETABLE_PUD_FOLDED
-static inline int __pud_alloc(struct mm_struct *mm, pgd_t *pgd,
+#ifdef __PAGETABLE_P4D_FOLDED
+static inline int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
 						unsigned long address)
 {
 	return 0;
 }
 #else
-int __pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address);
+int __p4d_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address);
+#endif
+
+#ifdef __PAGETABLE_PUD_FOLDED
+static inline int __pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+						unsigned long address)
+{
+	return 0;
+}
+#else
+int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address);
 #endif
 
 #if defined(__PAGETABLE_PMD_FOLDED) || !defined(CONFIG_MMU)
@@ -1619,11 +1621,22 @@ int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
  * Remove it when 4level-fixup.h has been removed.
  */
 #if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
-static inline pud_t *pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
+
+#ifndef __ARCH_HAS_5LEVEL_HACK
+static inline p4d_t *p4d_alloc(struct mm_struct *mm, pgd_t *pgd,
+		unsigned long address)
 {
-	return (unlikely(pgd_none(*pgd)) && __pud_alloc(mm, pgd, address))?
-		NULL: pud_offset(pgd, address);
+	return (unlikely(pgd_none(*pgd)) && __p4d_alloc(mm, pgd, address)) ?
+		NULL : p4d_offset(pgd, address);
 }
+
+static inline pud_t *pud_alloc(struct mm_struct *mm, p4d_t *p4d,
+		unsigned long address)
+{
+	return (unlikely(p4d_none(*p4d)) && __pud_alloc(mm, p4d, address)) ?
+		NULL : pud_offset(p4d, address);
+}
+#endif /* !__ARCH_HAS_5LEVEL_HACK */
 
 static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 {
@@ -2385,7 +2398,8 @@ void sparse_mem_maps_populate_node(struct page **map_map,
 
 struct page *sparse_mem_map_populate(unsigned long pnum, int nid);
 pgd_t *vmemmap_pgd_populate(unsigned long addr, int node);
-pud_t *vmemmap_pud_populate(pgd_t *pgd, unsigned long addr, int node);
+p4d_t *vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node);
+pud_t *vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node);
 pmd_t *vmemmap_pmd_populate(pud_t *pud, unsigned long addr, int node);
 pte_t *vmemmap_pte_populate(pmd_t *pmd, unsigned long addr, int node);
 void *vmemmap_alloc_block(unsigned long size, int node);

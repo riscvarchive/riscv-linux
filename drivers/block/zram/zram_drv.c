@@ -523,7 +523,7 @@ static int zram_decompress_page(struct zram *zram, char *mem, u32 index)
 
 	cmem = zs_map_object(meta->mem_pool, handle, ZS_MM_RO);
 	if (size == PAGE_SIZE) {
-		copy_page(mem, cmem);
+		memcpy(mem, cmem, PAGE_SIZE);
 	} else {
 		struct zcomp_strm *zstrm = zcomp_stream_get(zram->comp);
 
@@ -717,7 +717,7 @@ compress_again:
 
 	if ((clen == PAGE_SIZE) && !is_partial_io(bvec)) {
 		src = kmap_atomic(page);
-		copy_page(cmem, src);
+		memcpy(cmem, src, PAGE_SIZE);
 		kunmap_atomic(src);
 	} else {
 		memcpy(cmem, src, clen);
@@ -829,10 +829,14 @@ static void __zram_make_request(struct zram *zram, struct bio *bio)
 	offset = (bio->bi_iter.bi_sector &
 		  (SECTORS_PER_PAGE - 1)) << SECTOR_SHIFT;
 
-	if (unlikely(bio_op(bio) == REQ_OP_DISCARD)) {
+	switch (bio_op(bio)) {
+	case REQ_OP_DISCARD:
+	case REQ_OP_WRITE_ZEROES:
 		zram_bio_discard(zram, index, offset, bio);
 		bio_endio(bio);
 		return;
+	default:
+		break;
 	}
 
 	bio_for_each_segment(bvec, bio, iter) {
@@ -928,7 +932,7 @@ static int zram_rw_page(struct block_device *bdev, sector_t sector,
 	}
 
 	index = sector >> SECTORS_PER_PAGE_SHIFT;
-	offset = sector & (SECTORS_PER_PAGE - 1) << SECTOR_SHIFT;
+	offset = (sector & (SECTORS_PER_PAGE - 1)) << SECTOR_SHIFT;
 
 	bv.bv_page = page;
 	bv.bv_len = PAGE_SIZE;
@@ -1189,7 +1193,11 @@ static int zram_add(void)
 	blk_queue_io_min(zram->disk->queue, PAGE_SIZE);
 	blk_queue_io_opt(zram->disk->queue, PAGE_SIZE);
 	zram->disk->queue->limits.discard_granularity = PAGE_SIZE;
+	zram->disk->queue->limits.max_sectors = SECTORS_PER_PAGE;
+	zram->disk->queue->limits.chunk_sectors = 0;
 	blk_queue_max_discard_sectors(zram->disk->queue, UINT_MAX);
+	queue_flag_set_unlocked(QUEUE_FLAG_DISCARD, zram->disk->queue);
+
 	/*
 	 * zram_bio_discard() will clear all logical blocks if logical block
 	 * size is identical with physical block size(PAGE_SIZE). But if it is
@@ -1199,10 +1207,7 @@ static int zram_add(void)
 	 * zeroed.
 	 */
 	if (ZRAM_LOGICAL_BLOCK_SIZE == PAGE_SIZE)
-		zram->disk->queue->limits.discard_zeroes_data = 1;
-	else
-		zram->disk->queue->limits.discard_zeroes_data = 0;
-	queue_flag_set_unlocked(QUEUE_FLAG_DISCARD, zram->disk->queue);
+		blk_queue_max_write_zeroes_sectors(zram->disk->queue, UINT_MAX);
 
 	add_disk(zram->disk);
 

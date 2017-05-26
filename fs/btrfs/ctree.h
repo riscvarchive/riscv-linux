@@ -810,7 +810,6 @@ struct btrfs_fs_info {
 	struct btrfs_super_block *super_for_commit;
 	struct super_block *sb;
 	struct inode *btree_inode;
-	struct backing_dev_info bdi;
 	struct mutex tree_log_mutex;
 	struct mutex transaction_kthread_mutex;
 	struct mutex cleaner_mutex;
@@ -1259,7 +1258,7 @@ struct btrfs_root {
 	atomic_t will_be_snapshoted;
 
 	/* For qgroup metadata space reserve */
-	atomic_t qgroup_meta_rsv;
+	atomic64_t qgroup_meta_rsv;
 };
 static inline u32 btrfs_inode_sectorsize(const struct inode *inode)
 {

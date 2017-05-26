@@ -56,7 +56,8 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src);
 #define TIF_SIGPENDING		1	/* signal pending */
 #define TIF_NEED_RESCHED	2	/* rescheduling necessary */
 #define TIF_UPROBE		3	/* breakpointed or single-stepping */
-#define TIF_PATCH_PENDING	4	/* pending live patching update */
+#define TIF_GUARDED_STORAGE	4	/* load guarded storage control block */
+#define TIF_PATCH_PENDING	5	/* pending live patching update */
 
 #define TIF_31BIT		16	/* 32bit process */
 #define TIF_MEMDIE		17	/* is terminating due to OOM killer */
@@ -75,6 +76,7 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src);
 #define _TIF_SIGPENDING		_BITUL(TIF_SIGPENDING)
 #define _TIF_NEED_RESCHED	_BITUL(TIF_NEED_RESCHED)
 #define _TIF_UPROBE		_BITUL(TIF_UPROBE)
+#define _TIF_GUARDED_STORAGE	_BITUL(TIF_GUARDED_STORAGE)
 #define _TIF_PATCH_PENDING	_BITUL(TIF_PATCH_PENDING)
 
 #define _TIF_31BIT		_BITUL(TIF_31BIT)

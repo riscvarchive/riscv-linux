@@ -3755,23 +3755,24 @@ static void __enable_ftrace_function_probe(struct ftrace_ops_hash *old_hash)
 	ftrace_probe_registered = 1;
 }
 
-static void __disable_ftrace_function_probe(void)
+static bool __disable_ftrace_function_probe(void)
 {
 	int i;
 
 	if (!ftrace_probe_registered)
-		return;
+		return false;
 
 	for (i = 0; i < FTRACE_FUNC_HASHSIZE; i++) {
 		struct hlist_head *hhd = &ftrace_func_hash[i];
 		if (hhd->first)
-			return;
+			return false;
 	}
 
 	/* no more funcs left */
 	ftrace_shutdown(&trace_probe_ops, 0);
 
 	ftrace_probe_registered = 0;
+	return true;
 }
 
 
@@ -3901,6 +3902,7 @@ static void
 __unregister_ftrace_function_probe(char *glob, struct ftrace_probe_ops *ops,
 				  void *data, int flags)
 {
+	struct ftrace_ops_hash old_hash_ops;
 	struct ftrace_func_entry *rec_entry;
 	struct ftrace_func_probe *entry;
 	struct ftrace_func_probe *p;
@@ -3912,6 +3914,7 @@ __unregister_ftrace_function_probe(char *glob, struct ftrace_probe_ops *ops,
 	struct hlist_node *tmp;
 	char str[KSYM_SYMBOL_LEN];
 	int i, ret;
+	bool disabled;
 
 	if (glob && (strcmp(glob, "*") == 0 || !strlen(glob)))
 		func_g.search = NULL;
@@ -3929,6 +3932,10 @@ __unregister_ftrace_function_probe(char *glob, struct ftrace_probe_ops *ops,
 	}
 
 	mutex_lock(&trace_probe_ops.func_hash->regex_lock);
+
+	old_hash_ops.filter_hash = old_hash;
+	/* Probes only have filters */
+	old_hash_ops.notrace_hash = NULL;
 
 	hash = alloc_and_copy_ftrace_hash(FTRACE_HASH_DEFAULT_BITS, *orig_hash);
 	if (!hash)
@@ -3967,12 +3974,17 @@ __unregister_ftrace_function_probe(char *glob, struct ftrace_probe_ops *ops,
 		}
 	}
 	mutex_lock(&ftrace_lock);
-	__disable_ftrace_function_probe();
+	disabled = __disable_ftrace_function_probe();
 	/*
 	 * Remove after the disable is called. Otherwise, if the last
 	 * probe is removed, a null hash means *all enabled*.
 	 */
 	ret = ftrace_hash_move(&trace_probe_ops, 1, orig_hash, hash);
+
+	/* still need to update the function call sites */
+	if (ftrace_enabled && !disabled)
+		ftrace_run_modify_code(&trace_probe_ops, FTRACE_UPDATE_CALLS,
+				       &old_hash_ops);
 	synchronize_sched();
 	if (!ret)
 		free_ftrace_hash_rcu(old_hash);
@@ -4416,16 +4428,24 @@ static int __init set_graph_notrace_function(char *str)
 }
 __setup("ftrace_graph_notrace=", set_graph_notrace_function);
 
+static int __init set_graph_max_depth_function(char *str)
+{
+	if (!str)
+		return 0;
+	fgraph_max_depth = simple_strtoul(str, NULL, 0);
+	return 1;
+}
+__setup("ftrace_graph_max_depth=", set_graph_max_depth_function);
+
 static void __init set_ftrace_early_graph(char *buf, int enable)
 {
 	int ret;
 	char *func;
 	struct ftrace_hash *hash;
 
-	if (enable)
-		hash = ftrace_graph_hash;
-	else
-		hash = ftrace_graph_notrace_hash;
+	hash = alloc_ftrace_hash(FTRACE_HASH_DEFAULT_BITS);
+	if (WARN_ON(!hash))
+		return;
 
 	while (buf) {
 		func = strsep(&buf, ",");
@@ -4435,6 +4455,11 @@ static void __init set_ftrace_early_graph(char *buf, int enable)
 			printk(KERN_DEBUG "ftrace: function %s not "
 					  "traceable\n", func);
 	}
+
+	if (enable)
+		ftrace_graph_hash = hash;
+	else
+		ftrace_graph_notrace_hash = hash;
 }
 #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
 
@@ -5488,7 +5513,7 @@ static void ftrace_ops_assist_func(unsigned long ip, unsigned long parent_ip,
  * Normally the mcount trampoline will call the ops->func, but there
  * are times that it should not. For example, if the ops does not
  * have its own recursion protection, then it should call the
- * ftrace_ops_recurs_func() instead.
+ * ftrace_ops_assist_func() instead.
  *
  * Returns the function that the trampoline should call for @ops.
  */
@@ -5539,6 +5564,15 @@ static void clear_ftrace_pids(struct trace_array *tr)
 	synchronize_sched();
 
 	trace_free_pid_list(pid_list);
+}
+
+void ftrace_clear_pids(struct trace_array *tr)
+{
+	mutex_lock(&ftrace_lock);
+
+	clear_ftrace_pids(tr);
+
+	mutex_unlock(&ftrace_lock);
 }
 
 static void ftrace_pid_reset(struct trace_array *tr)

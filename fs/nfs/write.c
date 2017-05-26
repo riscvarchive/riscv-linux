@@ -263,16 +263,15 @@ int nfs_congestion_kb;
 
 static void nfs_set_page_writeback(struct page *page)
 {
-	struct nfs_server *nfss = NFS_SERVER(page_file_mapping(page)->host);
+	struct inode *inode = page_file_mapping(page)->host;
+	struct nfs_server *nfss = NFS_SERVER(inode);
 	int ret = test_set_page_writeback(page);
 
 	WARN_ON_ONCE(ret != 0);
 
 	if (atomic_long_inc_return(&nfss->writeback) >
-			NFS_CONGESTION_ON_THRESH) {
-		set_bdi_congested(&nfss->backing_dev_info,
-					BLK_RW_ASYNC);
-	}
+			NFS_CONGESTION_ON_THRESH)
+		set_bdi_congested(inode_to_bdi(inode), BLK_RW_ASYNC);
 }
 
 static void nfs_end_page_writeback(struct nfs_page *req)
@@ -285,7 +284,7 @@ static void nfs_end_page_writeback(struct nfs_page *req)
 
 	end_page_writeback(req->wb_page);
 	if (atomic_long_dec_return(&nfss->writeback) < NFS_CONGESTION_OFF_THRESH)
-		clear_bdi_congested(&nfss->backing_dev_info, BLK_RW_ASYNC);
+		clear_bdi_congested(inode_to_bdi(inode), BLK_RW_ASYNC);
 }
 
 
@@ -1784,7 +1783,8 @@ static void nfs_commit_release_pages(struct nfs_commit_data *data)
 			(long long)req_offset(req));
 		if (status < 0) {
 			nfs_context_set_write_error(req->wb_context, status);
-			nfs_inode_remove_request(req);
+			if (req->wb_page)
+				nfs_inode_remove_request(req);
 			dprintk_cont(", error = %d\n", status);
 			goto next;
 		}
@@ -1793,7 +1793,8 @@ static void nfs_commit_release_pages(struct nfs_commit_data *data)
 		 * returned by the server against all stored verfs. */
 		if (!nfs_write_verifier_cmp(&req->wb_verf, &data->verf.verifier)) {
 			/* We have a match */
-			nfs_inode_remove_request(req);
+			if (req->wb_page)
+				nfs_inode_remove_request(req);
 			dprintk_cont(" OK\n");
 			goto next;
 		}
@@ -1806,7 +1807,7 @@ static void nfs_commit_release_pages(struct nfs_commit_data *data)
 	}
 	nfss = NFS_SERVER(data->inode);
 	if (atomic_long_read(&nfss->writeback) < NFS_CONGESTION_OFF_THRESH)
-		clear_bdi_congested(&nfss->backing_dev_info, BLK_RW_ASYNC);
+		clear_bdi_congested(inode_to_bdi(data->inode), BLK_RW_ASYNC);
 
 	nfs_init_cinfo(&cinfo, data->inode, data->dreq);
 	nfs_commit_end(cinfo.mds);

@@ -1042,9 +1042,12 @@ static void report_reserved_underflow(struct btrfs_fs_info *fs_info,
 				      struct btrfs_qgroup *qgroup,
 				      u64 num_bytes)
 {
-	btrfs_warn(fs_info,
+#ifdef CONFIG_BTRFS_DEBUG
+	WARN_ON(qgroup->reserved < num_bytes);
+	btrfs_debug(fs_info,
 		"qgroup %llu reserved space underflow, have: %llu, to free: %llu",
 		qgroup->qgroupid, qgroup->reserved, num_bytes);
+#endif
 	qgroup->reserved = 0;
 }
 /*
@@ -1075,7 +1078,7 @@ static int __qgroup_excl_accounting(struct btrfs_fs_info *fs_info,
 	qgroup->excl += sign * num_bytes;
 	qgroup->excl_cmpr += sign * num_bytes;
 	if (sign > 0) {
-		if (WARN_ON(qgroup->reserved < num_bytes))
+		if (qgroup->reserved < num_bytes)
 			report_reserved_underflow(fs_info, qgroup, num_bytes);
 		else
 			qgroup->reserved -= num_bytes;
@@ -1100,7 +1103,7 @@ static int __qgroup_excl_accounting(struct btrfs_fs_info *fs_info,
 		WARN_ON(sign < 0 && qgroup->excl < num_bytes);
 		qgroup->excl += sign * num_bytes;
 		if (sign > 0) {
-			if (WARN_ON(qgroup->reserved < num_bytes))
+			if (qgroup->reserved < num_bytes)
 				report_reserved_underflow(fs_info, qgroup,
 							  num_bytes);
 			else
@@ -2469,7 +2472,7 @@ void btrfs_qgroup_free_refroot(struct btrfs_fs_info *fs_info,
 
 		qg = unode_aux_to_qgroup(unode);
 
-		if (WARN_ON(qg->reserved < num_bytes))
+		if (qg->reserved < num_bytes)
 			report_reserved_underflow(fs_info, qg, num_bytes);
 		else
 			qg->reserved -= num_bytes;
@@ -2948,20 +2951,20 @@ int btrfs_qgroup_reserve_meta(struct btrfs_root *root, int num_bytes,
 	ret = qgroup_reserve(root, num_bytes, enforce);
 	if (ret < 0)
 		return ret;
-	atomic_add(num_bytes, &root->qgroup_meta_rsv);
+	atomic64_add(num_bytes, &root->qgroup_meta_rsv);
 	return ret;
 }
 
 void btrfs_qgroup_free_meta_all(struct btrfs_root *root)
 {
 	struct btrfs_fs_info *fs_info = root->fs_info;
-	int reserved;
+	u64 reserved;
 
 	if (!test_bit(BTRFS_FS_QUOTA_ENABLED, &fs_info->flags) ||
 	    !is_fstree(root->objectid))
 		return;
 
-	reserved = atomic_xchg(&root->qgroup_meta_rsv, 0);
+	reserved = atomic64_xchg(&root->qgroup_meta_rsv, 0);
 	if (reserved == 0)
 		return;
 	btrfs_qgroup_free_refroot(fs_info, root->objectid, reserved);
@@ -2976,8 +2979,8 @@ void btrfs_qgroup_free_meta(struct btrfs_root *root, int num_bytes)
 		return;
 
 	BUG_ON(num_bytes != round_down(num_bytes, fs_info->nodesize));
-	WARN_ON(atomic_read(&root->qgroup_meta_rsv) < num_bytes);
-	atomic_sub(num_bytes, &root->qgroup_meta_rsv);
+	WARN_ON(atomic64_read(&root->qgroup_meta_rsv) < num_bytes);
+	atomic64_sub(num_bytes, &root->qgroup_meta_rsv);
 	btrfs_qgroup_free_refroot(fs_info, root->objectid, num_bytes);
 }
 

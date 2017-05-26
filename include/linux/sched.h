@@ -604,6 +604,10 @@ struct task_struct {
 #ifdef CONFIG_COMPAT_BRK
 	unsigned			brk_randomized:1;
 #endif
+#ifdef CONFIG_CGROUPS
+	/* disallow userland-initiated cgroup migration */
+	unsigned			no_cgroup_migration:1;
+#endif
 
 	unsigned long			atomic_flags; /* Flags requiring atomic access. */
 
@@ -775,6 +779,8 @@ struct task_struct {
 	/* PI waiters blocked on a rt_mutex held by this task: */
 	struct rb_root			pi_waiters;
 	struct rb_node			*pi_waiters_leftmost;
+	/* Updated under owner's pi_lock and rq lock */
+	struct task_struct		*pi_top_task;
 	/* Deadlock detection and priority inheritance handling: */
 	struct rt_mutex_waiter		*pi_blocked_on;
 #endif
@@ -1289,10 +1295,10 @@ TASK_PFA_TEST(LMK_WAITING, lmk_waiting)
 TASK_PFA_SET(LMK_WAITING, lmk_waiting)
 
 static inline void
-tsk_restore_flags(struct task_struct *task, unsigned long orig_flags, unsigned long flags)
+current_restore_flags(unsigned long orig_flags, unsigned long flags)
 {
-	task->flags &= ~flags;
-	task->flags |= orig_flags & flags;
+	current->flags &= ~flags;
+	current->flags |= orig_flags & flags;
 }
 
 extern int cpuset_cpumask_can_shrink(const struct cpumask *cur, const struct cpumask *trial);
