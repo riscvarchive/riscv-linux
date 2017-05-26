@@ -161,7 +161,7 @@ config ISA_A
 
 config SYSRISCV_ATOMIC
 	bool "Include support for atomic operation syscalls"
-	default n
+	default !ISA_A
 	help
 	  If atomic memory instructions are present, i.e.,
 	  CONFIG_ISA_A, this includes support for the syscall that
