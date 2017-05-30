@@ -59,10 +59,18 @@ do {								\
 		  "i" (sizeof(struct bug_entry)));		\
 	unreachable();						\
 } while (0)
-
-#define HAVE_ARCH_BUG
+#endif /* !__ASSEMBLY__ */
+#else /* CONFIG_GENERIC_BUG */
+#ifndef __ASSEMBLY__
+#define BUG()							\
+do {								\
+	__asm__ __volatile__ ("sbreak\n");			\
+	unreachable();						\
+} while (0)
 #endif /* !__ASSEMBLY__ */
 #endif /* CONFIG_GENERIC_BUG */
+
+#define HAVE_ARCH_BUG
 
 #include <asm-generic/bug.h>
 
