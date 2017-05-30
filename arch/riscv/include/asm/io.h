@@ -23,6 +23,8 @@
 extern void __iomem *ioremap(phys_addr_t offset, unsigned long size);
 
 #define ioremap_nocache(addr, size) ioremap((addr), (size))
+#define ioremap_wc(addr, size) ioremap((addr), (size))
+#define ioremap_wt(addr, size) ioremap((addr), (size))
 
 extern void iounmap(void __iomem *addr);
 
