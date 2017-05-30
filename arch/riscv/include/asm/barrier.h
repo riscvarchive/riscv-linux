@@ -22,9 +22,17 @@
 
 #ifndef __ASSEMBLY__
 
-#define nop()	__asm__ __volatile__ ("nop")
+#define nop()		__asm__ __volatile__ ("nop")
 
-#define mb()	__asm__ __volatile__ ("fence" : : : "memory")
+/* These barries need to enforce ordering on both devices or memory. */
+#define mb()		__asm__ __volatile__ ("fence iorw,iorw" : : : "memory")
+#define rmb()		__asm__ __volatile__ ("fence ir,ir"     : : : "memory")
+#define wmb()		__asm__ __volatile__ ("fence ow,ow"     : : : "memory")
+
+/* These barries do not need to enforce ordering on devices, just memory. */
+#define smp_mb()	__asm__ __volatile__ ("fence rw,rw" : : : "memory")
+#define smp_rmb()	__asm__ __volatile__ ("fence r,r"   : : : "memory")
+#define smp_wmb()	__asm__ __volatile__ ("fence w,w"   : : : "memory")
 
 #include <asm-generic/barrier.h>
 
