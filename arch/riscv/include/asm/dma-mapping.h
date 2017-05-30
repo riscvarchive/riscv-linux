@@ -37,26 +37,5 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 	return addr + size - 1 <= *dev->dma_mask;
 }
 
-static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr)
-{
-	return (dma_addr_t)paddr;
-}
-
-static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t dev_addr)
-{
-	return (phys_addr_t)dev_addr;
-}
-
-static inline void dma_cache_sync(struct device *dev, void *vaddr,
-				  size_t size, enum dma_data_direction dir)
-{
-	/*
-	 * RISC-V is cache-coherent, so this is mostly a no-op.
-	 * However, we do need to ensure that dma_cache_sync()
-	 * enforces order, hence the mb().
-	 */
-	mb();
-}
-
 #endif	/* __KERNEL__ */
 #endif	/* __ASM_RISCV_DMA_MAPPING_H */
