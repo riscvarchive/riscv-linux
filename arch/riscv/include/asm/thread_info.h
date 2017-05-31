@@ -41,7 +41,6 @@ typedef unsigned long mm_segment_t;
 struct thread_info {
 	struct task_struct	*task;		/* main task structure */
 	unsigned long		flags;		/* low level flags */
-	__u32			cpu;		/* current CPU */
 	int                     preempt_count;  /* 0=>preemptible, <0=>BUG */
 	mm_segment_t		addr_limit;
 };
@@ -55,7 +54,6 @@ struct thread_info {
 {						\
 	.task		= &tsk,			\
 	.flags		= 0,			\
-	.cpu		= 0,			\
 	.preempt_count	= INIT_PREEMPT_COUNT,	\
 	.addr_limit	= KERNEL_DS,		\
 }

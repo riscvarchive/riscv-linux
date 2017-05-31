@@ -36,7 +36,6 @@ void asm_offsets(void)
 	OFFSET(THREAD_SP, task_struct, thread.sp);
 	OFFSET(TI_TASK, thread_info, task);
 	OFFSET(TI_FLAGS, thread_info, flags);
-	OFFSET(TI_CPU, thread_info, cpu);
 
 	OFFSET(THREAD_F0,  task_struct, thread.fstate.f[0]);
 	OFFSET(THREAD_F1,  task_struct, thread.fstate.f[1]);
