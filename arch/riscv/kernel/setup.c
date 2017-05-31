@@ -145,7 +145,6 @@ asmlinkage void __init setup_vm(void)
 
 void __init sbi_save(unsigned int hartid, void *dtb)
 {
-	init_thread_info.cpu = hartid;
 	early_init_dt_scan(__va(dtb));
 }
 
