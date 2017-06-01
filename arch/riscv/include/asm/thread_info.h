@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2009 Chen Liqin <liqin.chen@sunplusct.com>
  * Copyright (C) 2012 Regents of the University of California
+ * Copyright (C) 2017 SiFive
  *
  *   This program is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU General Public License
@@ -34,15 +35,19 @@ typedef unsigned long mm_segment_t;
 /*
  * low level task data that entry.S needs immediate access to
  * - this struct should fit entirely inside of one cache line
- * - this struct resides at the bottom of the supervisor stack
  * - if the members of this struct changes, the assembly constants
  *   in asm-offsets.c must be updated accordingly
  */
 struct thread_info {
-	struct task_struct	*task;		/* main task structure */
 	unsigned long		flags;		/* low level flags */
 	int                     preempt_count;  /* 0=>preemptible, <0=>BUG */
 	mm_segment_t		addr_limit;
+	/* These stack pointers are overwritten on every system call or
+	 * exception.  SP is also saved to the stack it can be recovered when
+	 * overwritten.
+	 */
+	long			kernel_sp;	/* Kernel stack pointer */
+	long			user_sp;	/* User stack pointer */
 };
 
 /*
@@ -52,23 +57,12 @@ struct thread_info {
  */
 #define INIT_THREAD_INFO(tsk)			\
 {						\
-	.task		= &tsk,			\
 	.flags		= 0,			\
 	.preempt_count	= INIT_PREEMPT_COUNT,	\
 	.addr_limit	= KERNEL_DS,		\
 }
 
-#define init_thread_info	(init_thread_union.thread_info)
 #define init_stack		(init_thread_union.stack)
-
-/*
- * Pointer to the thread_info struct of the current process
- */
-static inline struct thread_info *current_thread_info(void)
-{
-	register struct thread_info *tp __asm__ ("tp");
-	return tp;
-}
 
 #endif /* !__ASSEMBLY__ */
 

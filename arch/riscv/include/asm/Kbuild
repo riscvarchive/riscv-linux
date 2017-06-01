@@ -3,7 +3,6 @@ generic-y += cacheflush.h
 generic-y += checksum.h
 generic-y += clkdev.h
 generic-y += cputime.h
-generic-y += current.h
 generic-y += div64.h
 generic-y += dma.h
 generic-y += dma-contiguous.h

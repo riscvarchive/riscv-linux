@@ -23,23 +23,29 @@
 
 	.text
 	.altmacro
+
+/* Prepares to enter a system call or exception by saving all registers to the
+ * stack.
+ */
 	.macro SAVE_ALL
 	LOCAL _restore_kernel_sp
 	LOCAL _save_context
 
-	/* If coming from userspace, preserve the user stack pointer and load
-	   the kernel stack pointer.  If we came from the kernel, sscratch
-	   will contain 0, and we should continue on the current stack. */
-	csrrw sp, sscratch, sp
-	bnez sp, _save_context
+	/* If coming from userspace, preserve the user thread pointer and load
+	   the kernel thread pointer.  If we came from the kernel, sscratch
+	   will contain 0, and we should continue on the current TP. */
+	csrrw tp, sscratch, tp
+	bnez tp, _save_context
 
 _restore_kernel_sp:
-	csrr sp, sscratch
+	csrr tp, sscratch
+	REG_S sp, TASK_TI_KERNEL_SP(tp)
 _save_context:
+	REG_S sp, TASK_TI_USER_SP(tp)
+	REG_L sp, TASK_TI_KERNEL_SP(tp)
 	addi sp, sp, -(PT_SIZE)
 	REG_S x1,  PT_RA(sp)
 	REG_S x3,  PT_GP(sp)
-	REG_S x4,  PT_TP(sp)
 	REG_S x5,  PT_T0(sp)
 	REG_S x6,  PT_T1(sp)
 	REG_S x7,  PT_T2(sp)
@@ -72,18 +78,23 @@ _save_context:
 	   floating point in kernel space */
 	li t0, SR_FS
 
-	csrr s0, sscratch
+	REG_L s0, TASK_TI_USER_SP(tp)
 	csrrc s1, sstatus, t0
 	csrr s2, sepc
 	csrr s3, sbadaddr
 	csrr s4, scause
+	csrr s5, sscratch
 	REG_S s0, PT_SP(sp)
 	REG_S s1, PT_SSTATUS(sp)
 	REG_S s2, PT_SEPC(sp)
 	REG_S s3, PT_SBADADDR(sp)
 	REG_S s4, PT_SCAUSE(sp)
+	REG_S s5, PT_TP(sp)
 	.endm
 
+/* Prepares to return from a system call or exception by restoring all
+ * registers from the stack.
+ */
 	.macro RESTORE_ALL
 	REG_L a0, PT_SSTATUS(sp)
 	REG_L a2, PT_SEPC(sp)
@@ -131,10 +142,6 @@ ENTRY(handle_exception)
 	   occurs, the exception vector knows it came from the kernel */
 	csrw sscratch, x0
 
-	/* Compute address of current thread_info */
-	li tp, ~(THREAD_SIZE-1)
-	and tp, tp, sp
-
 	la gp, __global_pointer$
 
 	la ra, ret_from_exception
@@ -173,7 +180,7 @@ handle_syscall:
 	/* System calls run with interrupts enabled */
 	csrs sstatus, SR_IE
 	/* Trace syscalls, but only if requested by the user. */
-	REG_L t0, TI_FLAGS(tp)
+	REG_L t0, TASK_TI_FLAGS(tp)
 	andi t0, t0, _TIF_SYSCALL_TRACE
 	bnez t0, handle_syscall_trace_enter
 check_syscall_nr:
@@ -193,7 +200,7 @@ ret_from_syscall:
 	/* Set user a0 to kernel a0 */
 	REG_S a0, PT_A0(sp)
 	/* Trace syscalls, but only if requested by the user. */
-	REG_L t0, TI_FLAGS(tp)
+	REG_L t0, TASK_TI_FLAGS(tp)
 	andi t0, t0, _TIF_SYSCALL_TRACE
 	bnez t0, handle_syscall_trace_exit
 
@@ -205,13 +212,18 @@ ret_from_exception:
 
 resume_userspace:
 	/* Interrupts must be disabled here so flags are checked atomically */
-	REG_L s0, TI_FLAGS(tp) /* current_thread_info->flags */
+	REG_L s0, TASK_TI_FLAGS(tp) /* current_thread_info->flags */
 	andi s1, s0, _TIF_WORK_MASK
 	bnez s1, work_pending
 
-	/* Save unwound kernel stack pointer in sscratch */
+	/* Save unwound kernel stack pointer in thread_info */
 	addi s0, sp, PT_SIZE
-	csrw sscratch, s0
+	REG_S s0, TASK_TI_KERNEL_SP(tp)
+
+	/* Save TP into sscratch, so we can find the kernel data structures
+	 * again. */
+	csrw sscratch, tp
+
 restore_all:
 	RESTORE_ALL
 	sret
@@ -305,7 +317,12 @@ ENTRY(__switch_to)
 	REG_L s9,  TASK_THREAD_S9_RA(a2)
 	REG_L s10, TASK_THREAD_S10_RA(a2)
 	REG_L s11, TASK_THREAD_S11_RA(a2)
-	REG_L tp, TASK_THREAD_INFO(a1)
+#if TASK_TI != 0
+#error "TASK_TI != 0: tp will contain a 'struct thread_info', not a 'struct task_struct' so get_current() won't work."
+	addi tp, a1, TASK_TI
+#else
+	move tp, a1
+#endif
 	ret
 ENDPROC(__switch_to)
 

@@ -33,6 +33,7 @@ config RISCV
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
 	select MODULES_USE_ELF_RELA if MODULES
+	select THREAD_INFO_IN_TASK
 
 config MMU
 	def_bool y
