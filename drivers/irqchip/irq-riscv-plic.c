@@ -172,8 +172,6 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 	chained_irq_exit(chip, desc);
 }
 
-// TODO: add a /sys interface to set priority + per-hart enables for steering
-
 static int plic_init(struct device_node *node, struct device_node *parent)
 {
 	struct plic_data *data;
