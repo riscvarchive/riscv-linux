@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 Regents of the University of California
+ * Copyright (C) 2017 SiFive
  *
  *   This program is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU General Public License
@@ -18,7 +19,6 @@
 
 void asm_offsets(void)
 {
-	OFFSET(TASK_THREAD_INFO, task_struct, stack);
 	OFFSET(TASK_THREAD_RA, task_struct, thread.ra);
 	OFFSET(TASK_THREAD_SP, task_struct, thread.sp);
 	OFFSET(TASK_THREAD_S0, task_struct, thread.s[0]);
@@ -34,8 +34,11 @@ void asm_offsets(void)
 	OFFSET(TASK_THREAD_S10, task_struct, thread.s[10]);
 	OFFSET(TASK_THREAD_S11, task_struct, thread.s[11]);
 	OFFSET(TASK_THREAD_SP, task_struct, thread.sp);
-	OFFSET(TI_TASK, thread_info, task);
-	OFFSET(TI_FLAGS, thread_info, flags);
+	OFFSET(TASK_STACK, task_struct, stack);
+	OFFSET(TASK_TI, task_struct, thread_info);
+	OFFSET(TASK_TI_FLAGS, task_struct, thread_info.flags);
+	OFFSET(TASK_TI_KERNEL_SP, task_struct, thread_info.kernel_sp);
+	OFFSET(TASK_TI_USER_SP, task_struct, thread_info.user_sp);
 
 	OFFSET(TASK_THREAD_F0,  task_struct, thread.fstate.f[0]);
 	OFFSET(TASK_THREAD_F1,  task_struct, thread.fstate.f[1]);
@@ -302,4 +305,7 @@ void asm_offsets(void)
 		  offsetof(struct task_struct, thread.fstate.fcsr)
 		- offsetof(struct task_struct, thread.fstate.f[0])
 	);
+
+	/* The assembler needs access to THREAD_SIZE as well. */
+	DEFINE(ASM_THREAD_SIZE, THREAD_SIZE);
 }

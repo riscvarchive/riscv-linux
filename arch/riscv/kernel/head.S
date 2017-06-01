@@ -52,9 +52,13 @@ ENTRY(_start)
 	call relocate
 
 	/* Restore C environment */
-	la tp, init_thread_union
-	li sp, THREAD_SIZE
-	add sp, sp, tp
+	la tp, init_task
+
+	la sp, init_thread_union
+	li a0, ASM_THREAD_SIZE
+	add sp, sp, a0
+
+	REG_S sp, TASK_TI_KERNEL_SP(tp)
 
 	/* Start the kernel */
 	mv a0, s0
