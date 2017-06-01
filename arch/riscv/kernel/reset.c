@@ -20,13 +20,17 @@ EXPORT_SYMBOL(pm_power_off);
 
 void machine_restart(char *cmd)
 {
+	do_kernel_restart(cmd);
+	while (1);
 }
 
 void machine_halt(void)
 {
+	machine_power_off();
 }
 
 void machine_power_off(void)
 {
 	sbi_shutdown();
+	while (1);
 }
