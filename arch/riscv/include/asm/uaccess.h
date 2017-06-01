@@ -155,14 +155,7 @@ do {								\
 		: "m" (*(ptr)), "i" (-EFAULT));			\
 	__disable_user_access();				\
 } while (0)
-#else /* !CONFIG_MMU */
-#define __get_user_asm(insn, x, ptr, err)			\
-	__asm__ __volatile__ (					\
-		insn " %0, %1"					\
-		: "=r" (x)					\
-		: "m" (*(ptr)))
 #endif /* CONFIG_MMU */
-
 
 #ifdef CONFIG_64BIT
 #define __get_user_8(x, ptr, err) \
@@ -202,9 +195,6 @@ do {								\
 	(x) = (__typeof__(x))((__typeof__((x)-(x)))(		\
 		(((u64)__hi << 32) | __lo)));			\
 } while (0)
-#else /* !CONFIG_MMU */
-#define __get_user_8(x, ptr, err) \
-	((x) = (__typeof__(x))(*((u64 __user *)(ptr))))
 #endif /* CONFIG_MMU */
 #endif /* CONFIG_64BIT */
 
@@ -304,12 +294,6 @@ do {								\
 		: "rJ" (__x), "i" (-EFAULT));			\
 	__disable_user_access();				\
 } while (0)
-#else /* !CONFIG_MMU */
-#define __put_user_asm(insn, x, ptr, err)			\
-	__asm__ __volatile__ (					\
-		insn " %z1, %0"					\
-		: "=m" (*(ptr))					\
-		: "rJ" ((__typeof__(*(ptr))) x))
 #endif /* CONFIG_MMU */
 
 
@@ -347,9 +331,6 @@ do {								\
 		: "rJ" (__x), "rJ" (__x >> 32), "i" (-EFAULT));	\
 	__disable_user_access();				\
 } while (0)
-#else /* !CONFIG_MMU */
-#define __put_user_8(x, ptr, err)				\
-	(*((u64 __user *)(ptr)) = (u64)(x))
 #endif /* CONFIG_MMU */
 #endif /* CONFIG_64BIT */
 

@@ -59,36 +59,6 @@ static inline void flush_tlb_kernel_range(unsigned long start,
 	flush_tlb_all();
 }
 
-#else /* !CONFIG_MMU */
-
-static inline void flush_tlb_all(void)
-{
-	BUG();
-}
-
-static inline void flush_tlb_mm(struct mm_struct *mm)
-{
-	BUG();
-}
-
-static inline void flush_tlb_page(struct vm_area_struct *vma,
-	unsigned long addr)
-{
-	BUG();
-}
-
-static inline void flush_tlb_range(struct vm_area_struct *vma,
-	unsigned long start, unsigned long end)
-{
-	BUG();
-}
-
-static inline void flush_tlb_kernel_range(unsigned long start,
-	unsigned long end)
-{
-	BUG();
-}
-
 #endif /* CONFIG_MMU */
 
 #endif /* _ASM_RISCV_TLBFLUSH_H */
