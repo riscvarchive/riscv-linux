@@ -27,10 +27,10 @@
 #include <asm/asm.h>
 
 #ifdef CONFIG_RV_PUM
-#define __enable_user_access()						\
-	__asm__ __volatile__ ("csrs sstatus, %0" : : "r" (SR_SUM))
-#define __disable_user_access()						\
-	__asm__ __volatile__ ("csrc sstatus, %0" : : "r" (SR_SUM))
+#define __enable_user_access()							\
+	__asm__ __volatile__ ("csrs sstatus, %0" : : "r" (SR_SUM) : "memory")
+#define __disable_user_access()							\
+	__asm__ __volatile__ ("csrc sstatus, %0" : : "r" (SR_SUM) : "memory")
 #else
 #define __enable_user_access()
 #define __disable_user_access()
@@ -135,6 +135,7 @@ extern int fixup_exception(struct pt_regs *);
 #define __get_user_asm(insn, x, ptr, err)			\
 do {								\
 	uintptr_t __tmp;					\
+	__typeof__(x) __x;					\
 	__enable_user_access();					\
 	__asm__ __volatile__ (					\
 		"1:\n"						\
@@ -151,9 +152,10 @@ do {								\
 		"	.balign " SZPTR "\n"			\
 		"	" PTR " 1b, 3b\n"			\
 		"	.previous"				\
-		: "+r" (err), "=&r" (x), "=r" (__tmp)		\
+		: "+r" (err), "=&r" (__x), "=r" (__tmp)		\
 		: "m" (*(ptr)), "i" (-EFAULT));			\
 	__disable_user_access();				\
+	(x) = __x;						\
 } while (0)
 #else /* !CONFIG_MMU */
 #define __get_user_asm(insn, x, ptr, err)			\
