@@ -58,8 +58,6 @@ ENTRY(_start)
 	li a0, ASM_THREAD_SIZE
 	add sp, sp, a0
 
-	REG_S sp, TASK_TI_KERNEL_SP(tp)
-
 	/* Start the kernel */
 	mv a0, s0
 	mv a1, s1

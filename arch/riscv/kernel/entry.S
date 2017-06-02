@@ -39,6 +39,7 @@
 
 _restore_kernel_sp:
 	csrr tp, sscratch
+	REG_S sp, TASK_TI_KERNEL_SP(tp)
 _save_context:
 	REG_S sp, TASK_TI_USER_SP(tp)
 	REG_L sp, TASK_TI_KERNEL_SP(tp)
