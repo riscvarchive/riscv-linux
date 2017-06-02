@@ -109,12 +109,26 @@ asmlinkage void name(struct pt_regs *regs)				\
 
 DO_ERROR_INFO(do_trap_unknown,
 	SIGILL, ILL_ILLTRP, "unknown exception");
-DO_ERROR_INFO(do_trap_amo_misaligned,
-	SIGBUS, BUS_ADRALN, "AMO address misaligned");
 DO_ERROR_INFO(do_trap_insn_misaligned,
 	SIGBUS, BUS_ADRALN, "instruction address misaligned");
+DO_ERROR_INFO(do_trap_insn_fault,
+	SIGBUS, BUS_ADRALN, "instruction access fault");
 DO_ERROR_INFO(do_trap_insn_illegal,
 	SIGILL, ILL_ILLOPC, "illegal instruction");
+DO_ERROR_INFO(do_trap_load_misaligned,
+	SIGBUS, BUS_ADRALN, "load address misaligned");
+DO_ERROR_INFO(do_trap_load_fault,
+	SIGSEGV, SEGV_ACCERR, "load access fault");
+DO_ERROR_INFO(do_trap_store_misaligned,
+	SIGBUS, BUS_ADRALN, "store (or AMO) address misaligned");
+DO_ERROR_INFO(do_trap_store_fault,
+	SIGSEGV, SEGV_ACCERR, "store (or AMO) access fault");
+DO_ERROR_INFO(do_trap_ecall_u,
+	SIGILL, ILL_ILLTRP, "environment call from U-mode");
+DO_ERROR_INFO(do_trap_ecall_s,
+	SIGILL, ILL_ILLTRP, "environment call from S-mode");
+DO_ERROR_INFO(do_trap_ecall_m,
+	SIGILL, ILL_ILLTRP, "environment call from M-mode");
 
 asmlinkage void do_trap_break(struct pt_regs *regs)
 {

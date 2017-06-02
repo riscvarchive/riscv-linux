@@ -417,17 +417,17 @@ ENDPROC(__fstate_restore)
 	/* Exception vector table */
 ENTRY(excp_vect_table)
 	RISCV_PTR do_trap_insn_misaligned
-	RISCV_PTR do_trap_unknown /* instruction access exception */
+	RISCV_PTR do_trap_insn_fault
 	RISCV_PTR do_trap_insn_illegal
 	RISCV_PTR do_trap_break
+	RISCV_PTR do_trap_load_misaligned
+	RISCV_PTR do_trap_load_fault
+	RISCV_PTR do_trap_store_misaligned
+	RISCV_PTR do_trap_store_fault
+	RISCV_PTR do_trap_ecall_u /* system call, gets intercepted */
+	RISCV_PTR do_trap_ecall_s
 	RISCV_PTR do_trap_unknown
-	RISCV_PTR do_trap_unknown /* load access exception */
-	RISCV_PTR do_trap_amo_misaligned
-	RISCV_PTR do_trap_unknown /* store access exception */
-	RISCV_PTR do_trap_unknown /* handle_syscall */
-	RISCV_PTR do_trap_unknown
-	RISCV_PTR do_trap_unknown
-	RISCV_PTR do_trap_unknown
+	RISCV_PTR do_trap_ecall_m
 	RISCV_PTR do_page_fault   /* instruction page fault */
 	RISCV_PTR do_page_fault   /* load page fault */
 	RISCV_PTR do_trap_unknown
