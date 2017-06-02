@@ -11,7 +11,6 @@ obj-y	:= cpu.o entry.o irq.o process.o ptrace.o reset.o setup.o \
 CFLAGS_setup.o := -mcmodel=medany
 
 obj-$(CONFIG_SMP)		+= smpboot.o smp.o
-obj-$(CONFIG_SBI_CONSOLE)	+= sbi-con.o
 obj-$(CONFIG_MODULES)		+= module.o
 
 clean:
