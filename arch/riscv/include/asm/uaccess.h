@@ -223,7 +223,7 @@ do {								\
  */
 #define __get_user(x, ptr)					\
 ({								\
-	register int __gu_err = 0;				\
+	register long __gu_err = 0;				\
 	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);	\
 	__chk_user_ptr(__gu_ptr);				\
 	switch (sizeof(*__gu_ptr)) {				\
@@ -358,7 +358,7 @@ do {								\
  */
 #define __put_user(x, ptr)					\
 ({								\
-	register int __pu_err = 0;				\
+	register long __pu_err = 0;				\
 	__typeof__(*(ptr)) __user *__gu_ptr = (ptr);		\
 	__chk_user_ptr(__gu_ptr);				\
 	switch (sizeof(*__gu_ptr)) {				\
