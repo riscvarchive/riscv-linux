@@ -77,6 +77,9 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
 	unsigned long sp)
 {
 	regs->sstatus = SR_PIE /* User mode, irqs on */ | SR_FS_INITIAL;
+#ifndef CONFIG_RV_PUM
+	regs->sstatus |= SR_SUM
+#endif
 	regs->sepc = pc;
 	regs->sp = sp;
 	set_fs(USER_DS);
