@@ -43,7 +43,7 @@ _restore_kernel_sp:
 _save_context:
 	REG_S sp, TASK_TI_USER_SP(tp)
 	REG_L sp, TASK_TI_KERNEL_SP(tp)
-	addi sp, sp, -(PT_SIZE)
+	addi sp, sp, -(PT_SIZE_ON_STACK)
 	REG_S x1,  PT_RA(sp)
 	REG_S x3,  PT_GP(sp)
 	REG_S x5,  PT_T0(sp)
@@ -217,7 +217,7 @@ resume_userspace:
 	bnez s1, work_pending
 
 	/* Save unwound kernel stack pointer in thread_info */
-	addi s0, sp, PT_SIZE
+	addi s0, sp, PT_SIZE_ON_STACK
 	REG_S s0, TASK_TI_KERNEL_SP(tp)
 
 	/* Save TP into sscratch, so we can find the kernel data structures

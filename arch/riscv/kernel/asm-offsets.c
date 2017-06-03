@@ -308,4 +308,9 @@ void asm_offsets(void)
 
 	/* The assembler needs access to THREAD_SIZE as well. */
 	DEFINE(ASM_THREAD_SIZE, THREAD_SIZE);
+
+	/* We allocate a pt_regs on the stack when entering the kernel.  This
+	 * ensures the alignment is sane.
+	 */
+	DEFINE(PT_SIZE_ON_STACK, ALIGN(sizeof(struct pt_regs), STACK_ALIGN));
 }
