@@ -14,11 +14,7 @@ LDFLAGS_vmlinux :=
 KBUILD_AFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS_MODULE += -fPIC
 
-ifeq ($(ARCH),riscv)
-	KBUILD_DEFCONFIG = spike64_defconfig
-else
-	KBUILD_DEFCONFIG = $(subst riscv,spike,$(ARCH))_defconfig
-endif
+KBUILD_DEFCONFIG = spike64_defconfig
 
 export BITS
 ifeq ($(CONFIG_ARCH_RV64I),y)
