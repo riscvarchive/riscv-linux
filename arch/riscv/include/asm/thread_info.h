@@ -37,6 +37,8 @@ typedef unsigned long mm_segment_t;
  * - this struct should fit entirely inside of one cache line
  * - if the members of this struct changes, the assembly constants
  *   in asm-offsets.c must be updated accordingly
+ * - thread_info is included in task_struct at an offset of 0.  This means that
+ *   tp points to both thread_info and task_struct.
  */
 struct thread_info {
 	unsigned long		flags;		/* low level flags */
