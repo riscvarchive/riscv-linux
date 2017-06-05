@@ -28,7 +28,7 @@
  * stack.
  */
 	.macro SAVE_ALL
-	LOCAL _restore_kernel_sp
+	LOCAL _restore_kernel_tpsp
 	LOCAL _save_context
 
 	/* If coming from userspace, preserve the user thread pointer and load
@@ -37,7 +37,7 @@
 	csrrw tp, sscratch, tp
 	bnez tp, _save_context
 
-_restore_kernel_sp:
+_restore_kernel_tpsp:
 	csrr tp, sscratch
 	REG_S sp, TASK_TI_KERNEL_SP(tp)
 _save_context:
