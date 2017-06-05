@@ -52,7 +52,12 @@ KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_C)
 
 KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
 KBUILD_CFLAGS += -mno-save-restore
-KBUILD_CFLAGS += -mstrict-align
+
+# GCC versions that support the "-mstrict-align" option default to allowing
+# unaligned accesses.  While unaligned accesses are explicitly allowed in the
+# RISC-V ISA, they're emulated by machine mode traps on all extant
+# architectures.  It's faster to have GCC emit only aligned accesses.
+KBUILD_CFLAGS += $(call cc-option,-mstrict-align)
 
 head-y := arch/riscv/kernel/head.o
 
