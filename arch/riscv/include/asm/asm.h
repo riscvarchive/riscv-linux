@@ -37,11 +37,11 @@
 #ifdef __ASSEMBLY__
 #define RISCV_PTR		.dword
 #define RISCV_SZPTR		8
-#define RISCV_LGPTR		4
+#define RISCV_LGPTR		3
 #else
 #define RISCV_PTR		".dword"
 #define RISCV_SZPTR		"8"
-#define RISCV_LGPTR		"4"
+#define RISCV_LGPTR		"3"
 #endif
 #elif __SIZEOF_POINTER__ == 4
 #ifdef __ASSEMBLY__
