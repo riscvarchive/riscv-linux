@@ -46,30 +46,30 @@ void show_regs(struct pt_regs *regs)
 {
 	show_regs_print_info(KERN_DEFAULT);
 
-	printk("sepc: " REG_FMT " ra : " REG_FMT " sp : " REG_FMT "\n",
+	printk(KERN_CONT "sepc: " REG_FMT " ra : " REG_FMT " sp : " REG_FMT "\n",
 		regs->sepc, regs->ra, regs->sp);
-	printk(" gp : " REG_FMT " tp : " REG_FMT " t0 : " REG_FMT "\n",
+	printk(KERN_CONT " gp : " REG_FMT " tp : " REG_FMT " t0 : " REG_FMT "\n",
 		regs->gp, regs->tp, regs->t0);
-	printk(" t1 : " REG_FMT " t2 : " REG_FMT " s0 : " REG_FMT "\n",
+	printk(KERN_CONT " t1 : " REG_FMT " t2 : " REG_FMT " s0 : " REG_FMT "\n",
 		regs->t1, regs->t2, regs->s0);
-	printk(" s1 : " REG_FMT " a0 : " REG_FMT " a1 : " REG_FMT "\n",
+	printk(KERN_CONT " s1 : " REG_FMT " a0 : " REG_FMT " a1 : " REG_FMT "\n",
 		regs->s1, regs->a0, regs->a1);
-	printk(" a2 : " REG_FMT " a3 : " REG_FMT " a4 : " REG_FMT "\n",
+	printk(KERN_CONT " a2 : " REG_FMT " a3 : " REG_FMT " a4 : " REG_FMT "\n",
 		regs->a2, regs->a3, regs->a4);
-	printk(" a5 : " REG_FMT " a6 : " REG_FMT " a7 : " REG_FMT "\n",
+	printk(KERN_CONT " a5 : " REG_FMT " a6 : " REG_FMT " a7 : " REG_FMT "\n",
 		regs->a5, regs->a6, regs->a7);
-	printk(" s2 : " REG_FMT " s3 : " REG_FMT " s4 : " REG_FMT "\n",
+	printk(KERN_CONT " s2 : " REG_FMT " s3 : " REG_FMT " s4 : " REG_FMT "\n",
 		regs->s2, regs->s3, regs->s4);
-	printk(" s5 : " REG_FMT " s6 : " REG_FMT " s7 : " REG_FMT "\n",
+	printk(KERN_CONT " s5 : " REG_FMT " s6 : " REG_FMT " s7 : " REG_FMT "\n",
 		regs->s5, regs->s6, regs->s7);
-	printk(" s8 : " REG_FMT " s9 : " REG_FMT " s10: " REG_FMT "\n",
+	printk(KERN_CONT " s8 : " REG_FMT " s9 : " REG_FMT " s10: " REG_FMT "\n",
 		regs->s8, regs->s9, regs->s10);
-	printk(" s11: " REG_FMT " t3 : " REG_FMT " t4 : " REG_FMT "\n",
+	printk(KERN_CONT " s11: " REG_FMT " t3 : " REG_FMT " t4 : " REG_FMT "\n",
 		regs->s11, regs->t3, regs->t4);
-	printk(" t5 : " REG_FMT " t6 : " REG_FMT "\n",
+	printk(KERN_CONT " t5 : " REG_FMT " t6 : " REG_FMT "\n",
 		regs->t5, regs->t6);
 
-	printk("sstatus: " REG_FMT " sbadaddr: " REG_FMT " scause: " REG_FMT "\n",
+	printk(KERN_CONT "sstatus: " REG_FMT " sbadaddr: " REG_FMT " scause: " REG_FMT "\n",
 		regs->sstatus, regs->sbadaddr, regs->scause);
 }
 
