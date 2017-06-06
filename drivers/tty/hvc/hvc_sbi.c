@@ -42,7 +42,7 @@ static int hvc_sbi_tty_get(uint32_t vtermno, char *buf, int count)
 	int i, c;
 
 	for (i = 0; i < count; i++) {
-		if ((c = sbi_console_getchar()) >= 0)
+		if ((c = sbi_console_getchar()) < 0)
 			break;
 		buf[i] = c;
 	}
