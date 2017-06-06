@@ -36,11 +36,18 @@ ENTRY(_start)
 	csrs sstatus, t0
 #endif
 
+#ifdef CONFIG_ISA_A
 	/* Pick one hart to run the main boot sequence */
 	la a3, hart_lottery
 	li a2, 1
 	amoadd.w a3, a2, (a3)
 	bnez a3, .Lsecondary_start
+#else
+	/* We don't have atomic support, so the boot hart must be picked
+	 * staticly.  Hart 0 is the only sane choice.
+	 */
+	bnez a0, .Lsecondary_park
+#endif
 
 	/* Save hart ID and DTB physical address */
 	mv s0, a0
