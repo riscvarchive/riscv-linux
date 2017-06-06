@@ -21,7 +21,7 @@
 
 #include <asm/io.h>
 
-#define PCIBIOS_MIN_IO		0x1000
+#define PCIBIOS_MIN_IO		0
 #define PCIBIOS_MIN_MEM		0
 
 /* RISC-V shim does not initialize PCI bus */
