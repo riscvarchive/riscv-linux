@@ -6,33 +6,19 @@ Development is currently based on the
 [4.6 longterm branch](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/log/?h=linux-4.6.y).
 
 
-## Obtaining kernel sources
+## Checking Out
+The kernel history is quite large, you may want to limit the branches and commit
+history that you checkout:
 
-### Master
+        $ git clone --depth 50 --single-branch https://github.com/riscv/riscv-linux.git
 
-Overlay the `riscv` architecture-specific subtree onto an upstream release:
+## Obtaining the Toolchain
+You will need the [RISC-V tools](https://github.com/riscv/riscv-tools) in order to build linux.
+In addition to following the RISC-V tools README, you must build the linux version of the
+gnu toolchain:
 
-        $ curl -L https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.6.2.tar.xz | tar -xJ
-        $ cd linux-4.6.2
-        $ git init
-        $ git remote add -t master origin https://github.com/riscv/riscv-linux.git
-        $ git fetch
-        $ git checkout -f -t origin/master
-
-Note that the `-t <branch>` option minimizes the history fetched.
-To add another branch:
-
-        $ git remote set-branches --add origin <branch>
-        $ git fetch
-
-### Full kernel source trees
-
-For convenience, full kernel source trees are maintained on separate
-branches tracking
-[linux-stable](https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git):
-
-* `linux-4.6.y-riscv`
-* `linux-3.14.y-riscv` (historical)
+    $ cd path/to/riscv-gnu-toolchain
+    $ make linux
 
 ## Building the kernel image
 
@@ -48,13 +34,55 @@ branches tracking
 
         $ make -j4 ARCH=riscv vmlinux
 
-1. Boot the kernel in the functional simulator, optionally specifying a
-   raw disk image for the root filesystem:
+1. Link the kernel to the Berkeley Boot Loader (bbl)
 
-        $ spike +disk=path/to/root.img bbl vmlinux
+        $ cd /path/to/risv-tools/riscv-pk/build
+        $ ../configure --with-payload=/path/to/riscv-linux/vmlinux --host=riscv64-unknown-linux-gnu
+        $ make bbl
+        
+1. Boot the kernel in the functional simulator.
 
-   `bbl` (the Berkeley Boot Loader) is available from the
-   [riscv-pk](https://github.com/riscv/riscv-pk) repository.
+        $ spike bbl
+
+## Booting from Initramfs
+Block devices are not currently supported. If you want a useful linux, you will need to configure it to boot from an initramfs. 
+
+1. Enable initramfs in the linux config:
+
+        "General setup -> Initial RAM Filesystem..." (CONFIG_BLK_DEV_INITRD=y)
+
+1. Use a text file to specify contents of the initramfs:
+
+        "General setup -> Initramfs source files = initramfs.txt" (CONFIG_INITRAMFS_SRC=initramfs.txt)
+
+The file riscv-linux/initramfs.txt should contain a list of files to include. Here is a basic one to start with:
+        
+        dir /dev 755 0 0
+        nod /dev/console 644 0 0 c 5 1
+        nod /dev/null 644 0 0 c 1 3
+        dir /proc 755 0 0
+        slink /init /bin/busybox 755 0 0
+        dir /bin 755 0 0
+        file /bin/busybox /path/to/busybox 755 0 0
+        dir /sbin 755 0 0
+        dir /usr 755 0 0
+        dir /usr/bin 755 0 0
+        dir /usr/sbin 755 0 0
+        dir /etc 755 0 0
+        file /etc/inittab inittab 644 0 0
+        dir /lib 755 0 0
+
+Be sure to change "/path/to/busybox..." to point to your busybox binary
+(the RISC-V Tools README has instructions on
+[building busybox](https://github.com/riscv/riscv-tools#building-busybox)).
+You will also need a riscv-linux/inittab file:
+
+        ::sysinit:/bin/busybox --install
+        ::sysinit:/bin/mount -t devtmpfs devtmpfs /dev
+        ::sysinit:/bin/mount -t proc proc /proc
+        /dev/console::sysinit:-/bin/ash
+
+Now when you build and run linux, it should boot from the internal initramfs.
 
 ## Exporting kernel headers
 
