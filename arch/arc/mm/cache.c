@@ -1188,7 +1188,7 @@ void __ref arc_cache_init(void)
 	unsigned int __maybe_unused cpu = smp_processor_id();
 	char str[256];
 
-	printk(arc_cache_mumbojumbo(0, str, sizeof(str)));
+	pr_info("%s", arc_cache_mumbojumbo(0, str, sizeof(str)));
 
 	/*
 	 * Only master CPU needs to execute rest of function:
