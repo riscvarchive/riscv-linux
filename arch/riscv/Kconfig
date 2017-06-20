@@ -176,6 +176,10 @@ config SBI_DISK
 	tristate "SBI disk support"
 	default y
 
+config GENERIC_BLKDEV
+        tristate "Generic Block Device"
+        default y
+
 config RISCV_ISA_C
 	bool "Emit compressed instructions when building Linux"
 	default n
