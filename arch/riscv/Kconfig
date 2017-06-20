@@ -135,6 +135,10 @@ config SBI_DISK
 	tristate "SBI disk support"
 	default y
 
+config GENERIC_BLKDEV
+        tristate "Generic Block Device"
+        default y
+
 config RVC
 	bool "Use compressed instructions (RV32C or RV64C)"
 	default n
