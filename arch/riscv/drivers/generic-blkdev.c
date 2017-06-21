@@ -30,21 +30,20 @@
 #define GENERIC_BLKDEV_LEN 8
 #define GENERIC_BLKDEV_WRITE 12
 #define GENERIC_BLKDEV_REQUEST 16
-#define GENERIC_BLKDEV_COMPLETE 20
-#define GENERIC_BLKDEV_NCOMPLETE 24
-#define GENERIC_BLKDEV_NSECTORS 28
-#define GENERIC_BLKDEV_NTAGS 1
+#define GENERIC_BLKDEV_NREQUEST 20
+#define GENERIC_BLKDEV_COMPLETE 24
+#define GENERIC_BLKDEV_NCOMPLETE 28
+#define GENERIC_BLKDEV_NSECTORS 32
 
 struct generic_blkdev_port {
 	struct device *dev;
 	void __iomem *iomem;
 	struct gendisk *gd;
 	struct request_queue *queue;
-	struct request *reqbuf[GENERIC_BLKDEV_NTAGS];
+	struct request **reqbuf;
 	spinlock_t lock;
 	int major;
 	int irq;
-	int nbusy;
 	int qrunning;
 };
 
@@ -72,7 +71,6 @@ static void generic_blkdev_process_completions(struct generic_blkdev_port *port)
 	int i;
 
 	ncomplete = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NCOMPLETE);
-	port->nbusy -= ncomplete;
 
 	for (i = 0; i < ncomplete; i++) {
 		tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_COMPLETE);
@@ -126,7 +124,6 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 	//printk(KERN_INFO "Sent request %d\n", tag);
 	BUG_ON(port->reqbuf[tag] != NULL);
 	port->reqbuf[tag] = req;
-	port->nbusy++;
 }
 
 static void generic_blkdev_rq_handler(struct request_queue *rq)
@@ -153,7 +150,7 @@ static void generic_blkdev_rq_handler(struct request_queue *rq)
 			__blk_end_request_all(req, -EIO);
 		}
 
-		if (port->nbusy >= GENERIC_BLKDEV_NTAGS) {
+		if (generic_blkdev_read_reg(port, GENERIC_BLKDEV_NREQUEST) == 0) {
 			port->qrunning = 0;
 			blk_stop_queue(port->queue);
 			break;
@@ -193,7 +190,7 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 {
 	uint32_t nsectors = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NSECTORS);
 	struct device *dev = port->dev;
-	int i;
+	int i, ntags;
 
 	if (nsectors == 0) {
 		dev_err(dev, "No disk attached.\n");
@@ -206,9 +203,11 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 		return port->major;
 	}
 
-	port->nbusy = 0;
+	ntags = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NREQUEST);
 	port->qrunning = 1;
-	for (i = 0; i < GENERIC_BLKDEV_NTAGS; i++)
+	port->reqbuf = devm_kzalloc(
+			port->dev, ntags * sizeof(void*), GFP_KERNEL);
+	for (i = 0; i < ntags; i++)
 		port->reqbuf[i] = NULL;
 
 	spin_lock_init(&port->lock);
@@ -233,8 +232,8 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 	set_capacity(port->gd, nsectors);
 	add_disk(port->gd);
 
-	printk(KERN_INFO "disk [%s] of %u sectors loaded\n",
-			port->gd->disk_name, nsectors);
+	printk(KERN_INFO "disk [%s] of %u sectors loaded; %d tags\n",
+			port->gd->disk_name, nsectors, ntags);
 
 	return 0;
 
