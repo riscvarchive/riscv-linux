@@ -88,7 +88,7 @@ void udelay(unsigned long usecs)
 {
 	unsigned long ucycles = usecs * lpj_fine * UDELAY_MULT;
 
-	if (usecs > MAX_UDELAY_US) {
+	if (unlikely(usecs > MAX_UDELAY_US)) {
 		__delay((u64)usecs * riscv_timebase / 1000000ULL);
 		return;
 	}
