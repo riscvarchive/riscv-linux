@@ -35,18 +35,6 @@ static int riscv_timer_set_next_event(unsigned long delta,
 	return 0;
 }
 
-static int riscv_timer_set_oneshot(struct clock_event_device *evt)
-{
-	/* no-op; only one mode */
-	return 0;
-}
-
-static int riscv_timer_set_shutdown(struct clock_event_device *evt)
-{
-	/* can't stop the clock! */
-	return 0;
-}
-
 static u64 riscv_rdtime(struct clocksource *cs)
 {
 	return get_cycles();
@@ -56,11 +44,7 @@ static struct clocksource riscv_clocksource = {
 	.name = "riscv_clocksource",
 	.rating = 300,
 	.read = riscv_rdtime,
-#ifdef CONFIG_64BITS
-	.mask = CLOCKSOURCE_MASK(64),
-#else
-	.mask = CLOCKSOURCE_MASK(32),
-#endif /* CONFIG_64BITS */
+	.mask = BITS_PER_LONG,
 	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
@@ -83,8 +67,8 @@ void __init init_clockevent(void)
 		.rating = 300,
 		.cpumask = cpumask_of(cpu),
 		.set_next_event = riscv_timer_set_next_event,
-		.set_state_oneshot  = riscv_timer_set_oneshot,
-		.set_state_shutdown = riscv_timer_set_shutdown,
+		.set_state_oneshot  = NULL,
+		.set_state_shutdown = NULL,
 	};
 
 	/* Enable timer interrupts */
@@ -93,24 +77,16 @@ void __init init_clockevent(void)
 	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
 }
 
-static unsigned long __init of_timebase(void)
-{
-	struct device_node *cpu;
-	const __be32 *prop;
-
-	cpu = of_find_node_by_path("/cpus");
-	if (cpu) {
-		prop = of_get_property(cpu, "timebase-frequency", NULL);
-		if (prop)
-			return be32_to_cpu(*prop);
-	}
-
-	return 10000000;
-}
-
 void __init time_init(void)
 {
-	riscv_timebase = of_timebase();
+	struct device_node *cpu;
+	u32 prop;
+
+	cpu = of_find_node_by_path("/cpus");
+	if (!cpu || of_property_read_u32(cpu, "timebase-frequency", &prop))
+		panic(KERN_WARNING "RISC-V system with no 'timebase-frequency' in DTS\n");
+	riscv_timebase = prop;
+
 	lpj_fine = riscv_timebase / HZ;
 
 	clocksource_register_hz(&riscv_clocksource, riscv_timebase);

@@ -613,9 +613,8 @@ config CLKSRC_ST_LPC
 	  as clocksource.
 
 config CLKSRC_RISCV
-	#bool "Clocksource for the RISC-V platform"
-	def_bool y if RISCV
-	depends on RISCV
+	bool "Clocksource for the RISC-V platform"
+	def_bool RISCV
 	help
 	  This enables a clocksource based on the RISC-V SBI timer, which is
 	  built in to all RISC-V systems.
