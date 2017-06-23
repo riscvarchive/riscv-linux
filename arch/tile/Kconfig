@@ -33,6 +33,7 @@ config TILE
 	select USER_STACKTRACE_SUPPORT
 	select USE_PMC if PERF_EVENTS
 	select VIRT_TO_BUS
+	select PCI_GENERIC_SETUP
 
 config MMU
 	def_bool y
