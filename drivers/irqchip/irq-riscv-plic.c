@@ -50,7 +50,8 @@ struct plic_hart_context {
 };
 
 struct plic_enable_context {
-	atomic_t mask[32]; // 32-bit * 32-entry
+	/* 32-bit * 32-entry */
+	atomic_t mask[32];
 };
 
 struct plic_priority {
@@ -104,8 +105,9 @@ static void plic_enable(struct plic_data *data, int i, int hwirq)
 	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
 }
 
-// There is no need to mask/unmask PLIC interrupts
-// They are "masked" by reading claim and "unmasked" when writing it back.
+/* There is no need to mask/unmask PLIC interrupts
+ * They are "masked" by reading claim and "unmasked" when writing it back.
+ */
 static void plic_irq_mask(struct irq_data *d) { }
 static void plic_irq_unmask(struct irq_data *d) { }
 
@@ -219,11 +221,11 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 
 		if (of_irq_parse_one(node, i, &parent))
 			continue;
-		// skip context holes
+		/* skip context holes */
 		if (parent.args[0] == -1)
 			continue;
 
-		// skip any contexts that lead to inactive harts
+		/* skip any contexts that lead to inactive harts */
 		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
 		    parent.np->parent &&
 		    riscv_of_processor_hart(parent.np->parent) < 0)
@@ -235,7 +237,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 
 		handler->context = plic_hart_context(data, i);
 		handler->data = data;
-		// hwirq prio must be > this to trigger an interrupt
+		/* hwirq prio must be > this to trigger an interrupt */
 		iowrite32(0, &handler->context->threshold);
 
 		for (hwirq = 1; hwirq <= data->ndev; ++hwirq)

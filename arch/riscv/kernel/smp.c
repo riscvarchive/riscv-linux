@@ -49,7 +49,7 @@ irqreturn_t handle_ipi(void)
 		unsigned long ops;
 
 		/* Order bit clearing and data access. */
-		mb(); // test
+		mb();
 
 		ops = xchg(pending_ipis, 0);
 		if (ops == 0)
