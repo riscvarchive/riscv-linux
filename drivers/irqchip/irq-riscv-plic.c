@@ -32,9 +32,12 @@
  * more interrupt sources have the same assigned priority. Smaller values of
  * interrupt ID take precedence over larger values of interrupt ID.
  *
- * It's not defined what the largest device ID is, so we're just fixing
- * MAX_DEVICES right here (which is named oddly, as there will never be a
- * device 0).
+ * While the RISC-V supervisor spec doesn't define the maximum number of
+ * devices supported by the PLIC, the largest number supported by devices
+ * marked as 'riscv,plic0' (which is the only device type this driver supports,
+ * and is the only extant PLIC as of now) is 1024.  As mentioned above, device
+ * 0 is defined to be non-existant so this device really only supports 1023
+ * devices.
  */
 #define MAX_DEVICES	1024
 #define MAX_CONTEXTS	15872
