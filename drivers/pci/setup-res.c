@@ -239,6 +239,7 @@ static int pci_revert_fw_address(struct resource *res, struct pci_dev *dev,
  * This is marked as __weak because multiple architectures define it; it should
  * eventually go away.
  */
+__attribute__ ((weak))
 resource_size_t __weak pcibios_align_resource(void *data,
 					      const struct resource *res,
 					      resource_size_t size,
