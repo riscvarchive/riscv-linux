@@ -117,7 +117,7 @@ static void plic_irq_enable(struct irq_data *d)
 	struct plic_priority *priority = plic_priority(data);
 	int i;
 
-	iowrite32(1, &priority->prio[d->hwirq]);
+	writel(1, &priority->prio[d->hwirq]);
 	for (i = 0; i < data->handlers; ++i)
 		if (data->handler[i].context)
 			plic_enable(data, i, d->hwirq);
@@ -129,7 +129,7 @@ static void plic_irq_disable(struct irq_data *d)
 	struct plic_priority *priority = plic_priority(data);
 	int i;
 
-	iowrite32(0, &priority->prio[d->hwirq]);
+	writel(0, &priority->prio[d->hwirq]);
 	for (i = 0; i < data->handlers; ++i)
 		if (data->handler[i].context)
 			plic_disable(data, i, d->hwirq);
@@ -161,14 +161,14 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 
 	chained_irq_enter(chip, desc);
 
-	while ((what = ioread32(&handler->context->claim))) {
+	while ((what = readl(&handler->context->claim))) {
 		int irq = irq_find_mapping(domain, what);
 
 		if (irq > 0)
 			generic_handle_irq(irq);
 		else
 			handle_bad_irq(desc);
-		iowrite32(what, &handler->context->claim);
+		writel(what, &handler->context->claim);
 	}
 
 	chained_irq_exit(chip, desc);
@@ -238,7 +238,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 		handler->context = plic_hart_context(data, i);
 		handler->data = data;
 		/* hwirq prio must be > this to trigger an interrupt */
-		iowrite32(0, &handler->context->threshold);
+		writel(0, &handler->context->threshold);
 
 		for (hwirq = 1; hwirq <= data->ndev; ++hwirq)
 			plic_disable(data, i, hwirq);
