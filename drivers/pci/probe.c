@@ -2391,6 +2391,7 @@ EXPORT_SYMBOL_GPL(pcie_bus_configure_settings);
  * Called after each bus is probed, but before its children are examined.  This
  * is marked as __weak because multiple architectures define it.
  */
+__attribute__ ((weak))
 void __weak pcibios_fixup_bus(struct pci_bus *bus)
 {
        /* nothing to do, expected to be removed in the future */
