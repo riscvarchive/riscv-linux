@@ -74,7 +74,6 @@ static void generic_blkdev_process_completions(struct generic_blkdev_port *port)
 
 	for (i = 0; i < ncomplete; i++) {
 		tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_COMPLETE);
-		//printk(KERN_INFO "Completed request %d\n", tag);
 		req = port->reqbuf[tag];
 		__blk_end_request_all(req, 0);
 		port->reqbuf[tag] = NULL;
@@ -93,7 +92,6 @@ static irqreturn_t generic_blkdev_isr(int irq, void *data)
 	if (irq != port->irq)
 		return IRQ_NONE;
 
-	//printk(KERN_INFO "generic-blkdev ISR triggered\n");
 	spin_lock(&port->lock);
 	generic_blkdev_process_completions(port);
 	spin_unlock(&port->lock);
@@ -121,7 +119,6 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 	mb();
 
 	tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_REQUEST);
-	//printk(KERN_INFO "Sent request %d\n", tag);
 	BUG_ON(port->reqbuf[tag] != NULL);
 	port->reqbuf[tag] = req;
 }
