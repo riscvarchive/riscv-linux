@@ -23,7 +23,6 @@
 #define GENERIC_BLKDEV_MINORS 16
 #define SECTOR_SIZE 512
 #define SECTOR_SHIFT 9
-#define MAX_SECTORS 8
 
 #define GENERIC_BLKDEV_ADDR 0
 #define GENERIC_BLKDEV_OFFSET 4
@@ -34,6 +33,7 @@
 #define GENERIC_BLKDEV_COMPLETE 24
 #define GENERIC_BLKDEV_NCOMPLETE 28
 #define GENERIC_BLKDEV_NSECTORS 32
+#define GENERIC_BLKDEV_MAX_REQUEST_LENGTH 36
 
 struct generic_blkdev_port {
 	struct device *dev;
@@ -187,7 +187,7 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 {
 	uint32_t nsectors = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NSECTORS);
 	struct device *dev = port->dev;
-	int i, ntags;
+	uint32_t i, ntags, max_req_len;
 
 	if (nsectors == 0) {
 		dev_err(dev, "No disk attached.\n");
@@ -201,6 +201,7 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 	}
 
 	ntags = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NREQUEST);
+	max_req_len = generic_blkdev_read_reg(port, GENERIC_BLKDEV_MAX_REQUEST_LENGTH);
 	port->qrunning = 1;
 	port->reqbuf = devm_kzalloc(
 			port->dev, ntags * sizeof(void*), GFP_KERNEL);
@@ -215,7 +216,7 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 	}
 	blk_queue_logical_block_size(port->queue, SECTOR_SIZE);
 	blk_queue_max_segments(port->queue, 1);
-	blk_queue_max_hw_sectors(port->queue, MAX_SECTORS);
+	blk_queue_max_hw_sectors(port->queue, max_req_len);
 
 	port->gd = alloc_disk(GENERIC_BLKDEV_MINORS);
 	if (!port->gd)
@@ -229,8 +230,9 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 	set_capacity(port->gd, nsectors);
 	add_disk(port->gd);
 
-	printk(KERN_INFO "disk [%s] of %u sectors loaded; %d tags\n",
-			port->gd->disk_name, nsectors, ntags);
+	printk(KERN_INFO "disk [%s] of loaded; "
+			"%u sectors, %u tags, %u max request length\n",
+			port->gd->disk_name, nsectors, ntags, max_req_len);
 
 	return 0;
 
