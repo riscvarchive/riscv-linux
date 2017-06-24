@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2008 David Gibson, IBM Corporation
  * Copyright (C) 2012 Regents of the University of California
+ * Copyright (C) 2017 SiFive
  *
  *   This program is free software; you can redistribute it and/or
  *   modify it under the terms of the GNU General Public License
