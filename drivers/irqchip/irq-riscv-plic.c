@@ -22,6 +22,7 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
+#include <linux/spinlock.h>
 
 /* From the RISC-V Privlidged Spec v1.10:
  *
@@ -51,7 +52,7 @@ struct plic_hart_context {
 
 struct plic_enable_context {
 	/* 32-bit * 32-entry */
-	atomic_t mask[32];
+	u32 mask[32];
 };
 
 struct plic_priority {
@@ -66,6 +67,7 @@ struct plic_data {
 	int			handlers;
 	struct plic_handler	*handler;
 	char			name[30];
+	spinlock_t		lock;
 };
 
 struct plic_handler {
@@ -94,15 +96,23 @@ struct plic_priority *plic_priority(struct plic_data *data)
 static void plic_disable(struct plic_data *data, int i, int hwirq)
 {
 	struct plic_enable_context *enable = plic_enable_context(data, i);
+	u32 mask = ~(1 << (hwirq % 32));
+	u32 *reg = &enable->mask[hwirq / 32];
 
-	atomic_and(~(1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
+	spin_lock(&data->lock);
+	*reg &= mask;
+	spin_unlock(&data->lock);
 }
 
 static void plic_enable(struct plic_data *data, int i, int hwirq)
 {
 	struct plic_enable_context *enable = plic_enable_context(data, i);
+	u32 mask = 1 << (hwirq % 32);
+	u32 *reg = &enable->mask[hwirq / 32];
 
-	atomic_or((1 << (hwirq % 32)), &enable->mask[hwirq / 32]);
+	spin_lock(&data->lock);
+	*reg |= mask;
+	spin_unlock(&data->lock);
 }
 
 /* There is no need to mask/unmask PLIC interrupts
@@ -183,6 +193,8 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (WARN_ON(!data))
 		return -ENOMEM;
+
+	spin_lock_init(&data->lock);
 
 	data->reg = of_iomap(node, 0);
 	if (WARN_ON(!data->reg))
