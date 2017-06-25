@@ -262,6 +262,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	struct plic_data *data;
 	struct resource resource;
 	int i, ok = 0;
+	int out = -1;
 
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (WARN_ON(!data))
@@ -270,25 +271,35 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	spin_lock_init(&data->lock);
 
 	data->reg = of_iomap(node, 0);
-	if (WARN_ON(!data->reg))
-		return -EIO;
+	if (WARN_ON(!data->reg)) {
+		out = -EIO;
+		goto free_data;
+	}
 
 	of_property_read_u32(node, "riscv,ndev", &data->ndev);
-	if (WARN_ON(!data->ndev))
-		return -EINVAL;
+	if (WARN_ON(!data->ndev)) {
+		out = -EINVAL;
+		goto free_reg;
+	}
 
 	data->handlers = of_irq_count(node);
-	if (WARN_ON(!data->handlers))
-		return -EINVAL;
+	if (WARN_ON(!data->handlers)) {
+		out = -EINVAL;
+		goto free_reg;
+	}
 
 	data->handler =
 		kcalloc(data->handlers, sizeof(*data->handler), GFP_KERNEL);
-	if (WARN_ON(!data->handler))
-		return -ENOMEM;
+	if (WARN_ON(!data->handler)) {
+		out = -ENOMEM;
+		goto free_reg;
+	}
 
 	data->domain = irq_domain_add_linear(node, data->ndev+1, &plic_irqdomain_ops, data);
-	if (WARN_ON(!data->domain))
-		return -ENOMEM;
+	if (WARN_ON(!data->domain)) {
+		out = -ENOMEM;
+		goto free_handler;
+	}
 
 	of_address_to_resource(node, 0, &resource);
 	snprintf(data->name, sizeof(data->name),
@@ -339,6 +350,14 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	       data->name, data->ndev, ok, data->handlers);
 	WARN_ON(!ok);
 	return 0;
+
+free_handler:
+	kfree(data->handler);
+free_reg:
+	iounmap(data->reg);
+free_data:
+	kfree(data);
+	return out;
 }
 
 IRQCHIP_DECLARE(plic0, "riscv,plic0", plic_init);
