@@ -28,13 +28,13 @@
 	switch (size) {						\
 	case 4:							\
 		__asm__ __volatile__ (				\
-			"amoswap.w %0, %2, %1"			\
+			"amoswap.w.aqrl %0, %2, %1"		\
 			: "=r" (__ret), "+A" (*__ptr)		\
 			: "r" (__new));				\
 		break;						\
 	case 8:							\
 		__asm__ __volatile__ (				\
-			"amoswap.d %0, %2, %1"			\
+			"amoswap.d.aqrl %0, %2, %1"		\
 			: "=r" (__ret), "+A" (*__ptr)		\
 			: "r" (__new));				\
 		break;						\
@@ -46,13 +46,24 @@
 
 #define xchg(ptr, x)    (__xchg((x), (ptr), sizeof(*(ptr))))
 
+#define xchg32(ptr, x)				\
+({						\
+	BUILD_BUG_ON(sizeof(*(ptr)) != 4);	\
+	xchg((ptr), (x));			\
+})
+
+#define xchg64(ptr, x)				\
+({						\
+	BUILD_BUG_ON(sizeof(*(ptr)) != 8);	\
+	xchg((ptr), (x));			\
+})
 
 /*
  * Atomic compare and exchange.  Compare OLD with MEM, if identical,
  * store NEW in MEM.  Return the initial value in MEM.  Success is
  * indicated by comparing RETURN with OLD.
  */
-#define __cmpxchg(ptr, old, new, size)					\
+#define __cmpxchg(ptr, old, new, size, scb, lrb)			\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
 	__typeof__(old) __old = (old);					\
@@ -63,10 +74,10 @@
 	case 4:								\
 		__asm__ __volatile__ (					\
 		"0:"							\
-			"lr.w %0, %2\n"					\
-			"bne  %0, %z3, 1f\n"				\
-			"sc.w %1, %z4, %2\n"				\
-			"bnez %1, 0b\n"					\
+			"lr.w" scb " %0, %2\n"				\
+			"bne         %0, %z3, 1f\n"			\
+			"sc.w" lrb " %1, %z4, %2\n"			\
+			"bnez        %1, 0b\n"				\
 		"1:"							\
 			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
 			: "rJ" (__old), "rJ" (__new));			\
@@ -74,10 +85,10 @@
 	case 8:								\
 		__asm__ __volatile__ (					\
 		"0:"							\
-			"lr.d %0, %2\n"					\
-			"bne  %0, %z3, 1f\n"				\
-			"sc.d %1, %z4, %2\n"				\
-			"bnez %1, 0b\n"					\
+			"lr.d" scb " %0, %2\n"				\
+			"bne         %0, %z3, 1f\n"			\
+			"sc.d" lrb " %1, %z4, %2\n"			\
+			"bnez        %1, 0b\n"				\
 		"1:"							\
 			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
 			: "rJ" (__old), "rJ" (__new));			\
@@ -88,20 +99,23 @@
 	__ret;								\
 })
 
-#define __cmpxchg_mb(ptr, old, new, size)			\
-({								\
-	__typeof__(*(ptr)) __ret;				\
-	smp_mb();						\
-	__ret = __cmpxchg((ptr), (old), (new), (size));		\
-	smp_mb();						\
-	__ret;							\
-})
-
 #define cmpxchg(ptr, o, n) \
-	(__cmpxchg_mb((ptr), (o), (n), sizeof(*(ptr))))
+	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr)), ".aqrl", ".aqrl"))
 
 #define cmpxchg_local(ptr, o, n) \
-	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr))))
+	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr)), "", ""))
+
+#define cmpxchg32(ptr, o, n)			\
+({						\
+	BUILD_BUG_ON(sizeof(*(ptr)) != 4);	\
+	cmpxchg((ptr), (o), (n));		\
+})
+
+#define cmpxchg32_local(ptr, o, n)		\
+({						\
+	BUILD_BUG_ON(sizeof(*(ptr)) != 4);	\
+	cmpxchg_local((ptr), (o), (n));		\
+})
 
 #define cmpxchg64(ptr, o, n)			\
 ({						\

@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
  * Copyright (C) 2012 Regents of the University of California
+ * Copyright (C) 2017 SiFive
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public Licence
@@ -18,325 +19,174 @@
 
 #define ATOMIC_INIT(i)	{ (i) }
 
-/**
- * atomic_read - read atomic variable
- * @v: pointer of type atomic_t
- *
- * Atomically reads the value of @v.
- */
-static inline int atomic_read(const atomic_t *v)
+static __always_inline int atomic_read(const atomic_t *v)
 {
 	return READ_ONCE(v->counter);
 }
 
-/**
- * atomic_set - set atomic variable
- * @v: pointer of type atomic_t
- * @i: required value
- *
- * Atomically sets the value of @v to @i.
- */
-static inline void atomic_set(atomic_t *v, int i)
+static __always_inline void atomic_set(atomic_t *v, int i)
 {
 	WRITE_ONCE(v->counter, i);
 }
 
-/**
- * atomic_add - add integer to atomic variable
- * @i: integer value to add
- * @v: pointer of type atomic_t
- *
- * Atomically adds @i to @v.
+/* The atomic operations that are supported via AMOs.  atomic_fetch_* is AQ+RL
+ * as it's required to include a barrier, while atomic_* doesn't have any
+ * ordering constraints.  We don't need any fences here, as the RISC-V spec
+ * says that the AQ and RL bits enforce ordering with all memory operations.
  */
-static inline void atomic_add(int i, atomic_t *v)
-{
-	__asm__ __volatile__ (
-		"amoadd.w zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (i));
+#define ATOMIC_OP(op, asm_op, c_op, I)					\
+static __always_inline void atomic_##op(int i, atomic_t *v)		\
+{									\
+	__asm__ __volatile__ (						\
+		"amo" #asm_op ".w zero, %1, %0"				\
+		: "+A" (v->counter)					\
+		: "r" (I));						\
 }
 
-#define atomic_fetch_add atomic_fetch_add
-static inline int atomic_fetch_add(unsigned int mask, atomic_t *v)
-{
-	int out;
-
-	__asm__ __volatile__ (
-		"amoadd.w %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
+#define ATOMIC_FETCH_OP(op, asm_op, c_op, I)				\
+static __always_inline int atomic_fetch_##op(int i, atomic_t *v)	\
+{									\
+	register int ret;						\
+	__asm__ __volatile__ (						\
+		"amo" #asm_op ".w.aqrl %2, %1, %0"			\
+		: "+A" (v->counter), "=r" (ret)				\
+		: "r" (I));						\
+	return ret;							\
 }
 
-/**
- * atomic_sub - subtract integer from atomic variable
- * @i: integer value to subtract
- * @v: pointer of type atomic_t
- *
- * Atomically subtracts @i from @v.
+#define ATOMIC_OP_RETURN(op, asm_op, c_op, I)				\
+static __always_inline int atomic_##op##_return(int i, atomic_t *v)	\
+{									\
+        return atomic_fetch_##op(i, v) c_op I;				\
+}
+
+#define ATOMIC_OPS(op, asm_op, c_op, I)					\
+        ATOMIC_OP(op, asm_op, c_op, I)					\
+        ATOMIC_FETCH_OP(op, asm_op, c_op, I)				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I)
+
+ATOMIC_OPS(add, add, +, i)
+ATOMIC_OPS(sub, add, +, -i)
+
+#undef ATOMIC_OPS
+
+#define ATOMIC_OPS(op, asm_op, c_op, I)					\
+        ATOMIC_OP(op, asm_op, c_op, I)					\
+        ATOMIC_FETCH_OP(op, asm_op, c_op, I)
+
+/* FIXME: I could only find documentation that atomic_{add,sub,inc,dec} are
+ * barrier-free.  I'm assuming that and/or/xor have the same constraints as the
+ * others.
  */
-static inline void atomic_sub(int i, atomic_t *v)
-{
-	atomic_add(-i, v);
-}
+ATOMIC_OPS(and, and, &, i)
+ATOMIC_OPS(or, or, |, i)
+ATOMIC_OPS(xor, xor, ^, i)
 
-#define atomic_fetch_sub atomic_fetch_sub
-static inline int atomic_fetch_sub(unsigned int mask, atomic_t *v)
-{
-	int out;
+#undef ATOMIC_OPS
 
-	__asm__ __volatile__ (
-		"amosub.w %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
+#undef ATOMIC_OP
+#undef ATOMIC_FETCH_OP
+#undef ATOMIC_OP_RETURN
 
-/**
- * atomic_add_return - add integer to atomic variable
- * @i: integer value to add
- * @v: pointer of type atomic_t
- *
- * Atomically adds @i to @v and returns the result
+/* The extra atomic operations that are constructed from one of the core
+ * AMO-based operations above (aside from sub, which is easier to fit above).
+ * These are required to perform a barrier, but they're OK this way because
+ * atomic_*_return is also required to perform a barrier.
  */
-static inline int atomic_add_return(int i, atomic_t *v)
-{
-	register int c;
-
-	__asm__ __volatile__ (
-		"amoadd.w %0, %2, %1"
-		: "=r" (c), "+A" (v->counter)
-		: "r" (i));
-	return (c + i);
+#define ATOMIC_OP(op, func_op, comp_op, I)				\
+static __always_inline bool atomic_##op(int i, atomic_t *v)		\
+{									\
+	return atomic_##func_op##_return(i, v) comp_op I;		\
 }
 
-/**
- * atomic_sub_return - subtract integer from atomic variable
- * @i: integer value to subtract
- * @v: pointer of type atomic_t
- *
- * Atomically subtracts @i from @v and returns the result
- */
-static inline int atomic_sub_return(int i, atomic_t *v)
-{
-	return atomic_add_return(-i, v);
+ATOMIC_OP(add_and_test, add, ==, 0)
+ATOMIC_OP(sub_and_test, sub, ==, 0)
+ATOMIC_OP(add_negative, add, <, 0)
+
+#undef ATOMIC_OP
+
+#define ATOMIC_OP(op, func_op, c_op, I)					\
+static __always_inline void atomic_##op(atomic_t *v)			\
+{									\
+	atomic_##func_op(I, v);						\
 }
 
-/**
- * atomic_inc - increment atomic variable
- * @v: pointer of type atomic_t
- *
- * Atomically increments @v by 1.
- */
-static inline void atomic_inc(atomic_t *v)
-{
-	atomic_add(1, v);
+#define ATOMIC_FETCH_OP(op, func_op, c_op, I)				\
+static __always_inline int atomic_fetch_##op(atomic_t *v)		\
+{									\
+	return atomic_fetch_##func_op(I, v);				\
 }
 
-/**
- * atomic_dec - decrement atomic variable
- * @v: pointer of type atomic_t
- *
- * Atomically decrements @v by 1.
- */
-static inline void atomic_dec(atomic_t *v)
-{
-	atomic_add(-1, v);
+#define ATOMIC_OP_RETURN(op, asm_op, c_op, I)				\
+static __always_inline int atomic_##op##_return(atomic_t *v)		\
+{									\
+        return atomic_fetch_##op(v) c_op I;				\
 }
 
-static inline int atomic_inc_return(atomic_t *v)
-{
-	return atomic_add_return(1, v);
+#define ATOMIC_OPS(op, asm_op, c_op, I)					\
+        ATOMIC_OP(op, asm_op, c_op, I)					\
+        ATOMIC_FETCH_OP(op, asm_op, c_op, I)				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I)
+
+ATOMIC_OPS(inc, add, +, 1)
+ATOMIC_OPS(dec, add, +, -1)
+
+#undef ATOMIC_OPS
+#undef ATOMIC_OP
+#undef ATOMIC_FETCH_OP
+#undef ATOMIC_OP_RETURN
+
+#define ATOMIC_OP(op, func_op, comp_op, I)				\
+static __always_inline bool atomic_##op(atomic_t *v)			\
+{									\
+	return atomic_##func_op##_return(v) comp_op I;			\
 }
 
-static inline int atomic_dec_return(atomic_t *v)
-{
-	return atomic_sub_return(1, v);
-}
+ATOMIC_OP(inc_and_test, inc, ==, 0)
+ATOMIC_OP(dec_and_test, dec, ==, 0)
 
-/**
- * atomic_sub_and_test - subtract value from variable and test result
- * @i: integer value to subtract
- * @v: pointer of type atomic_t
- *
- * Atomically subtracts @i from @v and returns
- * true if the result is zero, or false for all
- * other cases.
- */
-static inline int atomic_sub_and_test(int i, atomic_t *v)
-{
-	return (atomic_sub_return(i, v) == 0);
-}
+#undef ATOMIC_OP
 
-/**
- * atomic_inc_and_test - increment and test
- * @v: pointer of type atomic_t
- *
- * Atomically increments @v by 1
- * and returns true if the result is zero, or false for all
- * other cases.
- */
-static inline int atomic_inc_and_test(atomic_t *v)
+/* This is required to provide a barrier on success. */
+static __always_inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
-	return (atomic_inc_return(v) == 0);
-}
-
-/**
- * atomic_dec_and_test - decrement and test
- * @v: pointer of type atomic_t
- *
- * Atomically decrements @v by 1 and
- * returns true if the result is 0, or false for all other
- * cases.
- */
-static inline int atomic_dec_and_test(atomic_t *v)
-{
-	return (atomic_dec_return(v) == 0);
-}
-
-/**
- * atomic_add_negative - add and test if negative
- * @i: integer value to add
- * @v: pointer of type atomic_t
- *
- * Atomically adds @i to @v and returns true
- * if the result is negative, or false when
- * result is greater than or equal to zero.
- */
-static inline int atomic_add_negative(int i, atomic_t *v)
-{
-	return (atomic_add_return(i, v) < 0);
-}
-
-
-static inline int atomic_xchg(atomic_t *v, int n)
-{
-	register int c;
+       register int prev, rc;
 
 	__asm__ __volatile__ (
-		"amoswap.w %0, %2, %1"
-		: "=r" (c), "+A" (v->counter)
-		: "r" (n));
-	return c;
-}
-
-static inline int atomic_cmpxchg(atomic_t *v, int o, int n)
-{
-	return cmpxchg(&(v->counter), o, n);
-}
-
-/**
- * __atomic_add_unless - add unless the number is already a given value
- * @v: pointer of type atomic_t
- * @a: the amount to add to v...
- * @u: ...unless v is equal to u.
- *
- * Atomically adds @a to @v, so long as @v was not already @u.
- * Returns the old value of @v.
- */
-static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-{
-	register int prev, rc;
-
-	__asm__ __volatile__ (
-	"0:\n"
-		"lr.w %0, %2\n"
-		"beq  %0, %4, 1f\n"
-		"add  %1, %0, %3\n"
-		"sc.w %1, %1, %2\n"
-		"bnez %1, 0b\n"
-	"1:"
+		"0:\n\t"
+		"lr.w.aqrl %0, %2\n\t"
+		"beq       %0, %4, 1f\n\t"
+		"add       %1, %0, %3\n\t"
+		"sc.w.aqrl %1, %1, %2\n\t"
+		"bnez      %1, 0b\n\t"
+		"1:"
 		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
 		: "r" (a), "r" (u));
 	return prev;
 }
 
-/**
- * atomic_and - Atomically clear bits in atomic variable
- * @mask: Mask of the bits to be retained
- * @v: pointer of type atomic_t
- *
- * Atomically retains the bits set in @mask from @v
+/* The extra atomic64 operations that ore constructed from one of the core
+ * LR/SC-based operations above.
  */
-static inline void atomic_and(unsigned int mask, atomic_t *v)
+static __always_inline int atomic_inc_not_zero(atomic_t *v)
 {
-	__asm__ __volatile__ (
-		"amoand.w zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (mask));
+        return __atomic_add_unless(v, 1, 0);
 }
 
-#define atomic_fetch_and atomic_fetch_and
-static inline int atomic_fetch_and(unsigned int mask, atomic_t *v)
-{
-	int out;
-
-	__asm__ __volatile__ (
-		"amoand.w %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-
-/**
- * atomic_or - Atomically set bits in atomic variable
- * @mask: Mask of the bits to be set
- * @v: pointer of type atomic_t
- *
- * Atomically sets the bits set in @mask in @v
+/* atomic_{cmp,}xchg is required to have exactly the same ordering semantics as
+ * {cmp,}xchg and the operations that return, so they need a barrier.  We just
+ * use the other implementations directly.
  */
-static inline void atomic_or(unsigned int mask, atomic_t *v)
+static __always_inline int atomic_cmpxchg(atomic_t *v, int o, int n)
 {
-	__asm__ __volatile__ (
-		"amoor.w zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (mask));
+	return cmpxchg32(&(v->counter), o, n);
 }
 
-#define atomic_fetch_or atomic_fetch_or
-static inline int atomic_fetch_or(unsigned int mask, atomic_t *v)
+static __always_inline int atomic_xchg(atomic_t *v, int n)
 {
-	int out;
-
-	__asm__ __volatile__ (
-		"amoor.w %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
+	return xchg32(&(v->counter), n);
 }
 
-/**
- * atomic_xor - Atomically flips bits in atomic variable
- * @mask: Mask of the bits to be flipped
- * @v: pointer of type atomic_t
- *
- * Atomically flips the bits set in @mask in @v
- */
-static inline void atomic_xor(unsigned int mask, atomic_t *v)
-{
-	__asm__ __volatile__ (
-		"amoxor.w zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (mask));
-}
-
-#define atomic_fetch_xor atomic_fetch_xor
-static inline int atomic_fetch_xor(unsigned int mask, atomic_t *v)
-{
-	int out;
-
-	__asm__ __volatile__ (
-		"amoxor.w %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-
-/* Assume that atomic operations are already serializing */
-#define smp_mb__before_atomic_dec()	barrier()
-#define smp_mb__after_atomic_dec()	barrier()
-#define smp_mb__before_atomic_inc()	barrier()
-#define smp_mb__after_atomic_inc()	barrier()
 
 #else /* !CONFIG_ISA_A */
 

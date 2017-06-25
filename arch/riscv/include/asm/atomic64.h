@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
  * Copyright (C) 2012 Regents of the University of California
+ * Copyright (C) 2017 SiFive
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public Licence
@@ -8,347 +9,172 @@
  * 2 of the Licence, or (at your option) any later version.
  */
 
+/* This file is mostly the same as <asm/atomic.h>.  See the comments there for
+ * more information. */
 #ifndef _ASM_RISCV_ATOMIC64_H
 #define _ASM_RISCV_ATOMIC64_H
 
 #ifdef CONFIG_GENERIC_ATOMIC64
+
 #include <asm-generic/atomic64.h>
+
 #else /* !CONFIG_GENERIC_ATOMIC64 */
 
-#include <linux/types.h>
+#if defined(CONFIG_ISA_A) && (__riscv_xlen >= 64)
+
+#include <asm/cmpxchg.h>
+#include <asm/barrier.h>
 
 #define ATOMIC64_INIT(i)	{ (i) }
 
-/**
- * atomic64_read - read atomic64 variable
- * @v: pointer of type atomic64_t
- *
- * Atomically reads the value of @v.
- */
-static inline s64 atomic64_read(const atomic64_t *v)
+static __always_inline s64 atomic64_read(const atomic64_t *v)
 {
 	return READ_ONCE(v->counter);
 }
 
-/**
- * atomic64_set - set atomic64 variable
- * @v: pointer to type atomic64_t
- * @i: required value
- *
- * Atomically sets the value of @v to @i.
- */
-static inline void atomic64_set(atomic64_t *v, s64 i)
+static __always_inline void atomic64_set(atomic64_t *v, s64 i)
 {
 	WRITE_ONCE(v->counter, i);
 }
 
-/**
- * atomic64_add - add integer to atomic64 variable
- * @i: integer value to add
- * @v: pointer to type atomic64_t
- *
- * Atomically adds @i to @v.
- */
-static inline void atomic64_add(s64 a, atomic64_t *v)
-{
-	__asm__ __volatile__ (
-		"amoadd.d zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (a));
+#define ATOMIC_OP(op, asm_op, c_op, I)					\
+static __always_inline void atomic64_##op(s64 i, atomic64_t *v)		\
+{									\
+	__asm__ __volatile__ (						\
+		"amo" #asm_op ".d zero, %1, %0"				\
+		: "+A" (v->counter)					\
+		: "r" (I));						\
 }
 
-static inline long atomic64_fetch_add(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	 __asm__ __volatile__ (
-		"amoadd.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
+#define ATOMIC_FETCH_OP(op, asm_op, c_op, I)				\
+static __always_inline s64 atomic64_fetch_##op(s64 i, atomic64_t *v)	\
+{									\
+	register s64 ret;						\
+	__asm__ __volatile__ (						\
+		"amo" #asm_op ".d.aqrl %2, %1, %0"			\
+		: "+A" (v->counter), "=r" (ret)				\
+		: "r" (I));						\
+	return ret;							\
 }
 
-/**
- * atomic64_sub - subtract the atomic64 variable
- * @i: integer value to subtract
- * @v: pointer to type atomic64_t
- *
- * Atomically subtracts @i from @v.
- */
-static inline void atomic64_sub(s64 a, atomic64_t *v)
-{
-	atomic64_add(-a, v);
+#define ATOMIC_OP_RETURN(op, asm_op, c_op, I)				\
+static __always_inline s64 atomic64_##op##_return(s64 i, atomic64_t *v)	\
+{									\
+        return atomic64_fetch_##op(i, v) c_op I;			\
 }
 
-static inline long atomic64_fetch_sub(unsigned long mask, atomic64_t *v)
-{
-	long out;
+#define ATOMIC_OPS(op, asm_op, c_op, I)					\
+        ATOMIC_OP(op, asm_op, c_op, I)					\
+        ATOMIC_FETCH_OP(op, asm_op, c_op, I)				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I)
 
-	__asm__ __volatile__ (
-		"amosub.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
+ATOMIC_OPS(add, add, +, i)
+ATOMIC_OPS(sub, add, +, -i)
+
+#undef ATOMIC_OPS
+
+#define ATOMIC_OPS(op, asm_op, c_op, I)					\
+        ATOMIC_OP(op, asm_op, c_op, I)					\
+        ATOMIC_FETCH_OP(op, asm_op, c_op, I)
+
+ATOMIC_OPS(and, and, &, i)
+ATOMIC_OPS(or, or, |, i)
+ATOMIC_OPS(xor, xor, ^, i)
+
+#undef ATOMIC_OPS
+
+#undef ATOMIC_OP
+#undef ATOMIC_FETCH_OP
+#undef ATOMIC_OP_RETURN
+
+#define ATOMIC_OP(op, func_op, comp_op, I)				\
+static __always_inline bool atomic64_##op(s64 i, atomic64_t *v)		\
+{									\
+	return atomic64_##func_op##_return(i, v) comp_op I;		\
 }
 
-/**
- * atomic64_add_return - add and return
- * @i: integer value to add
- * @v: pointer to type atomic64_t
- *
- * Atomically adds @i to @v and returns @i + @v
- */
-static inline s64 atomic64_add_return(s64 a, atomic64_t *v)
-{
-	register s64 c;
+ATOMIC_OP(add_and_test, add, ==, 0)
+ATOMIC_OP(sub_and_test, sub, ==, 0)
+ATOMIC_OP(add_negative, add, <, 0)
 
-	__asm__ __volatile__ (
-		"amoadd.d %0, %2, %1"
-		: "=r" (c), "+A" (v->counter)
-		: "r" (a));
-	return (c + a);
+#undef ATOMIC_OP
+
+#define ATOMIC_OP(op, func_op, c_op, I)					\
+static __always_inline void atomic64_##op(atomic64_t *v)		\
+{									\
+	atomic64_##func_op(I, v);					\
 }
 
-static inline s64 atomic64_sub_return(s64 a, atomic64_t *v)
-{
-	return atomic64_add_return(-a, v);
+#define ATOMIC_FETCH_OP(op, func_op, c_op, I)				\
+static __always_inline s64 atomic64_fetch_##op(atomic64_t *v)		\
+{									\
+	return atomic64_fetch_##func_op(I, v);				\
 }
 
-/**
- * atomic64_inc - increment atomic64 variable
- * @v: pointer to type atomic64_t
- *
- * Atomically increments @v by 1.
- */
-static inline void atomic64_inc(atomic64_t *v)
-{
-	atomic64_add(1L, v);
+#define ATOMIC_OP_RETURN(op, asm_op, c_op, I)				\
+static __always_inline s64 atomic64_##op##_return(atomic64_t *v)	\
+{									\
+        return atomic64_fetch_##op(v) c_op I;				\
 }
 
-/**
- * atomic64_dec - decrement atomic64 variable
- * @v: pointer to type atomic64_t
- *
- * Atomically decrements @v by 1.
- */
-static inline void atomic64_dec(atomic64_t *v)
-{
-	atomic64_add(-1L, v);
+#define ATOMIC_OPS(op, asm_op, c_op, I)					\
+        ATOMIC_OP(op, asm_op, c_op, I)					\
+        ATOMIC_FETCH_OP(op, asm_op, c_op, I)				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I)
+
+ATOMIC_OPS(inc, add, +, 1)
+ATOMIC_OPS(dec, add, +, -1)
+
+#undef ATOMIC_OPS
+#undef ATOMIC_OP
+#undef ATOMIC_FETCH_OP
+#undef ATOMIC_OP_RETURN
+
+#define ATOMIC_OP(op, func_op, comp_op, I)				\
+static __always_inline bool atomic64_##op(atomic64_t *v)		\
+{									\
+	return atomic64_##func_op##_return(v) comp_op I;		\
 }
 
-static inline s64 atomic64_inc_return(atomic64_t *v)
-{
-	return atomic64_add_return(1L, v);
-}
+ATOMIC_OP(inc_and_test, inc, ==, 0)
+ATOMIC_OP(dec_and_test, dec, ==, 0)
 
-static inline s64 atomic64_dec_return(atomic64_t *v)
-{
-	return atomic64_add_return(-1L, v);
-}
+#undef ATOMIC_OP
 
-/**
- * atomic64_inc_and_test - increment and test
- * @v: pointer to type atomic64_t
- *
- * Atomically increments @v by 1
- * and returns true if the result is zero, or false for all
- * other cases.
- */
-static inline int atomic64_inc_and_test(atomic64_t *v)
+static __always_inline s64 atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
 {
-	return (atomic64_inc_return(v) == 0);
-}
-
-/**
- * atomic64_dec_and_test - decrement and test
- * @v: pointer to type atomic64_t
- *
- * Atomically decrements @v by 1 and
- * returns true if the result is 0, or false for all other
- * cases.
- */
-static inline int atomic64_dec_and_test(atomic64_t *v)
-{
-	return (atomic64_dec_return(v) == 0);
-}
-
-/**
- * atomic64_sub_and_test - subtract value from variable and test result
- * @a: integer value to subtract
- * @v: pointer to type atomic64_t
- *
- * Atomically subtracts @a from @v and returns
- * true if the result is zero, or false for all
- * other cases.
- */
-static inline int atomic64_sub_and_test(s64 a, atomic64_t *v)
-{
-	return (atomic64_sub_return(a, v) == 0);
-}
-
-/**
- * atomic64_add_negative - add and test if negative
- * @a: integer value to add
- * @v: pointer to type atomic64_t
- *
- * Atomically adds @a to @v and returns true
- * if the result is negative, or false when
- * result is greater than or equal to zero.
- */
-static inline int atomic64_add_negative(s64 a, atomic64_t *v)
-{
-	return (atomic64_add_return(a, v) < 0);
-}
-
-
-static inline s64 atomic64_xchg(atomic64_t *v, s64 n)
-{
-	register s64 c;
+       register s64 prev, rc;
 
 	__asm__ __volatile__ (
-		"amoswap.d %0, %2, %1"
-		: "=r" (c), "+A" (v->counter)
-		: "r" (n));
-	return c;
-}
-
-static inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
-{
-	return cmpxchg(&(v->counter), o, n);
-}
-
-/*
- * atomic64_dec_if_positive - decrement by 1 if old value positive
- * @v: pointer of type atomic_t
- *
- * The function returns the old value of *v minus 1, even if
- * the atomic variable, v, was not decremented.
- */
-static inline s64 atomic64_dec_if_positive(atomic64_t *v)
-{
-	register s64 prev, rc;
-
-	__asm__ __volatile__ (
-	"0:\n"
-		"lr.d %0, %2\n"
-		"add  %0, %0, -1\n"
-		"bltz %0, 1f\n"
-		"sc.w %1, %0, %2\n"
-		"bnez %1, 0b\n"
-	"1:\n"
-		: "=&r" (prev), "=r" (rc), "+A" (v->counter));
+		"0:\n\t"
+		"lr.d.aqrl %0, %2\n\t"
+		"beq       %0, %4, 1f\n\t"
+		"add       %1, %0, %3\n\t"
+		"sc.d.aqrl %1, %1, %2\n\t"
+		"bnez      %1, 0b\n\t"
+		"1:"
+		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
+		: "r" (a), "r" (u));
 	return prev;
 }
 
-/**
- * atomic64_add_unless - add unless the number is a given value
- * @v: pointer of type atomic64_t
- * @a: the amount to add to v...
- * @u: ...unless v is equal to u.
- *
- * Atomically adds @a to @v, so long as it was not @u.
- * Returns true if the addition occurred and false otherwise.
- */
-static inline int atomic64_add_unless(atomic64_t *v, s64 a, s64 u)
-{
-	register s64 tmp;
-	register int rc = 1;
-
-	__asm__ __volatile__ (
-	"0:\n"
-		"lr.d %0, %2\n"
-		"beq  %0, %z4, 1f\n"
-		"add  %0, %0, %3\n"
-		"sc.d %1, %0, %2\n"
-		"bnez %1, 0b\n"
-	"1:"
-		: "=&r" (tmp), "=&r" (rc), "+A" (v->counter)
-		: "rI" (a), "rJ" (u));
-	return !rc;
-}
-
-static inline int atomic64_inc_not_zero(atomic64_t *v)
+static __always_inline s64 atomic64_inc_not_zero(atomic64_t *v)
 {
 	return atomic64_add_unless(v, 1, 0);
 }
 
-/**
- * atomic64_and - Atomically clear bits in atomic variable
- * @mask: Mask of the bits to be retained
- * @v: pointer of type atomic_t
- *
- * Atomically retains the bits set in @mask from @v
- */
-static inline void atomic64_and(s64 mask, atomic64_t *v)
+static __always_inline s64 atomic64_cmpxchg(atomic64_t *v, s64 o, s64 n)
 {
-	__asm__ __volatile__ (
-		"amoand.d zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (mask));
+	return cmpxchg64(&(v->counter), o, n);
 }
 
-static inline long atomic64_fetch_and(unsigned long mask, atomic64_t *v)
+static __always_inline s64 atomic64_xchg(atomic64_t *v, s64 n)
 {
-	long out;
-
-	__asm__ __volatile__ (
-		"amoand.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
+	return xchg64(&(v->counter), n);
 }
 
-/**
- * atomic64_or - Atomically set bits in atomic variable
- * @mask: Mask of the bits to be set
- * @v: pointer of type atomic_t
- *
- * Atomically sets the bits set in @mask in @v
- */
-static inline void atomic64_or(s64 mask, atomic64_t *v)
-{
-	__asm__ __volatile__ (
-		"amoor.d zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (mask));
-}
 
-static inline long atomic64_fetch_or(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amoor.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
-
-/**
- * atomic64_xor - Atomically flips bits in atomic variable
- * @mask: Mask of the bits to be flipped
- * @v: pointer of type atomic_t
- *
- * Atomically flips the bits set in @mask in @v
- */
-static inline void atomic64_xor(s64 mask, atomic64_t *v)
-{
-	__asm__ __volatile__ (
-		"amoxor.d zero, %1, %0"
-		: "+A" (v->counter)
-		: "r" (mask));
-}
-
-static inline long atomic64_fetch_xor(unsigned long mask, atomic64_t *v)
-{
-	long out;
-
-	__asm__ __volatile__ (
-		"amoxor.d %2, %1, %0"
-		: "+A" (v->counter), "=r" (out)
-		: "r" (mask));
-	return out;
-}
+#endif /* defined(CONFIG_ISA_A) && (__riscv_xlen >= 64) */
 
 #endif /* CONFIG_GENERIC_ATOMIC64 */
 
