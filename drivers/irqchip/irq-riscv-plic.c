@@ -213,12 +213,18 @@ static void plic_irq_disable(struct irq_data *d)
 			plic_disable(data, i, d->hwirq);
 }
 
+static void plic_irq_eoi(struct irq_data *d)
+{
+	struct plic_handler *handler = d->common->handler_data;
+	plic_complete(handler->data, handler->hartid, d->hwirq);
+}
+
 static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
 	struct plic_data *data = d->host_data;
 
-	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
+	irq_set_chip_and_handler(irq, &data->chip, handle_fasteoi_irq);
 	irq_set_chip_data(irq, data);
 	irq_set_noprobe(irq);
 
@@ -246,7 +252,6 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 			generic_handle_irq(irq);
 		else
 			handle_bad_irq(desc);
-		plic_complete(handler->data, handler->hartid, what);
 	}
 
 	chained_irq_exit(chip, desc);
@@ -293,6 +298,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	data->chip.irq_unmask = plic_irq_unmask;
 	data->chip.irq_enable = plic_irq_enable;
 	data->chip.irq_disable = plic_irq_disable;
+	data->chip.irq_eoi = plic_irq_eoi;
 
 	for (i = 0; i < data->handlers; ++i) {
 		struct plic_handler *handler = &data->handler[i];
