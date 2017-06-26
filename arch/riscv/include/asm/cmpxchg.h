@@ -20,7 +20,7 @@
 
 #include <asm/barrier.h>
 
-#define __xchg(new, ptr, size)					\
+#define __xchg(new, ptr, size, asm_or)				\
 ({								\
 	__typeof__(ptr) __ptr = (ptr);				\
 	__typeof__(new) __new = (new);				\
@@ -28,13 +28,13 @@
 	switch (size) {						\
 	case 4:							\
 		__asm__ __volatile__ (				\
-			"amoswap.w.aqrl %0, %2, %1"		\
+			"amoswap.w" #asm_or " %0, %2, %1"	\
 			: "=r" (__ret), "+A" (*__ptr)		\
 			: "r" (__new));				\
 		break;						\
 	case 8:							\
 		__asm__ __volatile__ (				\
-			"amoswap.d.aqrl %0, %2, %1"		\
+			"amoswap.d" #asm_or " %0, %2, %1"	\
 			: "=r" (__ret), "+A" (*__ptr)		\
 			: "r" (__new));				\
 		break;						\
@@ -44,7 +44,7 @@
 	__ret;							\
 })
 
-#define xchg(ptr, x)    (__xchg((x), (ptr), sizeof(*(ptr))))
+#define xchg(ptr, x)    (__xchg((x), (ptr), sizeof(*(ptr)), .aqrl))
 
 #define xchg32(ptr, x)				\
 ({						\
@@ -63,7 +63,7 @@
  * store NEW in MEM.  Return the initial value in MEM.  Success is
  * indicated by comparing RETURN with OLD.
  */
-#define __cmpxchg(ptr, old, new, size, scb, lrb)			\
+#define __cmpxchg(ptr, old, new, size, lrb, scb)			\
 ({									\
 	__typeof__(ptr) __ptr = (ptr);					\
 	__typeof__(old) __old = (old);					\
@@ -74,9 +74,9 @@
 	case 4:								\
 		__asm__ __volatile__ (					\
 		"0:"							\
-			"lr.w" scb " %0, %2\n"				\
+			"lr.w" #scb " %0, %2\n"				\
 			"bne         %0, %z3, 1f\n"			\
-			"sc.w" lrb " %1, %z4, %2\n"			\
+			"sc.w" #lrb " %1, %z4, %2\n"			\
 			"bnez        %1, 0b\n"				\
 		"1:"							\
 			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
@@ -85,9 +85,9 @@
 	case 8:								\
 		__asm__ __volatile__ (					\
 		"0:"							\
-			"lr.d" scb " %0, %2\n"				\
+			"lr.d" #scb " %0, %2\n"				\
 			"bne         %0, %z3, 1f\n"			\
-			"sc.d" lrb " %1, %z4, %2\n"			\
+			"sc.d" #lrb " %1, %z4, %2\n"			\
 			"bnez        %1, 0b\n"				\
 		"1:"							\
 			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
@@ -100,10 +100,10 @@
 })
 
 #define cmpxchg(ptr, o, n) \
-	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr)), ".aqrl", ".aqrl"))
+	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr)), .aqrl, .aqrl))
 
 #define cmpxchg_local(ptr, o, n) \
-	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr)), "", ""))
+	(__cmpxchg((ptr), (o), (n), sizeof(*(ptr)), , ))
 
 #define cmpxchg32(ptr, o, n)			\
 ({						\
