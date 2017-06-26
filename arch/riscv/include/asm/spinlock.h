@@ -21,6 +21,8 @@
  * Simple spin lock operations.  These provide no fairness guarantees.
  */
 
+/* FIXME: Replace this with a ticket lock, like MIPS. */
+
 #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
 #define arch_spin_is_locked(x)	((x)->lock != 0)
 #define arch_spin_unlock_wait(x) \
