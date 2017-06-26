@@ -58,6 +58,15 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 	}
 }
 
+static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+{
+	smp_rmb();
+	do {
+		cpu_relax();
+	} while (arch_spin_is_locked(lock));
+	smp_acquire__after_ctrl_dep();
+}
+
 /***********************************************************/
 
 static inline int arch_read_can_lock(arch_rwlock_t *lock)
