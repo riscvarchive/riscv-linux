@@ -612,9 +612,9 @@ config CLKSRC_ST_LPC
 	  Enable this option to use the Low Power controller timer
 	  as clocksource.
 
-config CLKSRC_RISCV
-	bool "Clocksource for the RISC-V platform"
-	def_bool RISCV
+config RISCV_TIMER
+	bool "Timer for the RISC-V platform" if COMPILE_TEST
+	depends on RISCV
 	help
 	  This enables a clocksource based on the RISC-V SBI timer, which is
 	  built in to all RISC-V systems.
