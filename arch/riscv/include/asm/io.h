@@ -135,6 +135,10 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
  * defined to order the indicated access (either a read or write) with all
  * other I/O memory accesses.
  */
+/* FIXME: The platform spec will define the default Linux-capable platform to
+ * have some extra IO ordering constraints that will make these fences
+ * unnecessary.
+ */
 #define __iorrmb()	__asm__ __volatile__ ("fence i,io" : : : "memory");
 #define __iorwmb()	__asm__ __volatile__ ("fence io,o" : : : "memory");
 
