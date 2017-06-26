@@ -37,9 +37,7 @@ extern void iounmap(void __iomem *addr);
 
 #endif /* CONFIG_MMU */
 
-/*
- * Generic IO read/write.  These perform native-endian accesses.
- */
+/* Generic IO read/write.  These perform native-endian accesses. */
 #define __raw_writeb __raw_writeb
 static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
 {
