@@ -36,20 +36,101 @@
 struct rt_sigframe {
 	struct siginfo info;
 	struct ucontext uc;
+	struct __riscv_d_ext_context fp_context;
 };
+
+static long restore_d_state(struct pt_regs *regs,
+	struct __riscv_ext_context ext,
+	struct __riscv_ext_context __user *pext)
+{
+	long err;
+	struct __riscv_d_ext_context __user *ctx =
+		container_of(pext, struct __riscv_d_ext_context, head);
+
+	if (ext.size != sizeof(*ctx))
+		return -EINVAL;
+
+	err = copy_from_user(&current->thread.fstate, &ctx->state,
+			     sizeof(ctx->state));
+	if (likely(!err))
+		fstate_restore(current, regs);
+	return err;
+}
+
+static long restore_extension_state(struct pt_regs *regs,
+	struct sigcontext __user *sc)
+{
+	long err;
+	struct __riscv_ext_context __user *pext;
+
+	/* Iterate through and restore all extensions */
+	err = __get_user(pext, &sc->sc_ext);
+	if (unlikely(err))
+		return err;
+
+	/* Only one floating-point extension context may be provided, and
+	 * if one is present, it must be first in the list. */
+	if (pext != NULL) {
+		struct __riscv_ext_context ext;
+
+		err = copy_from_user(&ext, pext, sizeof(ext));
+		if (unlikely(err))
+			return err;
+
+		switch (ext.tag) {
+			case __riscv_d_ext_tag:
+				err = restore_d_state(regs, ext, pext);
+				if (unlikely(err))
+					return err;
+				pext = ext.next;
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	/* No other extensions are presently supported. */
+	if (pext != NULL)
+		return -EINVAL;
+
+	return 0;
+}
+
+static long save_d_state(struct pt_regs *regs,
+	struct __riscv_d_ext_context __user *ctx,
+	struct __riscv_ext_context __user *next)
+{
+	long err = 0;
+	fstate_save(current, regs);
+	err |= __put_user(next, &ctx->head.next);
+	err |= __put_user(__riscv_d_ext_tag, &ctx->head.tag);
+	err |= __put_user(sizeof(*ctx), &ctx->head.size);
+	err |= __copy_to_user(&ctx->state, &current->thread.fstate,
+		sizeof(ctx->state));
+	return err;
+}
+
+static long save_extension_state(struct rt_sigframe __user *frame,
+	struct pt_regs *regs)
+{
+	long err = 0;
+	struct sigcontext __user *sc = &frame->uc.uc_mcontext;
+	/* Save the floating-point state.  Nothing else to do yet. */
+	err |= __put_user(&frame->fp_context.head, &sc->sc_ext);
+	err |= save_d_state(regs, &frame->fp_context, NULL);
+	return err;
+}
 
 static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
-	struct task_struct *task = current;
 	long err;
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_from_user(regs, &sc->sc_regs, sizeof(sc->sc_regs));
-	err |= __copy_from_user(&task->thread.fstate, &sc->sc_fpregs,
-		sizeof(sc->sc_fpregs));
-	if (likely(!err))
-		fstate_restore(task, regs);
-	return err;
+	if (unlikely(err))
+		return err;
+	return restore_extension_state(regs, sc);
 }
 
 SYSCALL_DEFINE0(rt_sigreturn)
@@ -92,16 +173,14 @@ badframe:
 	return 0;
 }
 
-static long setup_sigcontext(struct sigcontext __user *sc,
+static long setup_sigcontext(struct rt_sigframe __user *frame,
 	struct pt_regs *regs)
 {
-	struct task_struct *task = current;
+	struct sigcontext __user *sc = &frame->uc.uc_mcontext;
 	long err;
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_to_user(&sc->sc_regs, regs, sizeof(sc->sc_regs));
-	fstate_save(task, regs);
-	err |= __copy_to_user(&sc->sc_fpregs, &task->thread.fstate,
-		sizeof(sc->sc_fpregs));
+	err |= save_extension_state(frame, regs);
 	return err;
 }
 
@@ -145,7 +224,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	err |= __put_user(0, &frame->uc.uc_flags);
 	err |= __put_user(NULL, &frame->uc.uc_link);
 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
-	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs);
+	err |= setup_sigcontext(frame, regs);
 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
 	if (err)
 		return -EFAULT;

@@ -59,7 +59,7 @@ struct user_regs_struct {
 	unsigned long t6;
 };
 
-struct user_fpregs_struct {
+struct __riscv_d_ext_state {
 	__u64 f[32];
 	__u32 fcsr;
 };

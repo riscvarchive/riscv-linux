@@ -17,6 +17,18 @@
 
 #include <asm/ptrace.h>
 
+/* Extension context structure
+ *
+ * This extends the signal context below with architectural state for
+ * an ISA extension.  The state extends from the end of this struct
+ * to size bytes thereafter.  The tag identifies the extension type.
+ */
+struct __riscv_ext_context {
+	struct __riscv_ext_context *next;
+	__u32 tag;
+	__u32 size;
+};
+
 /* Signal context structure
  *
  * This contains the context saved before a signal handler is invoked;
@@ -24,7 +36,15 @@
  */
 struct sigcontext {
 	struct user_regs_struct sc_regs;
-	struct user_fpregs_struct sc_fpregs;
+	struct __riscv_ext_context *sc_ext;
+};
+
+/* Double-precision floating-point extension context */
+#define __riscv_d_ext_tag 0x00000003
+
+struct __riscv_d_ext_context {
+  struct __riscv_ext_context head;
+  struct __riscv_d_ext_state state;
 };
 
 #endif /* _UAPI_ASM_RISCV_SIGCONTEXT_H */
