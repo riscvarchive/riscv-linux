@@ -307,6 +307,19 @@ config QCOM_IRQ_COMBINER
 	  Say yes here to add support for the IRQ combiner devices embedded
 	  in Qualcomm Technologies chips.
 
+config RISCV_PLIC
+        bool "Platform-Level Interrupt Controller"
+	depends on RISCV
+        default y
+        help
+	   This enables support for the PLIC chip found in standard RISC-V
+	   systems.  The PLIC controls devices interrupts and connects them to
+	   each core's local interrupt controller.  Aside from timer and
+	   software interrupts, all other interrupt sources (MSI, GPIO, etc)
+	   are subordinate to the PLIC.
+
+	   If you don't know what to do here, say Y.
+
 config RISCV_INTC
 	def_bool y if RISCV
 	#bool "RISC-V Interrupt Controller"
