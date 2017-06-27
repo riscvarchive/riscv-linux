@@ -1,6 +1,4 @@
 /*
- * arch/score/lib/libgcc.h
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -13,25 +11,36 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * to the Free Software Foundation, Inc.
  */
 
+#include <linux/export.h>
 
-#ifndef __ASM_LIBGCC_H
-#define __ASM_LIBGCC_H
+#include <lib/libgcc.h>
 
-#include <asm/byteorder.h>
+long long notrace __ashrdi3(long long u, word_type b)
+{
+	DWunion uu, w;
+	word_type bm;
 
-typedef int word_type __attribute__((mode(__word__)));
+	if (b == 0)
+		return u;
 
-struct DWstruct {
-	int low, high;
-};
+	uu.ll = u;
+	bm = 32 - b;
 
-typedef union {
-	struct DWstruct s;
-	long long ll;
-} DWunion;
+	if (bm <= 0) {
+		/* w.s.high = 1..1 or 0..0 */
+		w.s.high =
+		    uu.s.high >> 31;
+		w.s.low = uu.s.high >> -bm;
+	} else {
+		const unsigned int carries = (unsigned int) uu.s.high << bm;
 
-#endif /* __ASM_LIBGCC_H */
+		w.s.high = uu.s.high >> b;
+		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
+	}
+
+	return w.ll;
+}
+EXPORT_SYMBOL(__ashrdi3);

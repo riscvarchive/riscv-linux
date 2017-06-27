@@ -1,6 +1,21 @@
-#include <linux/export.h>
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see the file COPYING, or write
+ * to the Free Software Foundation, Inc.
+ */
 
-#include "libgcc.h"
+#include <linux/export.h>
+#include <lib/libgcc.h>
 
 #define W_TYPE_SIZE 32
 
@@ -43,7 +58,7 @@
 	})
 #endif
 
-long long __muldi3(long long u, long long v)
+long long notrace __muldi3(long long u, long long v)
 {
 	const DWunion uu = {.ll = u};
 	const DWunion vv = {.ll = v};
