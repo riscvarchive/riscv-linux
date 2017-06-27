@@ -52,51 +52,51 @@
  * base + 0x000FFC: Interrupt source 1023 priority
  * base + 0x001000: Pending 0
  * base + 0x001FFF: Pending
- * base + 0x002000: Enable bits for sources 0-31 on hart 0
- * base + 0x002004: Enable bits for sources 32-63 on hart 0
+ * base + 0x002000: Enable bits for sources 0-31 on context 0
+ * base + 0x002004: Enable bits for sources 32-63 on context 0
  * ...
- * base + 0x0020FC: Enable bits for sources 992-1023 on hart 0
- * base + 0x002080: Enable bits for sources 0-31 on hart 1
+ * base + 0x0020FC: Enable bits for sources 992-1023 on context 0
+ * base + 0x002080: Enable bits for sources 0-31 on context 1
  * ...
- * base + 0x002100: Enable bits for sources 0-31 on hart 2
+ * base + 0x002100: Enable bits for sources 0-31 on context 2
  * ...
- * base + 0x1F1F80: Enable bits for sources 992-1023 on hart 15871
+ * base + 0x1F1F80: Enable bits for sources 992-1023 on context 15871
  * base + 0x1F1F84: Reserved
- * ...              (higher hart IDs would fit here, but wouldn't fit
- *                   inside the per-hart priority vector)
+ * ...              (higher context IDs would fit here, but wouldn't fit
+ *                   inside the per-context priority vector)
  * base + 0x1FFFFC: Reserved
- * base + 0x200000: Priority threshold for hart 0
- * base + 0x200004: Claim/complete for hart 0
+ * base + 0x200000: Priority threshold for context 0
+ * base + 0x200004: Claim/complete for context 0
  * base + 0x200008: Reserved
  * ...
  * base + 0x200FFC: Reserved
- * base + 0x201000: Priority threshold for hart 1
- * base + 0x201004: Claim/complete for hart 1
+ * base + 0x201000: Priority threshold for context 1
+ * base + 0x201004: Claim/complete for context 1
  * ...
- * base + 0xFFE000: Priority threshold for hart 15871
- * base + 0xFFE004: Claim/complete for hart 15871
+ * base + 0xFFE000: Priority threshold for context 15871
+ * base + 0xFFE004: Claim/complete for context 15871
  * base + 0xFFF008: Reserved
  * ...
  * base + 0xFFFFFC: Reserved
  */
 
 /* Each interrupt source has a priority register associated with it. */
-#define PRIORITY_BASE	0
-#define PRIORITY_PER_ID	4
+#define PRIORITY_BASE		0
+#define PRIORITY_PER_ID		4
 
 /* Each hart context has a vector of interupt enable bits associated with it.
  * There's one bit for each interrupt source. */
-#define ENABLE_BASE	0x2000
-#define ENABLE_PER_HART	0x80
+#define ENABLE_BASE		0x2000
+#define ENABLE_PER_HART		0x80
 
 /* Each hart context has a set of control registers associated with it.  Right
  * now there's only two: a source priority threshold over which the hart will
  * take an interrupt, and a register to claim interrupts.
  */
-#define HART_BASE	0x200000
-#define HART_PER_HART	0x1000
-#define HART_THRESHOLD	0
-#define HART_CLAIM	4
+#define CONTEXT_BASE		0x200000
+#define CONTEXT_PER_HART	0x1000
+#define CONTEXT_THRESHOLD	0
+#define CONTEXT_CLAIM		4
 
 /* PLIC devices are named like 'riscv,plic0,%llx', this is enough space to
  * store that name.
@@ -105,7 +105,7 @@
 
 struct plic_handler {
 	bool			present;
-	int			hartid;
+	int			contextid;
 	struct plic_data	*data;
 };
 
@@ -122,9 +122,9 @@ struct plic_data {
 
 /* Addressing helper functions. */
 static inline
-void __iomem *plic_enable_vector(struct plic_data *data, int hartid)
+void __iomem *plic_enable_vector(struct plic_data *data, int contextid)
 {
-	return data->reg + ENABLE_BASE + hartid * ENABLE_PER_HART;
+	return data->reg + ENABLE_BASE + contextid * ENABLE_PER_HART;
 }
 
 static inline
@@ -134,15 +134,15 @@ void __iomem *plic_priority(struct plic_data *data, int hwirq)
 }
 
 static inline
-void __iomem *plic_hart_threshold(struct plic_data *data, int hartid)
+void __iomem *plic_hart_threshold(struct plic_data *data, int contextid)
 {
-	return data->reg + HART_BASE + HART_PER_HART * hartid + HART_THRESHOLD;
+	return data->reg + CONTEXT_BASE + CONTEXT_PER_HART * contextid + CONTEXT_THRESHOLD;
 }
 
 static inline
-void __iomem *plic_hart_claim(struct plic_data *data, int hartid)
+void __iomem *plic_hart_claim(struct plic_data *data, int contextid)
 {
-	return data->reg + HART_BASE + HART_PER_HART * hartid + HART_CLAIM;
+	return data->reg + CONTEXT_BASE + CONTEXT_PER_HART * contextid + CONTEXT_CLAIM;
 }
 
 /* Handling an interrupt is a two-step process: first you claim the interrupt
@@ -151,21 +151,21 @@ void __iomem *plic_hart_claim(struct plic_data *data, int hartid)
  * and disables the interrupt, so there's nothing else to do.
  */
 static inline
-u32 plic_claim(struct plic_data *data, int hartid)
+u32 plic_claim(struct plic_data *data, int contextid)
 {
-	return readl(plic_hart_claim(data, hartid));
+	return readl(plic_hart_claim(data, contextid));
 }
 
 static inline
-void plic_complete(struct plic_data *data, int hartid, u32 claim)
+void plic_complete(struct plic_data *data, int contextid, u32 claim)
 {
-	writel(claim, plic_hart_claim(data, hartid));
+	writel(claim, plic_hart_claim(data, contextid));
 }
 
 /* Explicit interrupt masking. */
-static void plic_disable(struct plic_data *data, int hartid, int hwirq)
+static void plic_disable(struct plic_data *data, int contextid, int hwirq)
 {
-	void __iomem *reg = plic_enable_vector(data, hartid) + (hwirq / 32);
+	void __iomem *reg = plic_enable_vector(data, contextid) + (hwirq / 32);
 	u32 mask = ~(1 << (hwirq % 32));
 
 	spin_lock(&data->lock);
@@ -173,9 +173,9 @@ static void plic_disable(struct plic_data *data, int hartid, int hwirq)
 	spin_unlock(&data->lock);
 }
 
-static void plic_enable(struct plic_data *data, int hartid, int hwirq)
+static void plic_enable(struct plic_data *data, int contextid, int hwirq)
 {
-	void __iomem *reg = plic_enable_vector(data, hartid) + (hwirq / 32);
+	void __iomem *reg = plic_enable_vector(data, contextid) + (hwirq / 32);
 	u32 bit = 1 << (hwirq % 32);
 
 	spin_lock(&data->lock);
@@ -216,7 +216,7 @@ static void plic_irq_disable(struct irq_data *d)
 static void plic_irq_eoi(struct irq_data *d)
 {
 	struct plic_handler *handler = d->common->handler_data;
-	plic_complete(handler->data, handler->hartid, d->hwirq);
+	plic_complete(handler->data, handler->contextid, d->hwirq);
 }
 
 static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
@@ -245,7 +245,7 @@ static void plic_chained_handle_irq(struct irq_desc *desc)
 
 	chained_irq_enter(chip, desc);
 
-	while ((what = plic_claim(handler->data, handler->hartid))) {
+	while ((what = plic_claim(handler->data, handler->contextid))) {
 		int irq = irq_find_mapping(domain, what);
 
 		if (irq > 0)
@@ -335,7 +335,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 			continue;
 
 		handler->present = true;
-		handler->hartid = i;
+		handler->contextid = i;
 		handler->data = data;
 		/* hwirq prio must be > this to trigger an interrupt */
 		writel(0, plic_hart_threshold(data, i));
