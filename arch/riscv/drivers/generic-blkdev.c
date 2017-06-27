@@ -40,11 +40,16 @@ struct generic_blkdev_port {
 	void __iomem *iomem;
 	struct gendisk *gd;
 	struct request_queue *queue;
-	struct request **reqbuf;
+	struct list_head *reqbuf;
 	spinlock_t lock;
 	int major;
 	int irq;
 	int qrunning;
+};
+
+struct generic_blkdev_request {
+	struct request *req;
+	struct list_head list;
 };
 
 static struct block_device_operations generic_blkdev_fops = {
@@ -67,16 +72,19 @@ static inline void generic_blkdev_write_reg(
 static void generic_blkdev_process_completions(struct generic_blkdev_port *port)
 {
 	uint32_t ncomplete, tag;
-	struct request *req;
+	struct generic_blkdev_request *breq;
 	int i;
 
 	ncomplete = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NCOMPLETE);
 
 	for (i = 0; i < ncomplete; i++) {
 		tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_COMPLETE);
-		req = port->reqbuf[tag];
-		__blk_end_request_all(req, 0);
-		port->reqbuf[tag] = NULL;
+		BUG_ON(list_empty(&port->reqbuf[tag]));
+		breq = list_entry(port->reqbuf[tag].prev,
+				struct generic_blkdev_request, list);
+		__blk_end_request_all(breq->req, 0);
+		list_del(&breq->list);
+		kfree(breq);
 	}
 
 	if (ncomplete > 0 && !port->qrunning) {
@@ -111,6 +119,7 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 	uint32_t offset = blk_rq_pos(req);
 	uint32_t len = blk_rq_sectors(req);
 	uint32_t tag;
+	struct generic_blkdev_request *breq;
 
 	generic_blkdev_write_reg(port, GENERIC_BLKDEV_ADDR, addr);
 	generic_blkdev_write_reg(port, GENERIC_BLKDEV_OFFSET, offset);
@@ -119,8 +128,9 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 	mb();
 
 	tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_REQUEST);
-	BUG_ON(port->reqbuf[tag] != NULL);
-	port->reqbuf[tag] = req;
+	breq = kmalloc(sizeof(struct generic_blkdev_request), GFP_ATOMIC);
+	breq->req = req;
+	list_add_tail(&breq->list, &port->reqbuf[tag]);
 }
 
 static void generic_blkdev_rq_handler(struct request_queue *rq)
@@ -204,9 +214,9 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 	max_req_len = generic_blkdev_read_reg(port, GENERIC_BLKDEV_MAX_REQUEST_LENGTH);
 	port->qrunning = 1;
 	port->reqbuf = devm_kzalloc(
-			port->dev, ntags * sizeof(void*), GFP_KERNEL);
+			port->dev, ntags * sizeof(struct list_head), GFP_KERNEL);
 	for (i = 0; i < ntags; i++)
-		port->reqbuf[i] = NULL;
+		INIT_LIST_HEAD(&port->reqbuf[i]);
 
 	spin_lock_init(&port->lock);
 	port->queue = blk_init_queue(generic_blkdev_rq_handler, &port->lock);
@@ -270,7 +280,7 @@ static int generic_blkdev_probe(struct platform_device *pdev)
 	return 0;
 }
 
-int generic_blkdev_teardown(struct generic_blkdev_port *port)
+static int generic_blkdev_teardown(struct generic_blkdev_port *port)
 {
 	del_gendisk(port->gd);
 	put_disk(port->gd);
