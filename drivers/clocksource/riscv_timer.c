@@ -15,74 +15,50 @@
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
 #include <linux/delay.h>
+#include <linux/timer_riscv.h>
 
-#include <asm/sbi.h>
-
-unsigned long riscv_timebase;
-
+/*
+ * See <linux/timer_riscv.h> for the rationale behind pre-allocating per-cpu
+ * timers on RISC-V systems.
+ */
+static DEFINE_PER_CPU(struct clocksource, clock_source);
 static DEFINE_PER_CPU(struct clock_event_device, clock_event);
 
-static int riscv_timer_set_next_event(unsigned long delta,
-	struct clock_event_device *evdev)
+struct clock_event_device *timer_riscv_device(int cpu)
 {
-	sbi_set_timer(get_cycles() + delta);
-	return 0;
+	return &per_cpu(clock_event, cpu);
 }
 
-static u64 riscv_rdtime(struct clocksource *cs)
+struct clocksource *timer_riscv_source(int cpu)
 {
-	return get_cycles();
+	return &per_cpu(clock_source, cpu);
 }
 
-static struct clocksource riscv_clocksource = {
-	.name = "riscv_clocksource",
-	.rating = 300,
-	.read = riscv_rdtime,
-	.mask = BITS_PER_LONG,
-	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-};
-
-void riscv_timer_interrupt(void)
+void timer_riscv_init(int cpu_id,
+		      unsigned long riscv_timebase,
+		      unsigned long long (*rdtime)(struct clocksource *),
+		      int (*next)(unsigned long, struct clock_event_device*))
 {
-	int cpu = smp_processor_id();
-	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
+	struct clocksource *cs = &per_cpu(clock_source, cpu_id);
+	struct clock_event_device *ce = &per_cpu(clock_event, cpu_id);
 
-	evdev->event_handler(evdev);
-}
-
-void __init init_clockevent(void)
-{
-	int cpu = smp_processor_id();
-	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+	*cs = (struct clocksource) {
+		.name = "riscv_clocksource",
+		.rating = 300,
+		.read = rdtime,
+		.mask = BITS_PER_LONG,
+		.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+	};
+	clocksource_register_hz(cs, riscv_timebase);
 
 	*ce = (struct clock_event_device){
 		.name = "riscv_timer_clockevent",
 		.features = CLOCK_EVT_FEAT_ONESHOT,
 		.rating = 300,
-		.cpumask = cpumask_of(cpu),
-		.set_next_event = riscv_timer_set_next_event,
+		.cpumask = cpumask_of(cpu_id),
+		.set_next_event = next,
 		.set_state_oneshot  = NULL,
 		.set_state_shutdown = NULL,
 	};
-
-	/* Enable timer interrupts */
-	csr_set(sie, SIE_STIE);
-
 	clockevents_config_and_register(ce, riscv_timebase, 100, 0x7fffffff);
-}
-
-void __init time_init(void)
-{
-	struct device_node *cpu;
-	u32 prop;
-
-	cpu = of_find_node_by_path("/cpus");
-	if (!cpu || of_property_read_u32(cpu, "timebase-frequency", &prop))
-		panic(KERN_WARNING "RISC-V system with no 'timebase-frequency' in DTS\n");
-	riscv_timebase = prop;
-
-	lpj_fine = riscv_timebase / HZ;
-
-	clocksource_register_hz(&riscv_clocksource, riscv_timebase);
-	init_clockevent();
 }
