@@ -46,7 +46,7 @@ void timer_riscv_init(int cpu_id,
 		.name = "riscv_clocksource",
 		.rating = 300,
 		.read = rdtime,
-		.mask = BITS_PER_LONG,
+		.mask = CLOCKSOURCE_MASK(BITS_PER_LONG),
 		.flags = CLOCK_SOURCE_IS_CONTINUOUS,
 	};
 	clocksource_register_hz(cs, riscv_timebase);
