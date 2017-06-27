@@ -810,12 +810,6 @@ void pcibios_setup_bus_devices(struct pci_bus *bus)
 	}
 }
 
-void pcibios_fixup_bus(struct pci_bus *bus)
-{
-	/* nothing to do */
-}
-EXPORT_SYMBOL(pcibios_fixup_bus);
-
 /*
  * We need to avoid collisions with `mirrored' VGA ports
  * and other strange ISA hardware, so we always want the
@@ -829,13 +823,6 @@ EXPORT_SYMBOL(pcibios_fixup_bus);
  * but we want to try to avoid allocating at 0x2900-0x2bff
  * which might have be mirrored at 0x0100-0x03ff..
  */
-resource_size_t pcibios_align_resource(void *data, const struct resource *res,
-				resource_size_t size, resource_size_t align)
-{
-	return res->start;
-}
-EXPORT_SYMBOL(pcibios_align_resource);
-
 int pcibios_add_device(struct pci_dev *dev)
 {
 	dev->irq = of_irq_parse_and_map_pci(dev, 0, 0);
