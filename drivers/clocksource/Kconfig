@@ -616,7 +616,8 @@ config RISCV_TIMER
 	bool "Timer for the RISC-V platform" if COMPILE_TEST
 	depends on RISCV
 	help
-	  This enables a clocksource based on the RISC-V SBI timer, which is
-	  built in to all RISC-V systems.
+	  This enables the per-hart timer built into all RISC-V systems, which
+	  is accessed via both the SBI and the rdcycle instruction.  This is
+	  required for all RISC-V systems.
 
 endmenu
