@@ -306,3 +306,17 @@ config QCOM_IRQ_COMBINER
 	help
 	  Say yes here to add support for the IRQ combiner devices embedded
 	  in Qualcomm Technologies chips.
+
+config RISCV_INTC
+	def_bool y if RISCV
+	#bool "RISC-V Interrupt Controller"
+	depends on RISCV
+	default y
+	help
+	   This enables support for the local interrupt controller found in
+	   standard RISC-V systems.  The local interrupt controller handles
+	   timer interrupts, software interrupts, and hardware interrupts.
+	   Without a local interrupt controller the system will be unable to
+	   handle any interrupts, including those passed via the PLIC.
+
+	   If you don't know what to do here, say Y.
