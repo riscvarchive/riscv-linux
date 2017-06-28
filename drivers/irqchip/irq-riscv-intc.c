@@ -53,7 +53,8 @@ asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
 
 	irq_enter();
 
-	/* There are three classes of interrupt: timer, software, and
+	/*
+	 * There are three classes of interrupt: timer, software, and
 	 * external devices.  We dispatch between them here.  External
 	 * device interrupts use the generic IRQ mechanisms.
 	 */
@@ -107,23 +108,31 @@ static void riscv_irq_unmask(struct irq_data *d)
 	csr_set(sie, 1 << (long)d->hwirq);
 }
 
+/* Callbacks for twiddling SIE on another hart. */
 static void riscv_irq_enable_helper(void *d)
 {
 	riscv_irq_unmask(d);
+}
+
+static void riscv_irq_disable_helper(void *d)
+{
+	riscv_irq_mask(d);
 }
 
 static void riscv_irq_enable(struct irq_data *d)
 {
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
-	/* There are two phases to setting up an interrupt: first we set a bit
+	/*
+	 * There are two phases to setting up an interrupt: first we set a bit
 	 * in this bookkeeping structure, which is used by trap_init to
 	 * initialize SIE for each hart as it comes up.
 	 */
 	atomic_long_or((1 << (long)d->hwirq),
 		       &per_cpu(riscv_early_sie, data->hart));
 
-	/* The CPU is usually online, so here we just attempt to enable the
+	/*
+	 * The CPU is usually online, so here we just attempt to enable the
 	 * interrupt by writing SIE directly.  We need to write SIE on the
 	 * correct hart, which might be another hart.
 	 */
@@ -173,10 +182,10 @@ static void riscv_irq_enable_noop(struct irq_data *d)
 }
 
 static struct irq_chip riscv_noop_chip = {
-	.name = "riscv,cpu-intc,noop",
-	.irq_mask = riscv_irq_mask_noop,
-	.irq_unmask = riscv_irq_unmask_noop,
-	.irq_enable = riscv_irq_enable_noop,
+	.name	= "riscv,cpu-intc,noop",
+	.irq_mask	= riscv_irq_mask_noop,
+	.irq_unmask	= riscv_irq_unmask_noop,
+	.irq_enable	= riscv_irq_enable_noop,
 };
 
 static int riscv_irqdomain_map_noop(struct irq_domain *d, unsigned int irq,
@@ -190,8 +199,8 @@ static int riscv_irqdomain_map_noop(struct irq_domain *d, unsigned int irq,
 }
 
 static const struct irq_domain_ops riscv_irqdomain_ops_noop = {
-	.map    = riscv_irqdomain_map_noop,
-	.xlate  = irq_domain_xlate_onecell,
+	.map	= riscv_irqdomain_map_noop,
+	.xlate	= irq_domain_xlate_onecell,
 };
 
 static int riscv_intc_init(struct device_node *node, struct device_node *parent)
@@ -204,7 +213,8 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 
 	hart = riscv_of_processor_hart(node->parent);
 	if (hart < 0) {
-		/* If a hart is disabled, create a no-op irq domain.  Devices
+		/*
+		 * If a hart is disabled, create a no-op irq domain.  Devices
 		 * may still have interrupts connected to those harts.  This is
 		 * not wrong... unless they actually load a driver that needs
 		 * it!
