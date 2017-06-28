@@ -42,6 +42,11 @@ static void riscv_software_interrupt(void)
 
 	WARN_ON(ret != IRQ_NONE);
 #else
+	/*
+	 * We currently only use software interrupts to pass inter-processor
+	 * interrupts, so if a non-SMP system gets a software interrupt then we
+	 * don't know what to do.
+	 */
 	printk(KER_WARNING "Software Interrupt without CONFIG_SMP\n");
 #endif
 }
