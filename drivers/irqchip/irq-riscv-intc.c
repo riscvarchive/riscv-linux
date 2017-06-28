@@ -97,6 +97,14 @@ static const struct irq_domain_ops riscv_irqdomain_ops = {
 	.xlate	= irq_domain_xlate_onecell,
 };
 
+/*
+ * On RISC-V systems local interrupts are masked or unmasked by writing the SIE
+ * (Supervisor Interrupt Enable) CSR.  As CSRs can only be written on the local
+ * hart, these functions can only be called on the hart that cooresponds to the
+ * IRQ chip.  They are only called internally to this module, so they BUG_ON if
+ * this condition is violated rather than attempting to handle the error by
+ * forwarding to the target hart, as that's already expected to have been done.
+ */
 static void riscv_irq_mask(struct irq_data *d)
 {
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
