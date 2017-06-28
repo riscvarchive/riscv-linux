@@ -178,6 +178,32 @@ static void riscv_irq_disable(struct irq_data *d)
 					 true);
 }
 
+/*
+ * This "no op" interrupt handler deals with harts that for some reason exist
+ * but can't actually run Linux.  Examples of these sorts of harts include:
+ * - Harts that don't report an "okay" status, presumably because of a hardware
+ *   fault.
+ * - Harts with an ID larger than NR_CPUS.
+ * - Harts with an ISA we don't understand.
+ *
+ * Interrupts targeted to these harts won't even actually be seen by Linux, as
+ * there's no code running to ever receive the interrupt.  If this is an
+ * invalid system configuration then there's nothing we can really do about it,
+ * but we expect these configurations to usually be valid.
+ *
+ * For example, we generally allow the PLIC to route interrupts to every hart
+ * in the system via the local interrupt controller on every hart.  When Linux
+ * is built without CONFIG_SMP this still allows for a working system, as the
+ * single enabled hart can handle every device interrupt in the system.  It is
+ * possible to build a PLIC that doesn't allow interrupts to be routed to the
+ * first hart to boot.  If for some reason the PLIC was instantiated in this
+ * manner then whatever devices could not be directed to the first hart to boot
+ * would be unusable on non-CONFIG_SMP kernels, but as we can't change the PLIC
+ * hardware there's nothing we can do about that.
+ *
+ * In order to avoid the complexity of having unmapped IRQ domains, we instead
+ * just install the noop IRQ handler in domains we can't handle.
+ */
 static void riscv_irq_mask_noop(struct irq_data *d) { }
 
 static void riscv_irq_unmask_noop(struct irq_data *d) { }
@@ -189,7 +215,7 @@ static void riscv_irq_enable_noop(struct irq_data *d)
 
 	if (!of_property_read_u32(data, "reg", &hart))
 		printk(
-		  KERN_WARNING "enabled interrupt %d for missing hart %d (this interrupt has no handler)\n",
+		  KERN_WARNING "enabled no-op handler for interrupt %d on missing hart %d\n",
 		  (int)d->hwirq, hart);
 }
 
@@ -229,7 +255,7 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 		 * If a hart is disabled, create a no-op irq domain.  Devices
 		 * may still have interrupts connected to those harts.  This is
 		 * not wrong... unless they actually load a driver that needs
-		 * it!
+		 * it!  See the comment above for more details.
 		 */
 		irq_domain_add_linear(
 			node,
