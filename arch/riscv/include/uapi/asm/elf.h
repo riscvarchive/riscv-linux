@@ -19,7 +19,7 @@ typedef unsigned long elf_greg_t;
 typedef struct user_regs_struct elf_gregset_t;
 #define ELF_NGREG (sizeof(elf_gregset_t) / sizeof(elf_greg_t))
 
-typedef struct __riscv_d_ext_state elf_fpregset_t;
+typedef union __riscv_fp_state elf_fpregset_t;
 
 #define ELF_RISCV_R_SYM(r_info) ((r_info) >> 32)
 #define ELF_RISCV_R_TYPE(r_info) ((r_info) & 0xffffffff)
