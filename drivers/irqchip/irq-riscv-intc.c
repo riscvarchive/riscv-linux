@@ -39,11 +39,11 @@ static void riscv_software_interrupt(void)
 	irqreturn_t ret;
 
 	ret = handle_ipi();
-	if (ret != IRQ_NONE)
-		return;
-#endif
 
-	BUG();
+	WARN_ON(ret != IRQ_NONE);
+#else
+	printk(KER_WARNING "Software Interrupt without CONFIG_SMP\n");
+#endif
 }
 
 asmlinkage void __irq_entry do_IRQ(unsigned int cause, struct pt_regs *regs)
