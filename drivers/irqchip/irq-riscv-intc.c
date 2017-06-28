@@ -137,9 +137,13 @@ static void riscv_irq_enable(struct irq_data *d)
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
 	/*
-	 * There are two phases to setting up an interrupt: first we set a bit
-	 * in this bookkeeping structure, which is used by trap_init to
-	 * initialize SIE for each hart as it comes up.
+	 * When booting a RISC-V system, procesors can come online at any time.
+	 * Interrupts can only be enabled or disabled by writing a CSR on the
+	 * hart that cooresponds to that interrupt controller, but CSRs can
+	 * only be written locally.  In order to avoid waiting a long time for
+	 * a hart to boot, we instead collect the interrupts to be enabled upon
+	 * booting a hart in this bookkeeping structure, which is used by
+	 * trap_init to initialize SIE for each hart as it comes up.
 	 */
 	atomic_long_or((1 << (long)d->hwirq),
 		       &per_cpu(riscv_early_sie, data->hart));
