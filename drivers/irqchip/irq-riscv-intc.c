@@ -47,7 +47,7 @@ static void riscv_software_interrupt(void)
 	 * interrupts, so if a non-SMP system gets a software interrupt then we
 	 * don't know what to do.
 	 */
-	printk(KER_WARNING "Software Interrupt without CONFIG_SMP\n");
+	printk(KERN_WARNING "Software Interrupt without CONFIG_SMP\n");
 #endif
 }
 
@@ -160,11 +160,6 @@ static void riscv_irq_enable(struct irq_data *d)
 					 riscv_irq_enable_helper,
 					 d,
 					 true);
-}
-
-static void riscv_irq_disable_helper(void *d)
-{
-	riscv_irq_mask(d);
 }
 
 static void riscv_irq_disable(struct irq_data *d)
