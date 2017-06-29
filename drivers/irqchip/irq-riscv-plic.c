@@ -24,7 +24,8 @@
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
 
-/* From the RISC-V Privlidged Spec v1.10:
+/*
+ * From the RISC-V Privlidged Spec v1.10:
  *
  * Global interrupt sources are assigned small unsigned integer identifiers,
  * beginning at the value 1.  An interrupt ID of 0 is reserved to mean “no
@@ -42,7 +43,8 @@
 #define MAX_DEVICES	1024
 #define MAX_CONTEXTS	15872
 
-/* The PLIC consists of memory-mapped control registers, with a memory map as
+/*
+ * The PLIC consists of memory-mapped control registers, with a memory map as
  * follows:
  *
  * base + 0x000000: Reserved (interrupt source 0 does not exist)
@@ -84,12 +86,14 @@
 #define PRIORITY_BASE		0
 #define PRIORITY_PER_ID		4
 
-/* Each hart context has a vector of interupt enable bits associated with it.
+/*
+ * Each hart context has a vector of interupt enable bits associated with it.
  * There's one bit for each interrupt source. */
 #define ENABLE_BASE		0x2000
 #define ENABLE_PER_HART		0x80
 
-/* Each hart context has a set of control registers associated with it.  Right
+/*
+ * Each hart context has a set of control registers associated with it.  Right
  * now there's only two: a source priority threshold over which the hart will
  * take an interrupt, and a register to claim interrupts.
  */
@@ -98,7 +102,8 @@
 #define CONTEXT_THRESHOLD	0
 #define CONTEXT_CLAIM		4
 
-/* PLIC devices are named like 'riscv,plic0,%llx', this is enough space to
+/*
+ * PLIC devices are named like 'riscv,plic0,%llx', this is enough space to
  * store that name.
  */
 #define PLIC_DATA_NAME_SIZE 30
@@ -145,7 +150,8 @@ void __iomem *plic_hart_claim(struct plic_data *data, int contextid)
 	return data->reg + CONTEXT_BASE + CONTEXT_PER_HART * contextid + CONTEXT_CLAIM;
 }
 
-/* Handling an interrupt is a two-step process: first you claim the interrupt
+/*
+ * Handling an interrupt is a two-step process: first you claim the interrupt
  * by reading the claim register, then you complete the interrupt by writing
  * that source ID back to the same claim register.  This automatically enables
  * and disables the interrupt, so there's nothing else to do.
@@ -183,7 +189,8 @@ static void plic_enable(struct plic_data *data, int contextid, int hwirq)
 	spin_unlock(&data->lock);
 }
 
-/* There is no need to mask/unmask PLIC interrupts
+/*
+ * There is no need to mask/unmask PLIC interrupts
  * They are "masked" by reading claim and "unmasked" when writing it back.
  */
 static void plic_irq_mask(struct irq_data *d) { }
