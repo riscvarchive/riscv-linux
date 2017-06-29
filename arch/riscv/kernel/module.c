@@ -155,8 +155,8 @@ int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
 			/* Ignore unresolved weak symbol */
 			if (ELF_ST_BIND(sym->st_info) == STB_WEAK)
 				continue;
-			printk(KERN_WARNING "%s: Unknown symbol %s\n",
-			       me->name, strtab + sym->st_name);
+			pr_warning("%s: Unknown symbol %s\n",
+				   me->name, strtab + sym->st_name);
 			return -ENOENT;
 		}
 
