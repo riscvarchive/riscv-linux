@@ -15,7 +15,6 @@
  */
 #ifndef __ASM_COMPAT_H
 #define __ASM_COMPAT_H
-#ifdef __KERNEL__
 #ifdef CONFIG_COMPAT
 
 #if defined(CONFIG_64BIT)
@@ -27,5 +26,4 @@
 #endif
 
 #endif /*CONFIG_COMPAT*/
-#endif /*__KERNEL__*/
 #endif /*__ASM_COMPAT_H*/
