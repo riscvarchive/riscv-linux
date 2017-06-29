@@ -19,8 +19,6 @@
 #ifndef _ASM_RISCV_IO_H
 #define _ASM_RISCV_IO_H
 
-#ifdef __KERNEL__
-
 #ifdef CONFIG_MMU
 
 extern void __iomem *ioremap(phys_addr_t offset, unsigned long size);
@@ -172,7 +170,5 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
 #define writeq(v,c)		({ __iowmb(); writeq_cpu((v),(c)); })
 
 #include <asm-generic/io.h>
-
-#endif /* __KERNEL__ */
 
 #endif /* _ASM_RISCV_IO_H */
