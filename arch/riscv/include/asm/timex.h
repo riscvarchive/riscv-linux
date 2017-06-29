@@ -16,8 +16,6 @@
 
 #include <asm/param.h>
 
-#ifdef __KERNEL__
-
 typedef unsigned long cycles_t;
 
 static inline cycles_t get_cycles(void)
@@ -57,7 +55,5 @@ static inline int read_current_timer(unsigned long *timer_val)
 	*timer_val = get_cycles();
 	return 0;
 }
-
-#endif
 
 #endif /* _ASM_RISCV_TIMEX_H */
