@@ -1,5 +1,6 @@
-lib-y	:= delay.o memcpy.o memset.o uaccess.o
+lib-y	+= delay.o
+lib-y	+= memcpy.o
+lib-y	+= memset.o
+lib-y	+= uaccess.o
 
-ifeq ($(CONFIG_64BIT),)
-lib-y += udivdi3.o
-endif
+lib-$(CONFIG_32BIT) += udivdi3.o
