@@ -19,8 +19,6 @@
 #ifndef __ASM_RISCV_DMA_MAPPING_H
 #define __ASM_RISCV_DMA_MAPPING_H
 
-#ifdef __KERNEL__
-
 /* Use ops->dma_mapping_error (if it exists) or assume success */
 // #undef DMA_ERROR_CODE
 
@@ -37,5 +35,4 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 	return addr + size - 1 <= *dev->dma_mask;
 }
 
-#endif	/* __KERNEL__ */
 #endif	/* __ASM_RISCV_DMA_MAPPING_H */
