@@ -40,47 +40,35 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 }
 #endif /* !CONFIG_64BIT */
 
-SYSCALL_DEFINE3(sysriscv_cmpxchg32, unsigned long, arg1, unsigned long, arg2,
-		unsigned long, arg3)
+SYSCALL_DEFINE3(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old)
 {
-	unsigned long flags;
-	unsigned long prev;
-	unsigned int *ptr;
+	u32 prev;
 	unsigned int err;
 
-	ptr = (unsigned int *)arg1;
-	if (!access_ok(VERIFY_WRITE, ptr, sizeof(unsigned int)))
+	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
 		return -EFAULT;
 
 	preempt_disable();
-	raw_local_irq_save(flags);
 	err = __get_user(prev, ptr);
-	if (likely(!err && prev == arg2))
-		err = __put_user(arg3, ptr);
-	raw_local_irq_restore(flags);
+	if (likely(!err && prev == old))
+		err = __put_user(new, ptr);
 	preempt_enable();
 
 	return unlikely(err) ? err : prev;
 }
 
-SYSCALL_DEFINE3(sysriscv_cmpxchg64, unsigned long, arg1, unsigned long, arg2,
-		unsigned long, arg3)
+SYSCALL_DEFINE3(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old)
 {
-	unsigned long flags;
-	unsigned long prev;
-	unsigned int *ptr;
+	u64 prev;
 	unsigned int err;
 
-	ptr = (unsigned int *)arg1;
-	if (!access_ok(VERIFY_WRITE, ptr, sizeof(unsigned long)))
+	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
 		return -EFAULT;
 
 	preempt_disable();
-	raw_local_irq_save(flags);
 	err = __get_user(prev, ptr);
-	if (likely(!err && prev == arg2))
-		err = __put_user(arg3, ptr);
-	raw_local_irq_restore(flags);
+	if (likely(!err && prev == old))
+		err = __put_user(new, ptr);
 	preempt_enable();
 
 	return unlikely(err) ? err : prev;
