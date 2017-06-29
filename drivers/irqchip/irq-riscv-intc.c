@@ -245,6 +245,7 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 {
 	int hart;
 	struct riscv_irq_data *data;
+	struct irq_domain *domain;
 
 	if (parent)
 		return 0;
@@ -257,11 +258,13 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 		 * not wrong... unless they actually load a driver that needs
 		 * it!  See the comment above for more details.
 		 */
-		irq_domain_add_linear(
+		domain = irq_domain_add_linear(
 			node,
 			8*sizeof(uintptr_t),
 			&riscv_irqdomain_ops_noop,
 			node->parent);
+		if (!domain)
+			goto error_add_linear;
 		return 0;
 	}
 
@@ -278,10 +281,17 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 		8*sizeof(uintptr_t),
 		&riscv_irqdomain_ops,
 		data);
-	WARN_ON(!data->domain);
+	if (!data->domain)
+		goto error_add_linear;
 	printk(KERN_INFO "%s: %d local interrupts mapped\n",
 	       data->name, 8*(int)sizeof(uintptr_t));
 	return 0;
+
+error_add_linear:
+	printk(KERN_WARNING "%s: unable to add IRQ domain\n",
+	       data->name);
+	return -(ENXIO);
+
 }
 
 IRQCHIP_DECLARE(riscv, "riscv,cpu-intc", riscv_intc_init);
