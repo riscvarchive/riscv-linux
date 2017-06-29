@@ -155,20 +155,6 @@ config ISA_A
 
 	   If you don't know what to do here, say Y.
 
-config SYSRISCV_ATOMIC
-	bool "Include support for atomic operation syscalls"
-	default !ISA_A
-	help
-	  If atomic memory instructions are present, i.e.,
-	  CONFIG_ISA_A, this includes support for the syscall that
-	  provides atomic accesses.  This is only useful to run
-	  binaries that require atomic access but were compiled with
-	  -mno-atomic.
-
-	  If CONFIG_ISA_A is unset, this option is mandatory.
-
-	  If you don't know what to do here, say N.
-
 config RV_PUM
 	def_bool y
 	prompt "Protect User Memory" if EXPERT
