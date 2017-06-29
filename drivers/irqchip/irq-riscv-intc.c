@@ -47,7 +47,7 @@ static void riscv_software_interrupt(void)
 	 * interrupts, so if a non-SMP system gets a software interrupt then we
 	 * don't know what to do.
 	 */
-	printk(KERN_WARNING "Software Interrupt without CONFIG_SMP\n");
+	pr_warning("Software Interrupt without CONFIG_SMP\n");
 #endif
 }
 
@@ -214,8 +214,8 @@ static void riscv_irq_enable_noop(struct irq_data *d)
 	u32 hart;
 
 	if (!of_property_read_u32(data, "reg", &hart))
-		printk(
-		  KERN_WARNING "enabled no-op handler for interrupt %d on missing hart %d\n",
+		pr_warning(
+		  "enabled no-op handler for interrupt %d on missing hart %d\n",
 		  (int)d->hwirq, hart);
 }
 
@@ -283,13 +283,13 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 		data);
 	if (!data->domain)
 		goto error_add_linear;
-	printk(KERN_INFO "%s: %d local interrupts mapped\n",
-	       data->name, 8*(int)sizeof(uintptr_t));
+	pr_info("%s: %d local interrupts mapped\n",
+	        data->name, 8*(int)sizeof(uintptr_t));
 	return 0;
 
 error_add_linear:
-	printk(KERN_WARNING "%s: unable to add IRQ domain\n",
-	       data->name);
+	pr_warning("%s: unable to add IRQ domain\n",
+		   data->name);
 	return -(ENXIO);
 
 }
