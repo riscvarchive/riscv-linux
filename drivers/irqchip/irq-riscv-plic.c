@@ -353,8 +353,8 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 		++ok;
 	}
 
-	printk(KERN_INFO "%s: mapped %d interrupts to %d/%d handlers\n",
-	       data->name, data->ndev, ok, data->handlers);
+	pr_info("%s: mapped %d interrupts to %d/%d handlers\n",
+	        data->name, data->ndev, ok, data->handlers);
 	WARN_ON(!ok);
 	return 0;
 
