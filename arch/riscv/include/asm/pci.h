@@ -13,7 +13,6 @@
 
 #ifndef __ASM_RISCV_PCI_H
 #define __ASM_RISCV_PCI_H
-#ifdef __KERNEL__
 
 #include <linux/types.h>
 #include <linux/slab.h>
@@ -46,5 +45,4 @@ static inline int pci_proc_domain(struct pci_bus *bus)
 }
 #endif  /* CONFIG_PCI */
 
-#endif  /* __KERNEL__ */
 #endif  /* __ASM_PCI_H */
