@@ -24,11 +24,9 @@
  */
 #define TASK_UNMAPPED_BASE	PAGE_ALIGN(TASK_SIZE >> 1)
 
-#ifdef __KERNEL__
 #define STACK_TOP		TASK_SIZE
 #define STACK_TOP_MAX		STACK_TOP
 #define STACK_ALIGN		16
-#endif /* __KERNEL__ */
 
 #ifndef __ASSEMBLY__
 
