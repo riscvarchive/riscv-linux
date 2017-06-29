@@ -18,8 +18,6 @@
 #error "Only <linux/bitops.h> can be included directly"
 #endif /* _LINUX_BITOPS_H */
 
-#ifdef __KERNEL__
-
 #include <linux/compiler.h>
 #include <linux/irqflags.h>
 #include <asm/barrier.h>
@@ -222,7 +220,5 @@ static inline void __clear_bit_unlock(
 #include <asm-generic/bitops.h>
 
 #endif /* CONFIG_ISA_A */
-
-#endif /* __KERNEL__ */
 
 #endif /* _ASM_RISCV_BITOPS_H */
