@@ -16,8 +16,6 @@
 #ifndef _ASM_RISCV_THREAD_INFO_H
 #define _ASM_RISCV_THREAD_INFO_H
 
-#ifdef __KERNEL__
-
 #include <asm/page.h>
 #include <linux/const.h>
 
@@ -90,7 +88,5 @@ struct thread_info {
 
 #define _TIF_WORK_MASK \
 	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | _TIF_NEED_RESCHED)
-
-#endif /* __KERNEL__ */
 
 #endif /* _ASM_RISCV_THREAD_INFO_H */
