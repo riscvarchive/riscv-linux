@@ -52,11 +52,6 @@ struct thread_struct {
 	.sp = sizeof(init_stack) + (long)&init_stack,	\
 }
 
-/* Return saved (kernel) PC of a blocked thread. */
-#define thread_saved_pc(t)	((t)->thread.ra)
-#define thread_saved_sp(t)	((t)->thread.sp)
-#define thread_saved_fp(t)	((t)->thread.s[0])
-
 #define task_pt_regs(tsk)						\
 	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE		\
 			    - ALIGN(sizeof(struct pt_regs), STACK_ALIGN)))
