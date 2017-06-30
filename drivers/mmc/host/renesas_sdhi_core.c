@@ -454,8 +454,7 @@ static void renesas_sdhi_enable_dma(struct tmio_mmc_host *host, bool enable)
 {
 	sd_ctrl_write16(host, CTL_DMA_ENABLE, enable ? DMA_ENABLE_DMASDRW : 0);
 
-	/* enable 32bit access if DMA mode if possibile */
-	renesas_sdhi_sdbuf_width(host, enable ? 32 : 16);
+	renesas_sdhi_sdbuf_width(host, enable ? (16 << host->bus_shift) : 16);
 }
 
 int renesas_sdhi_probe(struct platform_device *pdev,
