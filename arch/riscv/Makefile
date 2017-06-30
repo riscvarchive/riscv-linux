@@ -60,6 +60,8 @@ KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_RV_ATOMIC)fd$(KBUILD_RVC)
 
 KBUILD_CFLAGS += -mno-save-restore
 
+KBUILD_CFLAGS += -mstrict-align
+
 head-y := arch/riscv/kernel/head.o
 
 core-y += arch/riscv/kernel/ arch/riscv/mm/
