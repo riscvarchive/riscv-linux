@@ -100,7 +100,7 @@ static const struct irq_domain_ops riscv_irqdomain_ops = {
 /*
  * On RISC-V systems local interrupts are masked or unmasked by writing the SIE
  * (Supervisor Interrupt Enable) CSR.  As CSRs can only be written on the local
- * hart, these functions can only be called on the hart that cooresponds to the
+ * hart, these functions can only be called on the hart that corresponds to the
  * IRQ chip.  They are only called internally to this module, so they BUG_ON if
  * this condition is violated rather than attempting to handle the error by
  * forwarding to the target hart, as that's already expected to have been done.
@@ -137,9 +137,9 @@ static void riscv_irq_enable(struct irq_data *d)
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
 	/*
-	 * When booting a RISC-V system, procesors can come online at any time.
+	 * When booting a RISC-V system, processors can come online at any time.
 	 * Interrupts can only be enabled or disabled by writing a CSR on the
-	 * hart that cooresponds to that interrupt controller, but CSRs can
+	 * hart that corresponds to that interrupt controller, but CSRs can
 	 * only be written locally.  In order to avoid waiting a long time for
 	 * a hart to boot, we instead collect the interrupts to be enabled upon
 	 * booting a hart in this bookkeeping structure, which is used by
