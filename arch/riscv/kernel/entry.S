@@ -37,7 +37,7 @@
 _restore_kernel_sp:
 	csrr sp, sscratch
 _save_context:
-	addi sp, sp, -(PT_SIZE)
+	addi sp, sp, -ALIGN(PT_SIZE, STACK_ALIGN)
 	REG_S x1,  PT_RA(sp)
 	REG_S x3,  PT_GP(sp)
 	REG_S x4,  PT_TP(sp)
@@ -211,7 +211,7 @@ resume_userspace:
 	bnez s1, work_pending
 
 	/* Save unwound kernel stack pointer in sscratch */
-	addi s0, sp, PT_SIZE
+	addi s0, sp, ALIGN(PT_SIZE, STACK_ALIGN)
 	csrw sscratch, s0
 restore_all:
 	RESTORE_ALL
