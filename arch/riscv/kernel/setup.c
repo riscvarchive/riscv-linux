@@ -231,6 +231,8 @@ void __init setup_arch(char **cmdline_p)
 #ifdef CONFIG_DUMMY_CONSOLE
 	conswitchp = &dummy_con;
 #endif
+
+	riscv_fill_hwcap();
 }
 
 static int __init riscv_device_init(void)

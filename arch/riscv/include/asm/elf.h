@@ -59,7 +59,8 @@
  * instruction set this CPU supports.  This could be done in user space,
  * but it's not easy, and we've already done it here.
  */
-#define ELF_HWCAP	(0)
+#define ELF_HWCAP	(elf_hwcap)
+extern unsigned long elf_hwcap;
 
 /*
  * This yields a string that ld.so will use to load implementation

@@ -90,6 +90,8 @@ static inline void wait_for_interrupt(void)
 struct device_node;
 extern int riscv_of_processor_hart(struct device_node *node);
 
+extern void riscv_fill_hwcap(void);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* _ASM_RISCV_PROCESSOR_H */
