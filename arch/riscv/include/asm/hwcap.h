@@ -16,21 +16,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __UAPI_ASM_HWCAP_H
-#define __UAPI_ASM_HWCAP_H
+#ifndef __ASM_HWCAP_H
+#define __ASM_HWCAP_H
 
+#include <uapi/asm/hwcap.h>
+
+#ifndef __ASSEMBLY__
 /*
- * Linux saves the floating-point registers according to the ISA Linux is
- * executing on, as opposed to the ISA the user program is compiled for.  This
- * is necessary for a handful of esoteric use cases: for example, userpsace
- * threading libraries must be able to examine the actual machine state in
- * order to fully reconstruct the state of a thread.
+ * This yields a mask that user programs can use to figure out what
+ * instruction set this cpu supports.
  */
-#define COMPAT_HWCAP_ISA_I	(1 << ('I' - 'A'))
-#define COMPAT_HWCAP_ISA_M	(1 << ('M' - 'A'))
-#define COMPAT_HWCAP_ISA_A	(1 << ('A' - 'A'))
-#define COMPAT_HWCAP_ISA_F	(1 << ('F' - 'A'))
-#define COMPAT_HWCAP_ISA_D	(1 << ('D' - 'A'))
-#define COMPAT_HWCAP_ISA_C	(1 << ('C' - 'A'))
+#define ELF_HWCAP		(elf_hwcap)
 
+enum {
+	CAP_HWCAP = 1,
+};
+
+extern unsigned long elf_hwcap;
+#endif
 #endif

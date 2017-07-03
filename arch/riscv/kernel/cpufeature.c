@@ -28,6 +28,14 @@ void riscv_fill_hwcap(void)
 	struct device_node *node;
 	const char *isa;
 	size_t i;
+	static unsigned long isa2hwcap[256] = {0};
+
+	isa2hwcap['i'] = isa2hwcap['I'] = COMPAT_HWCAP_ISA_I;
+	isa2hwcap['m'] = isa2hwcap['M'] = COMPAT_HWCAP_ISA_M;
+	isa2hwcap['a'] = isa2hwcap['A'] = COMPAT_HWCAP_ISA_A;
+	isa2hwcap['f'] = isa2hwcap['F'] = COMPAT_HWCAP_ISA_F;
+	isa2hwcap['d'] = isa2hwcap['D'] = COMPAT_HWCAP_ISA_D;
+	isa2hwcap['c'] = isa2hwcap['C'] = COMPAT_HWCAP_ISA_C;
 
 	elf_hwcap = 0;
 
@@ -42,23 +50,12 @@ void riscv_fill_hwcap(void)
 	}
 
 	if (of_property_read_string(node, "riscv,isa", &isa)) {
-		pr_warning("Unablet to find \"riscv,isa\" devicetree entry");
+		pr_warning("Unable to find \"riscv,isa\" devicetree entry");
 		return;
 	}
 
-	for (i = 0; i < strlen(isa); ++i) {
-		switch (isa[i]) {
-		case 'f':
-			elf_hwcap |= COMPAT_HWCAP_ISA_F;
-			break;
-		case 'd':
-			elf_hwcap |= COMPAT_HWCAP_ISA_D;
-			break;
-		case 'q':
-			elf_hwcap |= COMPAT_HWCAP_ISA_Q;
-			break;
-		}
-	}
+	for (i = 0; i < strlen(isa); ++i)
+		elf_hwcap |= isa2hwcap[(unsigned char)(isa[i])];
 
 	pr_info("elf_hwcap is 0x%lx", elf_hwcap);
 }
