@@ -17,13 +17,13 @@
 /*
  * All RISC-V systems have a timer attached to every hart.  These timers can be
  * read by the 'rdcycle' pseudo instruction, and can use the SBI to setup
- * events.  In order to abstract the arcitecture-specific timer reading and
+ * events.  In order to abstract the architecture-specific timer reading and
  * setting functions away from the clock event insertion code, we provide
  * function pointers to the clockevent subsystem that perform two basic operations:
  * rdtime() reads the timer on the current CPU, and next_event(delta) sets the
  * next timer event to 'delta' cycles in the future.  As the timers are
  * inherently a per-cpu resource, these callbacks perform operations on the
- * current hart.  There is guarnteed to be exactly one timer per hart on all
+ * current hart.  There is guaranteed to be exactly one timer per hart on all
  * RISC-V systems.
  */
 void timer_riscv_init(int cpu_id,
