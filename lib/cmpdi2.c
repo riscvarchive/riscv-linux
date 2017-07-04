@@ -1,6 +1,4 @@
 /*
- * arch/score/lib/cmpdi2.c
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -13,14 +11,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * to the Free Software Foundation, Inc.
  */
 
-#include <linux/module.h>
-#include "libgcc.h"
+#include <linux/export.h>
 
-word_type __cmpdi2(long long a, long long b)
+#include <lib/libgcc.h>
+
+word_type notrace __cmpdi2(long long a, long long b)
 {
 	const DWunion au = {
 		.ll = a

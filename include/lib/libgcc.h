@@ -1,5 +1,5 @@
 /*
- * arch/score/lib/lshrdi3.c
+ * include/lib/libgcc.h
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,35 +13,32 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see the file COPYING, or write
- * to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ * to the Free Software Foundation, Inc.
  */
 
 
-#include <linux/module.h>
-#include "libgcc.h"
+#ifndef __LIB_LIBGCC_H
+#define __LIB_LIBGCC_H
 
-long long __lshrdi3(long long u, word_type b)
-{
-	DWunion uu, w;
-	word_type bm;
+#include <asm/byteorder.h>
 
-	if (b == 0)
-		return u;
+typedef int word_type __attribute__ ((mode (__word__)));
 
-	uu.ll = u;
-	bm = 32 - b;
+#ifdef __BIG_ENDIAN
+struct DWstruct {
+	int high, low;
+};
+#elif defined(__LITTLE_ENDIAN)
+struct DWstruct {
+	int low, high;
+};
+#else
+#error I feel sick.
+#endif
 
-	if (bm <= 0) {
-		w.s.high = 0;
-		w.s.low = (unsigned int) uu.s.high >> -bm;
-	} else {
-		const unsigned int carries = (unsigned int) uu.s.high << bm;
+typedef union {
+	struct DWstruct s;
+	long long ll;
+} DWunion;
 
-		w.s.high = (unsigned int) uu.s.high >> b;
-		w.s.low = ((unsigned int) uu.s.low >> b) | carries;
-	}
-
-	return w.ll;
-}
-EXPORT_SYMBOL(__lshrdi3);
+#endif /* __ASM_LIBGCC_H */
