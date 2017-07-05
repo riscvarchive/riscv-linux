@@ -103,16 +103,6 @@ asmlinkage void __init smp_callin(void)
 	init_clockevent();
 	notify_cpu_starting(smp_processor_id());
 	set_cpu_online(smp_processor_id(), 1);
-
-	/*
-	 * Write SIE again now that this hart is online, to catch any IRQ
-	 * enable/disable events that happened between trap_init() and
-	 * set_cpu_online().
-	 */
-	csr_write(sie,
-		  SIE_SSIE | atomic_long_read(&per_cpu(riscv_early_sie, hart))
-		);
-
 	local_flush_tlb_all();
 	local_irq_enable();
 	preempt_disable();
