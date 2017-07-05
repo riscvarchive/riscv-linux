@@ -12,6 +12,8 @@
  *   GNU General Public License for more details.
  */
 
+#define GENERATING_ASM_OFFSETS
+
 #include <linux/kbuild.h>
 #include <linux/sched.h>
 #include <asm/thread_info.h>
@@ -315,4 +317,6 @@ void asm_offsets(void)
 	 * ensures the alignment is sane.
 	 */
 	DEFINE(PT_SIZE_ON_STACK, ALIGN(sizeof(struct pt_regs), STACK_ALIGN));
+
+	OFFSET(TASK_CPU, task_struct, cpu);
 }
