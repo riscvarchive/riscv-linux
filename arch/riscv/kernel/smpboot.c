@@ -68,7 +68,13 @@ void __init setup_smp(void)
 
 int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 {
-	/* Signal cpu to start */
+	/*
+	 * On RISC-V systems, all harts boot on their own accord.  Our _start
+	 * selects the first hart to boot the kernel and causes the remainder
+	 * of the harts to spin in a loop waiting for their stack pointer to be
+	 * setup by that main hart.  Writing __cpu_up_stack_pointer signals to
+	 * the spinning harts that they can continue the boot process.
+	 */
 	mb();
 	__cpu_up_stack_pointer[cpu] = task_stack_page(tidle) + THREAD_SIZE;
 

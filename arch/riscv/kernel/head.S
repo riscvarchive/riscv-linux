@@ -123,6 +123,10 @@ relocate:
 	slli a0, a0, LGREG
 	add a0, a0, a1
 
+	/*
+	 * This hart didn't win the lottery, so we wait for the winning hart to
+	 * get far enough along the boot process that it should continue.
+	 */
 .Lwait_for_cpu_up:
 	REG_L sp, (a0)
 	beqz sp, .Lwait_for_cpu_up
