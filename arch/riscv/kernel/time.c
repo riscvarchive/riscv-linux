@@ -42,11 +42,18 @@ void riscv_timer_interrupt(void)
 	evdev->event_handler(evdev);
 }
 
+void __init init_clockevent(void)
+{
+	int cpu_id = smp_processor_id();
+
+	timer_riscv_init(cpu_id, riscv_timebase, &rdtime, &next_event);
+	csr_set(sie, SIE_STIE);
+}
+
 void __init time_init(void)
 {
 	struct device_node *cpu;
 	u32 prop;
-	int cpu_id = smp_processor_id();
 
 	cpu = of_find_node_by_path("/cpus");
 	if (!cpu || of_property_read_u32(cpu, "timebase-frequency", &prop))
@@ -55,7 +62,5 @@ void __init time_init(void)
 
 	lpj_fine = riscv_timebase / HZ;
 
-	timer_riscv_init(cpu_id, riscv_timebase, &rdtime, &next_event);
-
-	csr_set(sie, SIE_STIE);
+	init_clockevent();
 }
