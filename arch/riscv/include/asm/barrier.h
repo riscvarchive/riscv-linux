@@ -62,61 +62,72 @@
  * bit set and allow the microarchitecture to avoid the other half of the AMO.
  */
 #define __smp_store_release(p, v)					\
-do {									\
+({									\
 	union { typeof(*p) __val; char __c[1]; } __u =			\
 		{ .__val = (__force typeof(*p)) (v) };			\
 	compiletime_assert_atomic_type(*p);				\
 	switch (sizeof(*p)) {						\
 	case 1:								\
 	case 2:								\
-		smb_mb();						\
+		smp_mb();						\
 		WRITE_ONCE(*p, __u.__val);				\
 		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"amoswap.w.rl zero, %1, %0"			\
-			: "+A" (*p), "r" (__u.__val)			\
-			: 						\
+			: "+A" (*p)					\
+			: "r" (__u.__val)				\
 			: "memory");					\
 		break;							\
 	case 8:								\
 		__asm__ __volatile__ (					\
 			"amoswap.d.rl zero, %1, %0"			\
-			: "+A" (*p), "r" (__u.__val)			\
-			: 						\
+			: "+A" (*p)					\
+			: "r" (__u.__val)				\
 			: "memory");					\
 		break;							\
 	}								\
-} while (0)
+})
 
 #define __smp_load_acquire(p)						\
-do {									\
-	union { typeof(*p) __val; char __c[1]; } __u =			\
-		{ .__val = (__force typeof(*p)) (v) };			\
+({									\
+	union { typeof(*p) __val;					\
+		u8 __b; u16 __h; u32 __w; u64 __d;} __u;		\
 	compiletime_assert_atomic_type(*p);				\
 	switch (sizeof(*p)) {						\
 	case 1:								\
+		__asm__ __volatile__ (					\
+			"lb %0, %1"					\
+			: "=r" (__u.__b)				\
+			: "A" (*p)					\
+			: "memory");					\
+		smp_mb();						\
+		break;							\
 	case 2:								\
-		__u.__val = READ_ONCE(*p);				\
-		smb_mb();						\
+		__asm__ __volatile__ (					\
+			"lh %0, %1"					\
+			: "=r" (__u.__h)				\
+			: "A" (*p)					\
+			: "memory");					\
+		smp_mb();						\
 		break;							\
 	case 4:								\
 		__asm__ __volatile__ (					\
-			"amoor.w.aq %1, zero, %0"			\
-			: "+A" (*p)					\
-			: "=r" (__u.__val)				\
+			"amoor.w.aq %0, zero, %1"			\
+			: "=r" (__u.__w)				\
+			: "A" (*p)					\
 			: "memory");					\
 		break;							\
 	case 8:								\
 		__asm__ __volatile__ (					\
-			"amoor.d.aq %1, zero, %0"			\
-			: "+A" (*p)					\
-			: "=r" (__u.__val)				\
+			"amoor.d.aq %0, zero, %1"			\
+			: "=r" (__u.__d)				\
+			: "A" (*p)					\
 			: "memory");					\
 		break;							\
 	}								\
 	__u.__val;							\
-} while (0)
+})
 
 /*
  * The default implementation of this uses READ_ONCE and
