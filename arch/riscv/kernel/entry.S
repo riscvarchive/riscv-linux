@@ -33,26 +33,25 @@
 	LOCAL _common_save
 
 /*
- * 	If coming from userspace, task thread pointer TP is in sscratch and
- *	   the kernel stack pointer SP pointing to save frame
- *	   is saved in TASK structure.
- *	If we came from the kernel, sscratch will contain 0, and we should
+ *	If coming from userspace, sscratch contains kernel stack pointer and 
+ *      its stackframe contains the kernel thread pointer.
+ *
+ * 	If we came from the kernel, sscratch will contain 0, and we should
  *	  continue on the current SP and TP.
  */
 	csrrw x8, sscratch, x8
 	beqz x8, _resume_kernel
 /*
  *	from userspace: save user SP and TP
- *	load kernel SP from TASK structure and TP from x8
+ *	  restore current SP from x8 and TP from stack frame
  */
-	REG_S sp, TASK_TI_USER_SP(x8)
-	REG_L sp, TASK_TI_KERNEL_SP(x8)
-	REG_S x4, PT_TP(sp)
-	move  tp, x8
-	REG_L x8, TASK_TI_USER_SP(tp)
-	REG_S x8, PT_SP(sp)
+	REG_S sp, PT_SP(x8)
+	move  sp, x8
 
+	REG_S x4,  PT_TP(sp)
+	REG_L x4,  PT_KERN_TP(sp)
 	j _common_save
+
 _resume_kernel:
 /*
  *      Advance the SP frame.
@@ -193,12 +192,13 @@ ENTRY(handle_exception)
 	tail do_trap_unknown
 
 handle_syscall:
+	/* System calls run with interrupts enabled */
+	csrs sstatus, SR_IE
+
 	/* Advance SEPC to avoid executing the original
 	   scall instruction on sret */
 	addi s2, s2, 0x4
 	REG_S s2, PT_SEPC(sp)
-	/* System calls run with interrupts enabled */
-	csrs sstatus, SR_IE
 	/* Trace syscalls, but only if requested by the user. */
 	REG_L t0, TASK_TI_FLAGS(tp)
 	andi t0, t0, _TIF_SYSCALL_TRACE
@@ -236,12 +236,11 @@ resume_userspace:
 	andi s1, s0, _TIF_WORK_MASK
 	bnez s1, work_pending
 
-	/* Save current kernel stack pointer in thread_info to allow resume */
-	REG_S sp, TASK_TI_KERNEL_SP(tp)
+	/* Save TP in now unused field in stack frame */
+	REG_S tp, PT_KERN_TP(sp)
 
-	/* Save TP into sscratch, so we can find the kernel data structures
-	 * again. */
-	csrw sscratch, tp
+	/* Save SP into sscratch, so we can find TP in stack frame */
+	csrw sscratch, sp
 
 restore_all:
 /*
