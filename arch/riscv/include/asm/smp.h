@@ -14,6 +14,11 @@
 #ifndef _ASM_RISCV_SMP_H
 #define _ASM_RISCV_SMP_H
 
+/* This both needs asm-offsets.h and is used when generating it. */
+#ifndef GENERATING_ASM_OFFSETS
+#include <asm/asm-offsets.h>
+#endif
+
 #include <linux/cpumask.h>
 #include <linux/irqreturn.h>
 
@@ -31,7 +36,13 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask);
 /* Hook for the generic smp_call_function_single() routine. */
 void arch_send_call_function_single_ipi(int cpu);
 
-#define raw_smp_processor_id() (current_thread_info()->cpu)
+/*
+ * This is particularly ugly: it appears we can't actually get the definition
+ * of task_struct here, but we need access to the CPU this task is running on.
+ * Instead of using C we're using asm-offsets.h to get the current processor
+ * ID.
+ */
+#define raw_smp_processor_id() (*((int*)((char*)get_current() + TASK_CPU)))
 
 /* Interprocessor interrupt handler */
 irqreturn_t handle_ipi(void);
