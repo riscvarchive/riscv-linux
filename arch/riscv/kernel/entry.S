@@ -24,26 +24,52 @@
 	.text
 	.altmacro
 
-/* Prepares to enter a system call or exception by saving all registers to the
- * stack.
+/*
+ * Prepares to enter a system call or exception by saving all registers to the
+ * stack and restoring kernel registers SP,TP,GP.
  */
 	.macro SAVE_ALL
-	LOCAL _restore_kernel_tpsp
-	LOCAL _save_context
+	LOCAL _resume_kernel
+	LOCAL _common_save
 
-	/* If coming from userspace, preserve the user thread pointer and load
-	   the kernel thread pointer.  If we came from the kernel, sscratch
-	   will contain 0, and we should continue on the current TP. */
-	csrrw tp, sscratch, tp
-	bnez tp, _save_context
+/*
+ * 	If coming from userspace, task thread pointer TP is in sscratch and
+ *	   the kernel stack pointer SP pointing to save frame
+ *	   is saved in TASK structure.
+ *	If we came from the kernel, sscratch will contain 0, and we should
+ *	  continue on the current SP and TP.
+ */
+	csrrw x8, sscratch, x8
+	beqz x8, _resume_kernel
+/*
+ *	from userspace: save user SP and TP
+ *	load kernel SP from TASK structure and TP from x8
+ */
+	REG_S sp, TASK_TI_USER_SP(x8)
+	REG_L sp, TASK_TI_KERNEL_SP(x8)
+	REG_S x4, PT_TP(sp)
+	move  tp, x8
+	REG_L x8, TASK_TI_USER_SP(tp)
+	REG_S x8, PT_SP(sp)
 
-_restore_kernel_tpsp:
-	csrr tp, sscratch
-	REG_S sp, TASK_TI_KERNEL_SP(tp)
-_save_context:
-	REG_S sp, TASK_TI_USER_SP(tp)
-	REG_L sp, TASK_TI_KERNEL_SP(tp)
+	j _common_save
+_resume_kernel:
+/*
+ *      Advance the SP frame.
+ *      Need to save current kernel SP and TP for RESTORE_ALL return.
+ */
+	REG_S sp,  PT_SP-(PT_SIZE_ON_STACK)(sp)
 	addi sp, sp, -(PT_SIZE_ON_STACK)
+	REG_S tp,  PT_KERN_TP(sp)
+_common_save:
+
+/*
+ * 	Set sscratch register to 0, so that if a recursive exception
+ *	   occurs, the exception vector knows it came from the kernel
+ */
+
+	csrrw x8, sscratch, x0
+
 	REG_S x1,  PT_RA(sp)
 	REG_S x3,  PT_GP(sp)
 	REG_S x5,  PT_T0(sp)
@@ -74,31 +100,31 @@ _save_context:
 	REG_S x30, PT_T5(sp)
 	REG_S x31, PT_T6(sp)
 
-	/* Disable FPU to detect illegal usage of
-	   floating point in kernel space */
+/*
+ * 	Disable FPU to detect illegal usage of floating point in
+ * 	kernel space
+ */
 	li t0, SR_FS
 
-	REG_L s0, TASK_TI_USER_SP(tp)
 	csrrc s1, sstatus, t0
 	csrr s2, sepc
 	csrr s3, sbadaddr
 	csrr s4, scause
-	csrr s5, sscratch
-	REG_S s0, PT_SP(sp)
 	REG_S s1, PT_SSTATUS(sp)
 	REG_S s2, PT_SEPC(sp)
 	REG_S s3, PT_SBADADDR(sp)
 	REG_S s4, PT_SCAUSE(sp)
-	REG_S s5, PT_TP(sp)
+
+	la gp, __global_pointer$
+
 	.endm
 
-/* Prepares to return from a system call or exception by restoring all
- * registers from the stack.
+/*
+ *	Prepares to return from a system call or exception by restoring all
+ *	registers from the stack and csr not already processed.
  */
 	.macro RESTORE_ALL
-	REG_L a0, PT_SSTATUS(sp)
 	REG_L a2, PT_SEPC(sp)
-	csrw sstatus, a0
 	csrw sepc, a2
 
 	REG_L x1,  PT_RA(sp)
@@ -137,12 +163,6 @@ _save_context:
 
 ENTRY(handle_exception)
 	SAVE_ALL
-
-	/* Set sscratch register to 0, so that if a recursive exception
-	   occurs, the exception vector knows it came from the kernel */
-	csrw sscratch, x0
-
-	la gp, __global_pointer$
 
 	la ra, ret_from_exception
 	/* MSB of cause differentiates between
@@ -206,7 +226,7 @@ ret_from_syscall:
 
 ret_from_exception:
 	REG_L s0, PT_SSTATUS(sp)
-	csrc sstatus, SR_IE
+	csrw sstatus, S0
 	andi s0, s0, SR_PS
 	bnez s0, restore_all
 
@@ -216,15 +236,17 @@ resume_userspace:
 	andi s1, s0, _TIF_WORK_MASK
 	bnez s1, work_pending
 
-	/* Save unwound kernel stack pointer in thread_info */
-	addi s0, sp, PT_SIZE_ON_STACK
-	REG_S s0, TASK_TI_KERNEL_SP(tp)
+	/* Save current kernel stack pointer in thread_info to allow resume */
+	REG_S sp, TASK_TI_KERNEL_SP(tp)
 
 	/* Save TP into sscratch, so we can find the kernel data structures
 	 * again. */
 	csrw sscratch, tp
 
 restore_all:
+/*
+ *	Some csr do not need to be restored as they are already handled.
+ */
 	RESTORE_ALL
 	sret
 
