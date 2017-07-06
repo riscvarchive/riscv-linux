@@ -22,6 +22,7 @@ ENTRY(__vdso_cmpxchg32)
  * a0: ptr
  * a1: compare value
  * a2: exchange value
+ * a3: pointer to previous value
  */
 0:
 	lr.w.aqrl t0, 0(a0)
@@ -29,7 +30,8 @@ ENTRY(__vdso_cmpxchg32)
 	sc.w.aqrl t1, a2, 0(a0)
 	bnez      t1, 0b
 1:
-	mv        a0, t0
+	sw        t0, 0(a3)
+	li        a0, 0
 	ret
 #else
 	li a7, __NR_sysriscv_cmpxchg32

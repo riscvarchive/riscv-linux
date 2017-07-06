@@ -42,29 +42,35 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 }
 #endif /* !CONFIG_64BIT */
 
-SYSCALL_DEFINE3(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old)
+SYSCALL_DEFINE4(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old,
+		u32 __user *, user_prev)
 {
 	u32 prev;
 	unsigned int err;
 
 	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
 		return -EFAULT;
+	if (!access_ok(VERIFY_WRITE, user_prev, sizeof(*user_prev)))
+		return -EFAULT;
 
 #ifdef CONFIG_ISA_A
-	err = 0;
 	prev = cmpxchg32(ptr, old, new);
+	err = __put_user(prev, user_prev);
 #else
 	preempt_disable();
 	err = __get_user(prev, ptr);
 	if (likely(!err && prev == old))
 		err = __put_user(new, ptr);
+	if (likely(!err))
+		err = __put_user(prev, user_prev);
 	preempt_enable();
 #endif
 
-	return unlikely(err) ? err : prev;
+	return err;
 }
 
-SYSCALL_DEFINE3(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old)
+SYSCALL_DEFINE4(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old,
+		u64 __user *, user_prev)
 {
 #ifdef CONFIG_64BIT
 	u64 prev;
@@ -72,18 +78,22 @@ SYSCALL_DEFINE3(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old)
 
 	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
 		return -EFAULT;
+	if (!access_ok(VERIFY_WRITE, user_prev, sizeof(*user_prev)))
+		return -EFAULT;
 
 #ifdef CONFIG_ISA_A
-	err = 0;
 	prev = cmpxchg64(ptr, old, new);
+	err = __put_user(prev, user_prev);
 #else
 	preempt_disable();
 	err = __get_user(prev, ptr);
 	if (likely(!err && prev == old))
 		err = __put_user(new, ptr);
+	if (likely(!err))
+		err = __put_user(prev, user_prev);
 	preempt_enable();
 #endif
-	return unlikely(err) ? err : prev;
+	return err;
 #else
 	return -ENOTSUPP;
 #endif
