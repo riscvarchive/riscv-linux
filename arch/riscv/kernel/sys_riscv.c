@@ -46,7 +46,7 @@ SYSCALL_DEFINE4(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old,
 		u32 __user *, user_prev)
 {
 	u32 prev;
-	unsigned int err;
+	int err;
 
 	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
 		return -EFAULT;
@@ -74,7 +74,7 @@ SYSCALL_DEFINE4(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old,
 {
 #ifdef CONFIG_64BIT
 	u64 prev;
-	unsigned int err;
+	int err;
 
 	if (!access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)))
 		return -EFAULT;

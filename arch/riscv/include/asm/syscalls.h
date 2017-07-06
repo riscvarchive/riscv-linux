@@ -20,6 +20,6 @@
 
 /* kernel/sys_riscv.c */
 asmlinkage long sys_sysriscv_cmpxchg32(u32 __user * ptr, u32 new, u32 old, u32 __user *prev);
-asmlinkage long sys_sysriscv_cmpxchg64(u64 __user * ptr, u64 new, u64 old, u32 _-user *prev);
+asmlinkage long sys_sysriscv_cmpxchg64(u64 __user * ptr, u64 new, u64 old, u32 __user *prev);
 
 #endif /* _ASM_RISCV_SYSCALLS_H */
