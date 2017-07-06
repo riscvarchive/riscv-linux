@@ -58,7 +58,8 @@ static __always_inline void atomic##prefix##_##op(c_type i, atomic##prefix##_t *
 	__asm__ __volatile__ (									\
 		"amo" #asm_op "." #asm_type " zero, %1, %0"					\
 		: "+A" (v->counter)								\
-		: "r" (I));									\
+		: "r" (I)									\
+		: "memory");									\
 }
 
 #ifdef CONFIG_GENERIC_ATOMIC64
@@ -96,7 +97,8 @@ static __always_inline c_type atomic##prefix##_fetch_##op##c_or(c_type i, atomic
 	__asm__ __volatile__ (										\
 		"amo" #asm_op "." #asm_type #asm_or " %2, %1, %0"					\
 		: "+A" (v->counter), "=r" (ret)								\
-		: "r" (I));										\
+		: "r" (I)										\
+		: "memory");										\
 	return ret;											\
 }
 
@@ -257,7 +259,8 @@ static __always_inline int __atomic_add_unless(atomic_t *v, int a, int u)
 		"bnez      %1, 0b\n\t"
 		"1:"
 		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
-		: "r" (a), "r" (u));
+		: "r" (a), "r" (u)
+		: "memory");
 	return prev;
 }
 
@@ -275,7 +278,8 @@ static __always_inline long atomic64_add_unless(atomic64_t *v, long a, long u)
 		"bnez      %1, 0b\n\t"
 		"1:"
 		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
-		: "r" (a), "r" (u));
+		: "r" (a), "r" (u)
+		: "memory");
 	return prev;
 }
 #endif
