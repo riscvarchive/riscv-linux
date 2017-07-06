@@ -119,25 +119,25 @@ relocate:
 	li a1, CONFIG_NR_CPUS
 	bgeu a0, a1, .Lsecondary_park
 
-	la a1, __cpu_up_stack_pointer
 	slli a0, a0, LGREG
-	add a0, a0, a1
+	la a1, __cpu_up_stack_pointer
+	la a2, __cpu_up_task_pointer
+	add a1, a0, a1
+	add a2, a0, a2
 
 	/*
 	 * This hart didn't win the lottery, so we wait for the winning hart to
 	 * get far enough along the boot process that it should continue.
 	 */
 .Lwait_for_cpu_up:
-	REG_L sp, (a0)
+	REG_L sp, (a1)
+	REG_L tp, (a2)
 	beqz sp, .Lwait_for_cpu_up
+	beqz tp, .Lwait_for_cpu_up
 	fence
 
 	/* Enable virtual memory and relocate to virtual address */
 	call relocate
-
-	/* Initialize task_struct pointer */
-	li tp, -THREAD_SIZE
-	add tp, tp, sp
 
 	tail smp_callin
 #endif

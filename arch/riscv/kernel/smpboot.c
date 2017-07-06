@@ -37,6 +37,7 @@
 #include <asm/sbi.h>
 
 void *__cpu_up_stack_pointer[NR_CPUS];
+void *__cpu_up_task_pointer[NR_CPUS];
 
 void __init smp_prepare_boot_cpu(void)
 {
@@ -75,8 +76,9 @@ int __cpu_up(unsigned int cpu, struct task_struct *tidle)
 	 * setup by that main hart.  Writing __cpu_up_stack_pointer signals to
 	 * the spinning harts that they can continue the boot process.
 	 */
-	mb();
+	smp_mb();
 	__cpu_up_stack_pointer[cpu] = task_stack_page(tidle) + THREAD_SIZE;
+	__cpu_up_task_pointer[cpu] = tidle;
 
 	while (!cpu_online(cpu))
 		cpu_relax();
