@@ -136,8 +136,9 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 static void generic_blkdev_rq_handler(struct request_queue *rq)
 {
 	struct request *req;
+	unsigned long flags;
 
-	spin_lock_irq(rq->queue_lock);
+	spin_lock_irqsave(rq->queue_lock, flags);
 
 	while ((req = blk_fetch_request(rq)) != NULL) {
 		struct generic_blkdev_port *port = generic_blkdev_req_port(req);
@@ -164,7 +165,7 @@ static void generic_blkdev_rq_handler(struct request_queue *rq)
 		}
 	}
 
-	spin_unlock_irq(rq->queue_lock);
+	spin_unlock_irqrestore(rq->queue_lock, flags);
 }
 
 static int generic_blkdev_parse_dt(struct generic_blkdev_port *port)
@@ -179,7 +180,12 @@ static int generic_blkdev_parse_dt(struct generic_blkdev_port *port)
 		dev_err(dev, "missing \"reg\" property\n");
 		return err;
 	}
+
 	port->iomem = devm_ioremap_resource(dev, &regs);
+	if (IS_ERR(port->iomem)) {
+		dev_err(dev, "could not remap io address %llx", regs.start);
+		return PTR_ERR(port->iomem);
+	}
 
 	port->irq = irq_of_parse_and_map(node, 0);
 	err = devm_request_irq(dev, port->irq, generic_blkdev_isr,
