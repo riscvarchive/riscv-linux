@@ -112,7 +112,7 @@ DO_ERROR_INFO(do_trap_unknown,
 DO_ERROR_INFO(do_trap_insn_misaligned,
 	SIGBUS, BUS_ADRALN, "instruction address misaligned");
 DO_ERROR_INFO(do_trap_insn_fault,
-	SIGBUS, BUS_ADRALN, "instruction access fault");
+	SIGBUS, SEGV_ACCERR, "instruction access fault");
 DO_ERROR_INFO(do_trap_insn_illegal,
 	SIGILL, ILL_ILLOPC, "illegal instruction");
 DO_ERROR_INFO(do_trap_load_misaligned,
