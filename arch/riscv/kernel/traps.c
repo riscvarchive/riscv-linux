@@ -168,8 +168,6 @@ int is_valid_bugaddr(unsigned long pc)
 
 void __init trap_init(void)
 {
-	int hart = smp_processor_id();
-
 	/*
 	 * Set sup0 scratch register to 0, indicating to exception vector
 	 * that we are presently executing in the kernel
@@ -177,8 +175,6 @@ void __init trap_init(void)
 	csr_write(sscratch, 0);
 	/* Set the exception vector address */
 	csr_write(stvec, &handle_exception);
-	/* Enable software interrupts and setup initial mask */
-	csr_write(sie,
-		  SIE_SSIE | atomic_long_read(&per_cpu(riscv_early_sie, hart))
-		);
+	/* Enable all interrupts */
+	csr_write(sie, -1);
 }
