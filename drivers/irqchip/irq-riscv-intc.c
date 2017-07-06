@@ -40,7 +40,7 @@ static void riscv_software_interrupt(void)
 
 	ret = handle_ipi();
 
-	WARN_ON(ret != IRQ_NONE);
+	WARN_ON(ret == IRQ_NONE);
 #else
 	/*
 	 * We currently only use software interrupts to pass inter-processor
