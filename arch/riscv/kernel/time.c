@@ -23,6 +23,11 @@ unsigned long riscv_timebase;
 
 static int next_event(unsigned long delta, struct clock_event_device *ce)
 {
+	/*
+	 * time_init() allocates a timer for each CPU.  Since we're writing the
+	 * timer comparison register here we can't allow the timers to cross
+	 * harts.
+	 */
 	BUG_ON(ce != timer_riscv_device(smp_processor_id()));
 	sbi_set_timer(get_cycles64() + delta);
 	return 0;
@@ -30,7 +35,12 @@ static int next_event(unsigned long delta, struct clock_event_device *ce)
 
 static unsigned long long rdtime(struct clocksource *cs)
 {
-	BUG_ON(cs != timer_riscv_source(smp_processor_id()));
+	/*
+	 * It's guarnteed that all the timers across all the harts are
+	 * synchronized within one tick of each other, so while this could
+	 * technically go backwards when hopping between CPUs, practically it
+	 * won't happen.
+	 */
 	return get_cycles64();
 }
 
