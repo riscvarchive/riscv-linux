@@ -21,7 +21,7 @@
 #include <asm/asm.h>
 
 #ifdef CONFIG_GENERIC_BUG
-#define __BUG_INSN	_AC(0x00100073, UL) /* sbreak */
+#define __BUG_INSN	_AC(0x00100073, UL) /* ebreak */
 
 #ifndef __ASSEMBLY__
 typedef u32 bug_insn_t;
@@ -48,7 +48,7 @@ typedef u32 bug_insn_t;
 do {								\
 	__asm__ __volatile__ (					\
 		"1:\n\t"					\
-			"sbreak\n"				\
+			"ebreak\n"				\
 			".pushsection __bug_table,\"a\"\n\t"	\
 		"2:\n\t"					\
 			__BUG_ENTRY "\n\t"			\
@@ -64,7 +64,7 @@ do {								\
 #ifndef __ASSEMBLY__
 #define BUG()							\
 do {								\
-	__asm__ __volatile__ ("sbreak\n");			\
+	__asm__ __volatile__ ("ebreak\n");			\
 	unreachable();						\
 } while (0)
 #endif /* !__ASSEMBLY__ */
