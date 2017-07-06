@@ -75,15 +75,15 @@
 	case 4:								\
 		__asm__ __volatile__ (					\
 			"amoswap.w.rl zero, %1, %0"			\
-			: "+A" (*p)					\
-			: "r" (__u.__val)				\
+			:						\
+			: "A" (*p), "r" (__u.__val)			\
 			: "memory");					\
 		break;							\
 	case 8:								\
 		__asm__ __volatile__ (					\
 			"amoswap.d.rl zero, %1, %0"			\
-			: "+A" (*p)					\
-			: "r" (__u.__val)				\
+			:						\
+			: "A" (*p), "r" (__u.__val)			\
 			: "memory");					\
 		break;							\
 	}								\

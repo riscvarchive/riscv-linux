@@ -95,7 +95,7 @@ static __always_inline c_type atomic##prefix##_fetch_##op##c_or(c_type i, atomic
 {													\
 	register c_type ret;										\
 	__asm__ __volatile__ (										\
-		"amo" #asm_op "." #asm_type #asm_or " %2, %1, %0"					\
+		"amo" #asm_op "." #asm_type #asm_or " %1, %2, %0"					\
 		: "+A" (v->counter), "=r" (ret)								\
 		: "r" (I)										\
 		: "memory");										\
