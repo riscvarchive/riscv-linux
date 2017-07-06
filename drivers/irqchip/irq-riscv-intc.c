@@ -88,6 +88,7 @@ static int riscv_irqdomain_map(struct irq_domain *d, unsigned int irq,
 	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
 	irq_set_chip_data(irq, data);
 	irq_set_noprobe(irq);
+	irq_set_affinity(irq, cpumask_of(data->hart));
 
 	return 0;
 }
