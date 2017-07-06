@@ -180,6 +180,10 @@ config GENERIC_BLKDEV
         tristate "Generic Block Device"
         default y
 
+config ICENET
+        tristate "IceNet Ethernet NIC"
+        default y
+
 config RISCV_ISA_C
 	bool "Emit compressed instructions when building Linux"
 	default n
