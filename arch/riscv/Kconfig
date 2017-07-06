@@ -139,6 +139,10 @@ config GENERIC_BLKDEV
         tristate "Generic Block Device"
         default y
 
+config SIMPLE_NIC
+        tristate "Simple Ethernet NIC"
+        default y
+
 config RVC
 	bool "Use compressed instructions (RV32C or RV64C)"
 	default n
