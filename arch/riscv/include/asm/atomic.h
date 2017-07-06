@@ -73,11 +73,6 @@ static __always_inline void atomic##prefix##_##op(c_type i, atomic##prefix##_t *
 
 ATOMIC_OPS(add, add, +,  i)
 ATOMIC_OPS(sub, add, +, -i)
-/*
- * FIXME: I could only find documentation that atomic_{add,sub,inc,dec} are
- * barrier-free.  I'm assuming that and/or/xor have the same constraints as the
- * others.
- */
 ATOMIC_OPS(and, and, &,  i)
 ATOMIC_OPS( or,  or, |,  i)
 ATOMIC_OPS(xor, xor, ^,  i)
