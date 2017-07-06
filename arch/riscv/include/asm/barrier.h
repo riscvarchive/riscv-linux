@@ -54,12 +54,12 @@
 #define __smb_mb__after_atomic()	smp_mb()
 
 /*
- * These barries are meant to prevent memory operations inside a spinlock from
- * moving outside of that spinlock.  Since we set the AQ and RL bits when
- * entering or leaving spinlocks, no additional fence needs to be performed.
+ * These barries prevent accesses performed outside a spinlock from being moved
+ * inside a spinlock.  Since RISC-V sets the aq/rl bits on our spinlock only
+ * enforce release consistency, we need full fences here.
  */
-#define smb_mb__before_spinlock()	barrier()
-#define smb_mb__after_spinlock()	barrier()
+#define smb_mb__before_spinlock()	smp_mb()
+#define smb_mb__after_spinlock()	smp_mb()
 
 /* FIXME: I don't think RISC-V is allowed to perform a speculative load. */
 #define smp_acquire__after_ctrl_dep()	barrier()
