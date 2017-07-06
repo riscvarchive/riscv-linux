@@ -296,41 +296,44 @@ ENDPROC(ret_from_kernel_thread)
  *
  *   a0: previous task_struct (must be preserved across the switch)
  *   a1: next task_struct
+ *
+ * The value of a0 and a1 must be preserved by this function, as that's how
+ * arguments are passed to schedule_tail.
  */
 ENTRY(__switch_to)
 	/* Save context into prev->thread */
-	li    a2,  TASK_THREAD_RA
-	add   a0, a0, a2
-	add   a2, a1, a2
-	REG_S ra,  TASK_THREAD_RA_RA(a0)
-	REG_S sp,  TASK_THREAD_SP_RA(a0)
-	REG_S s0,  TASK_THREAD_S0_RA(a0)
-	REG_S s1,  TASK_THREAD_S1_RA(a0)
-	REG_S s2,  TASK_THREAD_S2_RA(a0)
-	REG_S s3,  TASK_THREAD_S3_RA(a0)
-	REG_S s4,  TASK_THREAD_S4_RA(a0)
-	REG_S s5,  TASK_THREAD_S5_RA(a0)
-	REG_S s6,  TASK_THREAD_S6_RA(a0)
-	REG_S s7,  TASK_THREAD_S7_RA(a0)
-	REG_S s8,  TASK_THREAD_S8_RA(a0)
-	REG_S s9,  TASK_THREAD_S9_RA(a0)
-	REG_S s10, TASK_THREAD_S10_RA(a0)
-	REG_S s11, TASK_THREAD_S11_RA(a0)
+	li    a4,  TASK_THREAD_RA
+	add   a3, a0, a4
+	add   a4, a1, a4
+	REG_S ra,  TASK_THREAD_RA_RA(a3)
+	REG_S sp,  TASK_THREAD_SP_RA(a3)
+	REG_S s0,  TASK_THREAD_S0_RA(a3)
+	REG_S s1,  TASK_THREAD_S1_RA(a3)
+	REG_S s2,  TASK_THREAD_S2_RA(a3)
+	REG_S s3,  TASK_THREAD_S3_RA(a3)
+	REG_S s4,  TASK_THREAD_S4_RA(a3)
+	REG_S s5,  TASK_THREAD_S5_RA(a3)
+	REG_S s6,  TASK_THREAD_S6_RA(a3)
+	REG_S s7,  TASK_THREAD_S7_RA(a3)
+	REG_S s8,  TASK_THREAD_S8_RA(a3)
+	REG_S s9,  TASK_THREAD_S9_RA(a3)
+	REG_S s10, TASK_THREAD_S10_RA(a3)
+	REG_S s11, TASK_THREAD_S11_RA(a3)
 	/* Restore context from next->thread */
-	REG_L ra,  TASK_THREAD_RA_RA(a2)
-	REG_L sp,  TASK_THREAD_SP_RA(a2)
-	REG_L s0,  TASK_THREAD_S0_RA(a2)
-	REG_L s1,  TASK_THREAD_S1_RA(a2)
-	REG_L s2,  TASK_THREAD_S2_RA(a2)
-	REG_L s3,  TASK_THREAD_S3_RA(a2)
-	REG_L s4,  TASK_THREAD_S4_RA(a2)
-	REG_L s5,  TASK_THREAD_S5_RA(a2)
-	REG_L s6,  TASK_THREAD_S6_RA(a2)
-	REG_L s7,  TASK_THREAD_S7_RA(a2)
-	REG_L s8,  TASK_THREAD_S8_RA(a2)
-	REG_L s9,  TASK_THREAD_S9_RA(a2)
-	REG_L s10, TASK_THREAD_S10_RA(a2)
-	REG_L s11, TASK_THREAD_S11_RA(a2)
+	REG_L ra,  TASK_THREAD_RA_RA(a4)
+	REG_L sp,  TASK_THREAD_SP_RA(a4)
+	REG_L s0,  TASK_THREAD_S0_RA(a4)
+	REG_L s1,  TASK_THREAD_S1_RA(a4)
+	REG_L s2,  TASK_THREAD_S2_RA(a4)
+	REG_L s3,  TASK_THREAD_S3_RA(a4)
+	REG_L s4,  TASK_THREAD_S4_RA(a4)
+	REG_L s5,  TASK_THREAD_S5_RA(a4)
+	REG_L s6,  TASK_THREAD_S6_RA(a4)
+	REG_L s7,  TASK_THREAD_S7_RA(a4)
+	REG_L s8,  TASK_THREAD_S8_RA(a4)
+	REG_L s9,  TASK_THREAD_S9_RA(a4)
+	REG_L s10, TASK_THREAD_S10_RA(a4)
+	REG_L s11, TASK_THREAD_S11_RA(a4)
 #if TASK_TI != 0
 #error "TASK_TI != 0: tp will contain a 'struct thread_info', not a 'struct task_struct' so get_current() won't work."
 	addi tp, a1, TASK_TI
