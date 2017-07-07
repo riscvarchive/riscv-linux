@@ -69,76 +69,25 @@
 #define smp_acquire__after_ctrl_dep()	smp_mb()
 
 /*
- * The RISC-V ISA doesn't support byte or half-word AMOs, so we fall back to a
- * regular store and a fence here.  Otherwise we emit an AMO with an AQ or RL
- * bit set and allow the microarchitecture to avoid the other half of the AMO.
+ * TODO_RISCV_MEMORY_MODEL: While we could emit AMOs for the W and D sized
+ * accesses here, it's questionable if that actually helps or not: the lack of
+ * offsets in the AMOs means they're usually preceded by an addi, so they
+ * probably won't save code space.  For now we'll just emit the fence.
  */
 #define __smp_store_release(p, v)					\
 ({									\
-	union { typeof(*p) __val; char __c[1]; } __u =			\
-		{ .__val = (__force typeof(*p)) (v) };			\
 	compiletime_assert_atomic_type(*p);				\
-	switch (sizeof(*p)) {						\
-	case 1:								\
-	case 2:								\
-		smp_mb();						\
-		WRITE_ONCE(*p, __u.__val);				\
-		break;							\
-	case 4:								\
-		__asm__ __volatile__ (					\
-			"amoswap.w.rl zero, %1, %0"			\
-			:						\
-			: "A" (*p), "r" (__u.__val)			\
-			: "memory");					\
-		break;							\
-	case 8:								\
-		__asm__ __volatile__ (					\
-			"amoswap.d.rl zero, %1, %0"			\
-			:						\
-			: "A" (*p), "r" (__u.__val)			\
-			: "memory");					\
-		break;							\
-	}								\
+	smp_mb();							\
+	WRITE_ONCE(*p, v);						\
 })
 
 #define __smp_load_acquire(p)						\
 ({									\
-	union { typeof(*p) __val;					\
-		u8 __b; u16 __h; u32 __w; u64 __d;} __u;		\
+	union{typeof(*p) __p; long __l;} __u;				\
 	compiletime_assert_atomic_type(*p);				\
-	switch (sizeof(*p)) {						\
-	case 1:								\
-		__asm__ __volatile__ (					\
-			"lb %0, %1"					\
-			: "=r" (__u.__b)				\
-			: "A" (*p)					\
-			: "memory");					\
-		smp_mb();						\
-		break;							\
-	case 2:								\
-		__asm__ __volatile__ (					\
-			"lh %0, %1"					\
-			: "=r" (__u.__h)				\
-			: "A" (*p)					\
-			: "memory");					\
-		smp_mb();						\
-		break;							\
-	case 4:								\
-		__asm__ __volatile__ (					\
-			"amoor.w.aq %0, zero, %1"			\
-			: "=r" (__u.__w)				\
-			: "A" (*p)					\
-			: "memory");					\
-		break;							\
-	case 8:								\
-		__asm__ __volatile__ (					\
-			"amoor.d.aq %0, zero, %1"			\
-			: "=r" (__u.__d)				\
-			: "A" (*p)					\
-			: "memory");					\
-		break;							\
-	}								\
-	__u.__val;							\
+	__u.__l = READ_ONCE(*p);					\
+	smp_mb();							\
+	__u.__p;							\
 })
 
 #include <asm-generic/barrier.h>
