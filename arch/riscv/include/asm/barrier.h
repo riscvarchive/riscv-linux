@@ -61,8 +61,12 @@
 #define smb_mb__before_spinlock()	smp_mb()
 #define smb_mb__after_spinlock()	smp_mb()
 
-/* FIXME: I don't think RISC-V is allowed to perform a speculative load. */
-#define smp_acquire__after_ctrl_dep()	barrier()
+/*
+ * TODO_RISCV_MEMORY_MODEL: I don't think RISC-V is allowed to perform a
+ * speculative load, but we're going to wait on a formal memory model in order
+ * to ensure this is safe to elide.
+ */
+#define smp_acquire__after_ctrl_dep()	smp_mb()
 
 /*
  * The RISC-V ISA doesn't support byte or half-word AMOs, so we fall back to a
@@ -135,24 +139,6 @@
 		break;							\
 	}								\
 	__u.__val;							\
-})
-
-/*
- * The default implementation of this uses READ_ONCE and
- * smp_acquire__after_ctrl_dep, but since we can directly do an ACQUIRE load we
- * can avoid the extra barrier.
- */
-#define smp_cond_load_acquire(ptr, cond_expr) ({			\
-	typeof(ptr) __PTR = (ptr);					\
-	typeof(*ptr) VAL;						\
-	for (;;) {							\
-		VAL = __smp_load_acquire(__PTR);			\
-		if (cond_expr)						\
-			break;						\
-		cpu_relax();						\
-	}								\
-	smp_acquire__after_ctrl_dep();					\
-	VAL;								\
 })
 
 #include <asm-generic/barrier.h>
