@@ -25,6 +25,12 @@ ENTRY(_start)
 	/* Mask all interrupts */
 	csrw sie, zero
 
+	/* Load the global pointer */
+.option push
+.option norelax
+	la gp, __global_pointer$
+.option pop
+
 	/*
 	 * Disable FPU to detect illegal usage of
 	 * floating point in kernel space
@@ -100,8 +106,11 @@ relocate:
 	la a0, .Lsecondary_park
 	csrw stvec, a0
 
-	/* Load the global pointer */
+	/* Reload the global pointer */
+.option push
+.option norelax
 	la gp, __global_pointer$
+.option pop
 
 	/* Switch to kernel page tables */
 	csrw sptbr, a2

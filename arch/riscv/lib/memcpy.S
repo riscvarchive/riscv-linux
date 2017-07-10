@@ -89,6 +89,21 @@ ENTRY(memcpy)
 	/* Handle trailing misalignment */
 	beqz a2, 6f
 	add a3, a1, a2
+
+	/* Use word-oriented copy if co-aligned to word boundary */
+	or a5, a1, t6
+	or a5, a5, a3
+	andi a5, a5, 3
+	bnez a5, 5f
+7:
+	lw a4, 0(a1)
+	addi a1, a1, 4
+	sw a4, 0(t6)
+	addi t6, t6, 4
+	bltu a1, a3, 7b
+
+	ret
+
 5:
 	lb a4, 0(a1)
 	addi a1, a1, 1
