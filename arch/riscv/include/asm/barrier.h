@@ -61,13 +61,6 @@
 #define smb_mb__before_spinlock()	smp_mb()
 #define smb_mb__after_spinlock()	smp_mb()
 
-/*
- * TODO_RISCV_MEMORY_MODEL: I don't think RISC-V is allowed to perform a
- * speculative load, but we're going to wait on a formal memory model in order
- * to ensure this is safe to elide.
- */
-#define smp_acquire__after_ctrl_dep()	smp_mb()
-
 #include <asm-generic/barrier.h>
 
 #endif /* __ASSEMBLY__ */
