@@ -442,8 +442,8 @@ unsigned long __must_check clear_user(void __user *to, unsigned long n)
 #define __cmpxchg_user(ptr, old, new, err, size, lrb, scb)	\
 ({								\
 	__typeof__(ptr) __ptr = (ptr);				\
-	__typeof__(old) __old = (old);				\
-	__typeof__(new) __new = (new);				\
+	__typeof__(*(ptr)) __old = (old);			\
+	__typeof__(*(ptr)) __new = (new);			\
 	__typeof__(*(ptr)) __ret;				\
 	__typeof__(err) __err = 0;				\
 	register unsigned int __rc;				\
