@@ -68,28 +68,6 @@
  */
 #define smp_acquire__after_ctrl_dep()	smp_mb()
 
-/*
- * TODO_RISCV_MEMORY_MODEL: While we could emit AMOs for the W and D sized
- * accesses here, it's questionable if that actually helps or not: the lack of
- * offsets in the AMOs means they're usually preceded by an addi, so they
- * probably won't save code space.  For now we'll just emit the fence.
- */
-#define __smp_store_release(p, v)					\
-({									\
-	compiletime_assert_atomic_type(*p);				\
-	smp_mb();							\
-	WRITE_ONCE(*p, v);						\
-})
-
-#define __smp_load_acquire(p)						\
-({									\
-	union{typeof(*p) __p; long __l;} __u;				\
-	compiletime_assert_atomic_type(*p);				\
-	__u.__l = READ_ONCE(*p);					\
-	smp_mb();							\
-	__u.__p;							\
-})
-
 #include <asm-generic/barrier.h>
 
 #endif /* __ASSEMBLY__ */
