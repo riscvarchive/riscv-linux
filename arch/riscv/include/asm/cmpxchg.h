@@ -30,13 +30,15 @@
 		__asm__ __volatile__ (				\
 			"amoswap.w" #asm_or " %0, %2, %1"	\
 			: "=r" (__ret), "+A" (*__ptr)		\
-			: "r" (__new));				\
+			: "r" (__new)				\
+			: "memory");				\
 		break;						\
 	case 8:							\
 		__asm__ __volatile__ (				\
 			"amoswap.d" #asm_or " %0, %2, %1"	\
 			: "=r" (__ret), "+A" (*__ptr)		\
-			: "r" (__new));				\
+			: "r" (__new)				\
+			: "memory");				\
 		break;						\
 	default:						\
 		BUILD_BUG();					\
@@ -80,7 +82,8 @@
 			"bnez        %1, 0b\n"				\
 		"1:"							\
 			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
-			: "rJ" (__old), "rJ" (__new));			\
+			: "rJ" (__old), "rJ" (__new)			\
+			: "memory");					\
 		break;							\
 	case 8:								\
 		__asm__ __volatile__ (					\
@@ -91,7 +94,8 @@
 			"bnez        %1, 0b\n"				\
 		"1:"							\
 			: "=&r" (__ret), "=&r" (__rc), "+A" (*__ptr)	\
-			: "rJ" (__old), "rJ" (__new));			\
+			: "rJ" (__old), "rJ" (__new)			\
+			: "memory");					\
 		break;							\
 	default:							\
 		BUILD_BUG();						\
