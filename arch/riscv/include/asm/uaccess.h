@@ -25,15 +25,10 @@
 #include <asm/byteorder.h>
 #include <asm/asm.h>
 
-#ifdef CONFIG_RV_PUM
 #define __enable_user_access()							\
 	__asm__ __volatile__ ("csrs sstatus, %0" : : "r" (SR_SUM) : "memory")
 #define __disable_user_access()							\
 	__asm__ __volatile__ ("csrc sstatus, %0" : : "r" (SR_SUM) : "memory")
-#else
-#define __enable_user_access()
-#define __disable_user_access()
-#endif
 
 /*
  * The fs value determines whether argument validity checking should be

@@ -32,12 +32,6 @@ ENTRY(_start)
 	li t0, SR_FS
 	csrc sstatus, t0
 
-#ifndef CONFIG_RV_PUM
-	/* Allow access to user memory */
-	li t0, SR_SUM
-	csrs sstatus, t0
-#endif
-
 #ifdef CONFIG_ISA_A
 	/* Pick one hart to run the main boot sequence */
 	la a3, hart_lottery

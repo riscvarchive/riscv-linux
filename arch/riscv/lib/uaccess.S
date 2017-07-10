@@ -15,11 +15,9 @@ _epc:
 
 ENTRY(__copy_user)
 
-#ifdef CONFIG_RV_PUM
 	/* Enable access to user memory */
 	li t6, SR_SUM
 	csrs sstatus, t6
-#endif
 
 	add a3, a1, a2
 	/* Use word-oriented copy only if low-order bits match */
@@ -47,10 +45,8 @@ ENTRY(__copy_user)
 	bltu a1, a3, 5f
 
 3:
-#ifdef CONFIG_RV_PUM
 	/* Disable access to user memory */
 	csrc sstatus, t6
-#endif
 	li a0, 0
 	ret
 4: /* Edge case: unalignment */
@@ -72,11 +68,9 @@ ENDPROC(__copy_user)
 
 ENTRY(__clear_user)
 
-#ifdef CONFIG_RV_PUM
 	/* Enable access to user memory */
 	li t6, SR_SUM
 	csrs sstatus, t6
-#endif
 
 	add a3, a0, a1
 	addi t0, a0, SZREG-1
@@ -97,10 +91,8 @@ ENTRY(__clear_user)
 	bltu a0, a3, 5f
 
 3:
-#ifdef CONFIG_RV_PUM
 	/* Disable access to user memory */
 	csrc sstatus, t6
-#endif
 	li a0, 0
 	ret
 4: /* Edge case: unalignment */
@@ -118,10 +110,8 @@ ENDPROC(__clear_user)
 	.section .fixup,"ax"
 	.balign 4
 10:
-#ifdef CONFIG_RV_PUM
 	/* Disable access to user memory */
 	csrs sstatus, t6
-#endif
 	sub a0, a3, a0
 	ret
 	.previous
