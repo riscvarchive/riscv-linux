@@ -70,10 +70,10 @@ SYSCALL_DEFINE4(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old,
 	return err;
 }
 
+#ifdef CONFIG_64BIT
 SYSCALL_DEFINE4(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old,
 		u64 __user *, user_prev)
 {
-#ifdef CONFIG_64BIT
 	u64 prev;
 	int err;
 
@@ -96,7 +96,5 @@ SYSCALL_DEFINE4(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old,
 	preempt_enable();
 #endif
 	return err;
-#else
-	return -ENOTSUPP;
-#endif
 }
+#endif

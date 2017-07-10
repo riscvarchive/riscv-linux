@@ -19,5 +19,7 @@
  */
 #define __NR_sysriscv_cmpxchg32		(__NR_arch_specific_syscall + 0)
 __SYSCALL(__NR_sysriscv_cmpxchg32, sys_sysriscv_cmpxchg32)
+#if __riscv_xlen >= 64
 #define __NR_sysriscv_cmpxchg64		(__NR_arch_specific_syscall + 1)
 __SYSCALL(__NR_sysriscv_cmpxchg64, sys_sysriscv_cmpxchg64)
+#endif
