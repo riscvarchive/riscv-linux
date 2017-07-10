@@ -108,7 +108,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
  * that otherwise only uses AMOs and LR/SC.   For now I'm leaving this here:
  * "w,o" is sufficient to ensure that all writes to the device has completed
  * before the write to the spinlock is allowed to commit.  I surmised this from
- * reading "ACQUIRES VS I/O ACCESSES" in memory-barries.txt.
+ * reading "ACQUIRES VS I/O ACCESSES" in memory-barriers.txt.
  */
 #define mmiowb()	__asm__ __volatile__ ("fence o,w" : : : "memory");
 
@@ -130,7 +130,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
 /*
  * Relaxed I/O memory access primitives. These follow the Device memory
  * ordering rules but do not guarantee any ordering relative to Normal memory
- * accesses.  The memory barries here are necessary as RISC-V doesn't define
+ * accesses.  The memory barriers here are necessary as RISC-V doesn't define
  * any ordering constraints on accesses to the device I/O space.  These are
  * defined to order the indicated access (either a read or write) with all
  * other I/O memory accesses.

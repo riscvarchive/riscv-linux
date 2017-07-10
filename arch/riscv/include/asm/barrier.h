@@ -28,12 +28,12 @@
 #define RISCV_FENCE(p, s) \
 	__asm__ __volatile__ ("fence " #p "," #s : : : "memory")
 
-/* These barries need to enforce ordering on both devices or memory. */
+/* These barriers need to enforce ordering on both devices or memory. */
 #define mb()		RISCV_FENCE(iorw,iorw)
 #define rmb()		RISCV_FENCE(ir,ir)
 #define wmb()		RISCV_FENCE(ow,ow)
 
-/* These barries do not need to enforce ordering on devices, just memory. */
+/* These barriers do not need to enforce ordering on devices, just memory. */
 #define smp_mb()	RISCV_FENCE(rw,rw)
 #define smp_rmb()	RISCV_FENCE(r,r)
 #define smp_wmb()	RISCV_FENCE(w,w)
@@ -54,7 +54,7 @@
 #define __smb_mb__after_atomic()	smp_mb()
 
 /*
- * These barries prevent accesses performed outside a spinlock from being moved
+ * These barriers prevent accesses performed outside a spinlock from being moved
  * inside a spinlock.  Since RISC-V sets the aq/rl bits on our spinlock only
  * enforce release consistency, we need full fences here.
  */
