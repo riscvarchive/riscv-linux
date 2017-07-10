@@ -30,13 +30,6 @@ enum riscv_regset {
 	REGSET_X,
 };
 
-/* Put registers back to task. */
-static void putregs(struct task_struct *child, struct pt_regs *uregs)
-{
-	struct pt_regs *regs = task_pt_regs(child);
-	*regs = *uregs;
-}
-
 static int riscv_gpr_get(struct task_struct *target,
 			 const struct user_regset *regset,
 			 unsigned int pos, unsigned int count,
@@ -45,8 +38,7 @@ static int riscv_gpr_get(struct task_struct *target,
 	struct pt_regs *regs;
 
 	regs = task_pt_regs(target);
-	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0,
-				   sizeof(*regs));
+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
 }
 
 static int riscv_gpr_set(struct task_struct *target,
@@ -55,16 +47,11 @@ static int riscv_gpr_set(struct task_struct *target,
 			 const void *kbuf, const void __user *ubuf)
 {
 	int ret;
-	struct pt_regs regs;
+	struct pt_regs *regs;
 
-	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0,
-				 sizeof(regs));
-	if (ret)
-		return ret;
-
-	putregs(target, &regs);
-
-	return 0;
+	regs = task_pt_regs(target);
+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &regs, 0, -1);
+	return ret;
 }
 
 
