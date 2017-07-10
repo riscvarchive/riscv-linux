@@ -438,4 +438,81 @@ unsigned long __must_check clear_user(void __user *to, unsigned long n)
 		__clear_user(to, n) : n;
 }
 
+/*
+ * Atomic compare-and-exchange, but with a fixup for userspace faults.  Faults
+ * will set "err" to -EFAULT, while successful accesses return the previous
+ * value.
+ */
+#ifdef CONFIG_MMU
+#define __cmpxchg_user(ptr, old, new, err, size, lrb, scb)	\
+({								\
+	__typeof__(ptr) __ptr = (ptr);				\
+	__typeof__(old) __old = (old);				\
+	__typeof__(new) __new = (new);				\
+	__typeof__(*(ptr)) __ret;				\
+	__typeof__(err) __err = 0;				\
+	register unsigned int __rc;				\
+	__enable_user_access();					\
+	switch (size) {						\
+	case 4:							\
+		__asm__ __volatile__ (				\
+		"0:\n"						\
+		"	lr.w" #scb " %[ret], %[ptr]\n"		\
+		"	bne          %[ret], %z[old], 1f\n"	\
+		"	sc.w" #lrb " %[rc], %z[new], %[ptr]\n"	\
+		"	bnez         %[rc], 0b\n"		\
+		"1:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		".balign 4\n"					\
+		"2:\n"						\
+		"	li %[err], %[efault]\n"			\
+		"	jump 1b, %[rc]\n"			\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		".balign " RISCV_SZPTR "\n"			\
+		"	" RISCV_PTR " 1b, 2b\n"			\
+		".previous\n"					\
+			: [ret] "=&r" (__ret),			\
+			  [rc]  "=&r" (__rc),			\
+			  [ptr] "+A" (*__ptr),			\
+			  [err] "=&r" (__err)			\
+			: [old] "rJ" (__old),			\
+			  [new] "rJ" (__new),			\
+			  [efault] "i" (-EFAULT));		\
+		break;						\
+	case 8:							\
+		__asm__ __volatile__ (				\
+		"0:\n"						\
+		"	lr.d" #scb " %[ret], %[ptr]\n"		\
+		"	bne          %[ret], %z[old], 1f\n"	\
+		"	sc.d" #lrb " %[rc], %z[new], %[ptr]\n"	\
+		"	bnez         %[rc], 0b\n"		\
+		"1:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		".balign 4\n"					\
+		"2:\n"						\
+		"	li %[err], %[efault]\n"			\
+		"	jump 1b, %[rc]\n"			\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		".balign " RISCV_SZPTR "\n"			\
+		"	" RISCV_PTR " 1b, 2b\n"			\
+		".previous\n"					\
+			: [ret] "=&r" (__ret),			\
+			  [rc]  "=&r" (__rc),			\
+			  [ptr] "+A" (*__ptr),			\
+			  [err] "=&r" (__err)			\
+			: [old] "rJ" (__old),			\
+			  [new] "rJ" (__new),			\
+			  [efault] "i" (-EFAULT));		\
+		break;						\
+	default:						\
+		BUILD_BUG();					\
+	}							\
+	__disable_user_access();				\
+	(err) = __err;						\
+	__ret;							\
+})
+#endif /* CONFIG_MMU */
+
 #endif /* _ASM_RISCV_UACCESS_H */

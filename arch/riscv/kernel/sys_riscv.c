@@ -54,8 +54,9 @@ SYSCALL_DEFINE4(sysriscv_cmpxchg32, u32 __user *, ptr, u32, new, u32, old,
 		return -EFAULT;
 
 #ifdef CONFIG_ISA_A
-	prev = cmpxchg32(ptr, old, new);
-	err = __put_user(prev, user_prev);
+	prev = __cmpxchg_user(ptr, old, new, err, 4, .aqrl, .aqrl);
+	if (likely(!err))
+		err = __put_user(prev, user_prev);
 #else
 	preempt_disable();
 	err = __get_user(prev, ptr);
@@ -82,8 +83,9 @@ SYSCALL_DEFINE4(sysriscv_cmpxchg64, u64 __user *, ptr, u64, new, u64, old,
 		return -EFAULT;
 
 #ifdef CONFIG_ISA_A
-	prev = cmpxchg64(ptr, old, new);
-	err = __put_user(prev, user_prev);
+	prev = __cmpxchg_user(ptr, old, new, err, 8, .aqrl, .aqrl);
+	if (likely(!err))
+		err = __put_user(prev, user_prev);
 #else
 	preempt_disable();
 	err = __get_user(prev, ptr);
