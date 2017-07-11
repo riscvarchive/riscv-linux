@@ -31,7 +31,6 @@ struct riscv_irq_data {
 	char			name[20];
 };
 DEFINE_PER_CPU(struct riscv_irq_data, riscv_irq_data);
-DEFINE_PER_CPU(atomic_long_t, riscv_early_sie);
 
 static void riscv_software_interrupt(void)
 {
@@ -88,6 +87,7 @@ static int riscv_irqdomain_map(struct irq_domain *d, unsigned int irq,
 	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
 	irq_set_chip_data(irq, data);
 	irq_set_noprobe(irq);
+	irq_set_affinity(irq, cpumask_of(data->hart));
 
 	return 0;
 }
@@ -137,21 +137,9 @@ static void riscv_irq_enable(struct irq_data *d)
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
 	/*
-	 * When booting a RISC-V system, processors can come online at any time.
-	 * Interrupts can only be enabled or disabled by writing a CSR on the
-	 * hart that corresponds to that interrupt controller, but CSRs can
-	 * only be written locally.  In order to avoid waiting a long time for
-	 * a hart to boot, we instead collect the interrupts to be enabled upon
-	 * booting a hart in this bookkeeping structure, which is used by
-	 * trap_init to initialize SIE for each hart as it comes up.
-	 */
-	atomic_long_or((1 << (long)d->hwirq),
-		       &per_cpu(riscv_early_sie, data->hart));
-
-	/*
-	 * The CPU is usually online, so here we just attempt to enable the
-	 * interrupt by writing SIE directly.  We need to write SIE on the
-	 * correct hart, which might be another hart.
+	 * It's only possible to write SIE on the current hart.  This jumps
+	 * over to the target hart if it's not the current one.  It's invalid
+	 * to write SIE on a hart that's not currently running.
 	 */
 	if (data->hart == smp_processor_id())
 		riscv_irq_unmask(d);
@@ -160,15 +148,19 @@ static void riscv_irq_enable(struct irq_data *d)
 					 riscv_irq_enable_helper,
 					 d,
 					 true);
+	else
+		WARN_ON_ONCE(1);
 }
 
 static void riscv_irq_disable(struct irq_data *d)
 {
 	struct riscv_irq_data *data = irq_data_get_irq_chip_data(d);
 
-	/* This is the mirror of riscv_irq_enable. */
-	atomic_long_and(~(1 << (long)d->hwirq),
-			&per_cpu(riscv_early_sie, data->hart));
+	/*
+	 * It's only possible to write SIE on the current hart.  This jumps
+	 * over to the target hart if it's not the current one.  It's invalid
+	 * to write SIE on a hart that's not currently running.
+	 */
 	if (data->hart == smp_processor_id())
 		riscv_irq_mask(d);
 	else if (cpu_online(data->hart))
@@ -176,6 +168,8 @@ static void riscv_irq_disable(struct irq_data *d)
 					 riscv_irq_disable_helper,
 					 d,
 					 true);
+	else
+		WARN_ON_ONCE(1);
 }
 
 static int riscv_intc_init(struct device_node *node, struct device_node *parent)
