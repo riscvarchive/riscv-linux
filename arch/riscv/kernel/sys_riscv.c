@@ -17,14 +17,23 @@
 #include <asm/cmpxchg.h>
 #include <asm/unistd.h>
 
+static long riscv_sys_mmap(unsigned long addr, unsigned long len,
+			   unsigned long prot, unsigned long flags,
+			   unsigned long fd, off_t offset,
+			   unsigned long page_shift_offset)
+{
+	if (unlikely(offset & (~PAGE_MASK >> page_shift_offset)))
+		return -EINVAL;
+	return sys_mmap_pgoff(addr, len, prot, flags, fd,
+			      offset >> (PAGE_SHIFT - page_shift_offset));
+}
+
 #ifdef CONFIG_64BIT
 SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
 	unsigned long, prot, unsigned long, flags,
 	unsigned long, fd, off_t, offset)
 {
-	if (unlikely(offset & (~PAGE_MASK)))
-		return -EINVAL;
-	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
+	return riscv_sys_mmap(addr, len, prot, flags, fd, offset, 0);
 }
 #else
 SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
@@ -35,9 +44,6 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 	 * Note that the shift for mmap2 is constant (12),
 	 * regardless of PAGE_SIZE
 	 */
-	if (unlikely(offset & (~PAGE_MASK >> 12)))
-		return -EINVAL;
-	return sys_mmap_pgoff(addr, len, prot, flags, fd,
-		offset >> (PAGE_SHIFT - 12));
+	return riscv_sys_mmap(addr, len, prot, flags, fd, offset, 12);
 }
 #endif /* !CONFIG_64BIT */
