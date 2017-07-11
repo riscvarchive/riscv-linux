@@ -87,11 +87,11 @@ static void sbi_console_write(struct console *co, const char *buf,
 static struct console early_console_dev __initdata = {
 	.name	= "early",
 	.write	= sbi_console_write,
-	.flags	= CON_PRINTBUFFER | CON_BOOT,
+	.flags	= CON_PRINTBUFFER | CON_BOOT | CON_ANYTIME,
 	.index	= -1
 };
 
-static int __init setup_early_printk(char *str)
+static int __init setup_early_printk(void)
 {
 	if (early_console == NULL) {
 		early_console = &early_console_dev;
@@ -99,5 +99,5 @@ static int __init setup_early_printk(char *str)
 	}
 	return 0;
 }
-early_param("earlyprintk", setup_early_printk);
+early_initcall(setup_early_printk);
 #endif
