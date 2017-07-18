@@ -775,11 +775,13 @@ static int gfs2_create_inode(struct inode *dir, struct dentry *dentry,
 	return error;
 
 fail_gunlock3:
+	glock_clear_object(io_gl, ip);
 	gfs2_glock_dq_uninit(&ip->i_iopen_gh);
 	gfs2_glock_put(io_gl);
 fail_gunlock2:
 	if (io_gl)
 		clear_bit(GLF_INODE_CREATING, &io_gl->gl_flags);
+	glock_clear_object(ip->i_gl, ip);
 fail_free_inode:
 	if (ip->i_gl)
 		gfs2_glock_put(ip->i_gl);
