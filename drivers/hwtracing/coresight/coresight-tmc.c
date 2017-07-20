@@ -393,8 +393,8 @@ out:
 
 static struct amba_id tmc_ids[] = {
 	{
-		.id     = 0x0003b961,
-		.mask   = 0x0003ffff,
+		.id     = 0x000bb961,
+		.mask   = 0x000fffff,
 	},
 	{ 0, 0},
 };
