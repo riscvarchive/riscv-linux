@@ -140,7 +140,7 @@ static void dump_instr(const char *lvl, struct pt_regs *regs)
 	}
 }
 
-static void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
+void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 {
 	struct stackframe frame;
 	unsigned long irq_stack_ptr;
@@ -344,22 +344,24 @@ static int call_undef_hook(struct pt_regs *regs)
 
 	if (compat_thumb_mode(regs)) {
 		/* 16-bit Thumb instruction */
-		if (get_user(instr, (u16 __user *)pc))
+		__le16 instr_le;
+		if (get_user(instr_le, (__le16 __user *)pc))
 			goto exit;
-		instr = le16_to_cpu(instr);
+		instr = le16_to_cpu(instr_le);
 		if (aarch32_insn_is_wide(instr)) {
 			u32 instr2;
 
-			if (get_user(instr2, (u16 __user *)(pc + 2)))
+			if (get_user(instr_le, (__le16 __user *)(pc + 2)))
 				goto exit;
-			instr2 = le16_to_cpu(instr2);
+			instr2 = le16_to_cpu(instr_le);
 			instr = (instr << 16) | instr2;
 		}
 	} else {
 		/* 32-bit ARM instruction */
-		if (get_user(instr, (u32 __user *)pc))
+		__le32 instr_le;
+		if (get_user(instr_le, (__le32 __user *)pc))
 			goto exit;
-		instr = le32_to_cpu(instr);
+		instr = le32_to_cpu(instr_le);
 	}
 
 	raw_spin_lock_irqsave(&undef_lock, flags);
@@ -443,7 +445,7 @@ int cpu_enable_cache_maint_trap(void *__unused)
 }
 
 #define __user_cache_maint(insn, address, res)			\
-	if (untagged_addr(address) >= user_addr_max()) {	\
+	if (address >= user_addr_max()) {			\
 		res = -EFAULT;					\
 	} else {						\
 		uaccess_ttbr0_enable();				\
@@ -469,7 +471,7 @@ static void user_cache_maint_handler(unsigned int esr, struct pt_regs *regs)
 	int crm = (esr & ESR_ELx_SYS64_ISS_CRM_MASK) >> ESR_ELx_SYS64_ISS_CRM_SHIFT;
 	int ret = 0;
 
-	address = pt_regs_read_reg(regs, rt);
+	address = untagged_addr(pt_regs_read_reg(regs, rt));
 
 	switch (crm) {
 	case ESR_ELx_SYS64_ISS_CRM_DC_CVAU:	/* DC CVAU, gets promoted */
@@ -505,6 +507,22 @@ static void ctr_read_handler(unsigned int esr, struct pt_regs *regs)
 	regs->pc += 4;
 }
 
+static void cntvct_read_handler(unsigned int esr, struct pt_regs *regs)
+{
+	int rt = (esr & ESR_ELx_SYS64_ISS_RT_MASK) >> ESR_ELx_SYS64_ISS_RT_SHIFT;
+
+	pt_regs_write_reg(regs, rt, arch_counter_get_cntvct());
+	regs->pc += 4;
+}
+
+static void cntfrq_read_handler(unsigned int esr, struct pt_regs *regs)
+{
+	int rt = (esr & ESR_ELx_SYS64_ISS_RT_MASK) >> ESR_ELx_SYS64_ISS_RT_SHIFT;
+
+	pt_regs_write_reg(regs, rt, read_sysreg(cntfrq_el0));
+	regs->pc += 4;
+}
+
 struct sys64_hook {
 	unsigned int esr_mask;
 	unsigned int esr_val;
@@ -522,6 +540,18 @@ static struct sys64_hook sys64_hooks[] = {
 		.esr_mask = ESR_ELx_SYS64_ISS_SYS_OP_MASK,
 		.esr_val = ESR_ELx_SYS64_ISS_SYS_CTR_READ,
 		.handler = ctr_read_handler,
+	},
+	{
+		/* Trap read access to CNTVCT_EL0 */
+		.esr_mask = ESR_ELx_SYS64_ISS_SYS_OP_MASK,
+		.esr_val = ESR_ELx_SYS64_ISS_SYS_CNTVCT,
+		.handler = cntvct_read_handler,
+	},
+	{
+		/* Trap read access to CNTFRQ_EL0 */
+		.esr_mask = ESR_ELx_SYS64_ISS_SYS_OP_MASK,
+		.esr_val = ESR_ELx_SYS64_ISS_SYS_CNTFRQ,
+		.handler = cntfrq_read_handler,
 	},
 	{},
 };
@@ -700,8 +730,6 @@ static int bug_handler(struct pt_regs *regs, unsigned int esr)
 		break;
 
 	case BUG_TRAP_TYPE_WARN:
-		/* Ideally, report_bug() should backtrace for us... but no. */
-		dump_backtrace(regs, NULL);
 		break;
 
 	default:

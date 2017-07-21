@@ -68,8 +68,6 @@ void intel_logical_ring_cleanup(struct intel_engine_cs *engine);
 int logical_render_ring_init(struct intel_engine_cs *engine);
 int logical_xcs_ring_init(struct intel_engine_cs *engine);
 
-int intel_engines_init(struct drm_i915_private *dev_priv);
-
 /* Logical Ring Contexts */
 
 /* One extra page is added before LRC for GuC as shared data */
@@ -80,8 +78,6 @@ int intel_engines_init(struct drm_i915_private *dev_priv);
 struct drm_i915_private;
 struct i915_gem_context;
 
-uint32_t intel_lr_context_size(struct intel_engine_cs *engine);
-
 void intel_lr_context_resume(struct drm_i915_private *dev_priv);
 uint64_t intel_lr_context_descriptor(struct i915_gem_context *ctx,
 				     struct intel_engine_cs *engine);
@@ -89,7 +85,5 @@ uint64_t intel_lr_context_descriptor(struct i915_gem_context *ctx,
 /* Execlists */
 int intel_sanitize_enable_execlists(struct drm_i915_private *dev_priv,
 				    int enable_execlists);
-void intel_execlists_enable_submission(struct drm_i915_private *dev_priv);
-bool intel_execlists_idle(struct drm_i915_private *dev_priv);
 
 #endif /* _INTEL_LRC_H_ */

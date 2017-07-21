@@ -1301,7 +1301,6 @@ static int sunxi_nfc_hw_ecc_read_subpage(struct mtd_info *mtd,
 
 	sunxi_nfc_hw_ecc_enable(mtd);
 
-	chip->cmdfunc(mtd, NAND_CMD_READ0, 0, page);
 	for (i = data_offs / ecc->size;
 	     i < DIV_ROUND_UP(data_offs + readlen, ecc->size); i++) {
 		int data_off = i * ecc->size;
@@ -1592,9 +1591,8 @@ static int _sunxi_nand_lookup_timing(const s32 *lut, int lut_size, u32 duration,
 #define sunxi_nand_lookup_timing(l, p, c) \
 			_sunxi_nand_lookup_timing(l, ARRAY_SIZE(l), p, c)
 
-static int sunxi_nfc_setup_data_interface(struct mtd_info *mtd,
-					const struct nand_data_interface *conf,
-					bool check_only)
+static int sunxi_nfc_setup_data_interface(struct mtd_info *mtd, int csline,
+					const struct nand_data_interface *conf)
 {
 	struct nand_chip *nand = mtd_to_nand(mtd);
 	struct sunxi_nand_chip *chip = to_sunxi_nand(nand);
@@ -1707,7 +1705,7 @@ static int sunxi_nfc_setup_data_interface(struct mtd_info *mtd,
 		return tRHW;
 	}
 
-	if (check_only)
+	if (csline == NAND_DATA_IFACE_CHECK_ONLY)
 		return 0;
 
 	/*
@@ -1922,7 +1920,6 @@ static int sunxi_nand_hw_ecc_ctrl_init(struct mtd_info *mtd,
 	ecc->write_subpage = sunxi_nfc_hw_ecc_write_subpage;
 	ecc->read_oob_raw = nand_read_oob_std;
 	ecc->write_oob_raw = nand_write_oob_std;
-	ecc->read_subpage = sunxi_nfc_hw_ecc_read_subpage;
 
 	return 0;
 }
@@ -2212,14 +2209,14 @@ static int sunxi_nfc_probe(struct platform_device *pdev)
 		goto out_ahb_clk_unprepare;
 
 	nfc->reset = devm_reset_control_get_optional(dev, "ahb");
-	if (!IS_ERR(nfc->reset)) {
-		ret = reset_control_deassert(nfc->reset);
-		if (ret) {
-			dev_err(dev, "reset err %d\n", ret);
-			goto out_mod_clk_unprepare;
-		}
-	} else if (PTR_ERR(nfc->reset) != -ENOENT) {
+	if (IS_ERR(nfc->reset)) {
 		ret = PTR_ERR(nfc->reset);
+		goto out_mod_clk_unprepare;
+	}
+
+	ret = reset_control_deassert(nfc->reset);
+	if (ret) {
+		dev_err(dev, "reset err %d\n", ret);
 		goto out_mod_clk_unprepare;
 	}
 
@@ -2262,8 +2259,7 @@ out_release_dmac:
 	if (nfc->dmac)
 		dma_release_channel(nfc->dmac);
 out_ahb_reset_reassert:
-	if (!IS_ERR(nfc->reset))
-		reset_control_assert(nfc->reset);
+	reset_control_assert(nfc->reset);
 out_mod_clk_unprepare:
 	clk_disable_unprepare(nfc->mod_clk);
 out_ahb_clk_unprepare:
@@ -2278,8 +2274,7 @@ static int sunxi_nfc_remove(struct platform_device *pdev)
 
 	sunxi_nand_chips_cleanup(nfc);
 
-	if (!IS_ERR(nfc->reset))
-		reset_control_assert(nfc->reset);
+	reset_control_assert(nfc->reset);
 
 	if (nfc->dmac)
 		dma_release_channel(nfc->dmac);

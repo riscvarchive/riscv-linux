@@ -20,7 +20,7 @@
  *
  *
  *  libata documentation is available via 'make {ps|pdf}docs',
- *  as Documentation/DocBook/libata.*
+ *  as Documentation/driver-api/libata.rst
  *
  *  Hardware documentation available from http://www.t13.org/
  *
@@ -336,11 +336,16 @@ enum {
 	/* READ_LOG_EXT pages */
 	ATA_LOG_DIRECTORY	= 0x0,
 	ATA_LOG_SATA_NCQ	= 0x10,
-	ATA_LOG_NCQ_NON_DATA	  = 0x12,
-	ATA_LOG_NCQ_SEND_RECV	  = 0x13,
-	ATA_LOG_SATA_ID_DEV_DATA  = 0x30,
+	ATA_LOG_NCQ_NON_DATA	= 0x12,
+	ATA_LOG_NCQ_SEND_RECV	= 0x13,
+	ATA_LOG_IDENTIFY_DEVICE	= 0x30,
+
+	/* Identify device log pages: */
+	ATA_LOG_SECURITY	  = 0x06,
 	ATA_LOG_SATA_SETTINGS	  = 0x08,
 	ATA_LOG_ZONED_INFORMATION = 0x09,
+
+	/* Identify device SATA settings log:*/
 	ATA_LOG_DEVSLP_OFFSET	  = 0x30,
 	ATA_LOG_DEVSLP_SIZE	  = 0x08,
 	ATA_LOG_DEVSLP_MDAT	  = 0x00,
@@ -815,11 +820,6 @@ static inline bool ata_id_sct_features_ctrl(const u16 *id)
 static inline bool ata_id_sct_error_recovery_ctrl(const u16 *id)
 {
 	return id[ATA_ID_SCT_CMD_XPORT] & (1 << 3) ? true : false;
-}
-
-static inline bool ata_id_sct_write_same(const u16 *id)
-{
-	return id[ATA_ID_SCT_CMD_XPORT] & (1 << 2) ? true : false;
 }
 
 static inline bool ata_id_sct_long_sector_access(const u16 *id)

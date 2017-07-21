@@ -37,7 +37,7 @@ static void bsg_destroy_job(struct kref *kref)
 	struct bsg_job *job = container_of(kref, struct bsg_job, kref);
 	struct request *rq = job->req;
 
-	blk_end_request_all(rq, rq->errors);
+	blk_end_request_all(rq, BLK_STS_OK);
 
 	put_device(job->dev);	/* release reference for the request */
 
@@ -74,7 +74,7 @@ void bsg_job_done(struct bsg_job *job, int result,
 	struct scsi_request *rq = scsi_req(req);
 	int err;
 
-	err = job->req->errors = result;
+	err = scsi_req(job->req)->result = result;
 	if (err < 0)
 		/* we're only returning the result field in the reply */
 		rq->sense_len = sizeof(u32);
@@ -177,7 +177,7 @@ failjob_rls_job:
  * @q: request queue to manage
  *
  * On error the create_bsg_job function should return a -Exyz error value
- * that will be set to the req->errors.
+ * that will be set to ->result.
  *
  * Drivers/subsys should pass this to the queue init function.
  */
@@ -201,8 +201,8 @@ static void bsg_request_fn(struct request_queue *q)
 
 		ret = bsg_create_job(dev, req);
 		if (ret) {
-			req->errors = ret;
-			blk_end_request_all(req, ret);
+			scsi_req(req)->result = ret;
+			blk_end_request_all(req, BLK_STS_OK);
 			spin_lock_irq(q->queue_lock);
 			continue;
 		}
@@ -246,6 +246,7 @@ struct request_queue *bsg_setup_queue(struct device *dev, char *name,
 	q->bsg_job_size = dd_job_size;
 	q->bsg_job_fn = job_fn;
 	queue_flag_set_unlocked(QUEUE_FLAG_BIDI, q);
+	queue_flag_set_unlocked(QUEUE_FLAG_SCSI_PASSTHROUGH, q);
 	blk_queue_softirq_done(q, bsg_softirq_done);
 	blk_queue_rq_timeout(q, BLK_DEFAULT_SG_TIMEOUT);
 

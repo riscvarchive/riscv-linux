@@ -79,6 +79,7 @@ struct amd_nb {
 
 /* The maximal number of PEBS events: */
 #define MAX_PEBS_EVENTS		8
+#define PEBS_COUNTER_MASK	((1ULL << MAX_PEBS_EVENTS) - 1)
 
 /*
  * Flags PEBS can handle without an PMI.
@@ -560,6 +561,9 @@ struct x86_pmu {
 
 	ssize_t		(*events_sysfs_show)(char *page, u64 config);
 	struct attribute **cpu_events;
+
+	unsigned long	attr_freeze_on_smi;
+	struct attribute **attrs;
 
 	/*
 	 * CPU Hotplug hooks

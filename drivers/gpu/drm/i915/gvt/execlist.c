@@ -56,8 +56,8 @@ static int context_switch_events[] = {
 
 static int ring_id_to_context_switch_event(int ring_id)
 {
-	if (WARN_ON(ring_id < RCS && ring_id >
-				ARRAY_SIZE(context_switch_events)))
+	if (WARN_ON(ring_id < RCS ||
+		    ring_id >= ARRAY_SIZE(context_switch_events)))
 		return -EINVAL;
 
 	return context_switch_events[ring_id];
@@ -394,9 +394,11 @@ static void prepare_shadow_batch_buffer(struct intel_vgpu_workload *workload)
 
 static int update_wa_ctx_2_shadow_ctx(struct intel_shadow_wa_ctx *wa_ctx)
 {
-	int ring_id = wa_ctx->workload->ring_id;
-	struct i915_gem_context *shadow_ctx =
-		wa_ctx->workload->vgpu->shadow_ctx;
+	struct intel_vgpu_workload *workload = container_of(wa_ctx,
+					struct intel_vgpu_workload,
+					wa_ctx);
+	int ring_id = workload->ring_id;
+	struct i915_gem_context *shadow_ctx = workload->vgpu->shadow_ctx;
 	struct drm_i915_gem_object *ctx_obj =
 		shadow_ctx->engine[ring_id].state->obj;
 	struct execlist_ring_context *shadow_ring_context;
@@ -680,15 +682,12 @@ static int submit_context(struct intel_vgpu *vgpu, int ring_id,
 			CACHELINE_BYTES;
 		workload->wa_ctx.per_ctx.guest_gma =
 			per_ctx & PER_CTX_ADDR_MASK;
-		workload->wa_ctx.workload = workload;
 
 		WARN_ON(workload->wa_ctx.indirect_ctx.size && !(per_ctx & 0x1));
 	}
 
 	if (emulate_schedule_in)
-		memcpy(&workload->elsp_dwords,
-				&vgpu->execlist[ring_id].elsp_dwords,
-				sizeof(workload->elsp_dwords));
+		workload->elsp_dwords = vgpu->execlist[ring_id].elsp_dwords;
 
 	gvt_dbg_el("workload %p ring id %d head %x tail %x start %x ctl %x\n",
 			workload, ring_id, head, tail, start, ctl);
@@ -709,53 +708,43 @@ static int submit_context(struct intel_vgpu *vgpu, int ring_id,
 int intel_vgpu_submit_execlist(struct intel_vgpu *vgpu, int ring_id)
 {
 	struct intel_vgpu_execlist *execlist = &vgpu->execlist[ring_id];
-	struct execlist_ctx_descriptor_format *desc[2], valid_desc[2];
-	unsigned long valid_desc_bitmap = 0;
-	bool emulate_schedule_in = true;
-	int ret;
-	int i;
+	struct execlist_ctx_descriptor_format desc[2];
+	int i, ret;
 
-	memset(valid_desc, 0, sizeof(valid_desc));
+	desc[0] = *get_desc_from_elsp_dwords(&execlist->elsp_dwords, 1);
+	desc[1] = *get_desc_from_elsp_dwords(&execlist->elsp_dwords, 0);
 
-	desc[0] = get_desc_from_elsp_dwords(&execlist->elsp_dwords, 1);
-	desc[1] = get_desc_from_elsp_dwords(&execlist->elsp_dwords, 0);
+	if (!desc[0].valid) {
+		gvt_vgpu_err("invalid elsp submission, desc0 is invalid\n");
+		goto inv_desc;
+	}
 
-	for (i = 0; i < 2; i++) {
-		if (!desc[i]->valid)
+	for (i = 0; i < ARRAY_SIZE(desc); i++) {
+		if (!desc[i].valid)
 			continue;
-
-		if (!desc[i]->privilege_access) {
+		if (!desc[i].privilege_access) {
 			gvt_vgpu_err("unexpected GGTT elsp submission\n");
-			return -EINVAL;
+			goto inv_desc;
 		}
-
-		/* TODO: add another guest context checks here. */
-		set_bit(i, &valid_desc_bitmap);
-		valid_desc[i] = *desc[i];
-	}
-
-	if (!valid_desc_bitmap) {
-		gvt_vgpu_err("no valid desc in a elsp submission\n");
-		return -EINVAL;
-	}
-
-	if (!test_bit(0, (void *)&valid_desc_bitmap) &&
-			test_bit(1, (void *)&valid_desc_bitmap)) {
-		gvt_vgpu_err("weird elsp submission, desc 0 is not valid\n");
-		return -EINVAL;
 	}
 
 	/* submit workload */
-	for_each_set_bit(i, (void *)&valid_desc_bitmap, 2) {
-		ret = submit_context(vgpu, ring_id, &valid_desc[i],
-				emulate_schedule_in);
+	for (i = 0; i < ARRAY_SIZE(desc); i++) {
+		if (!desc[i].valid)
+			continue;
+		ret = submit_context(vgpu, ring_id, &desc[i], i == 0);
 		if (ret) {
-			gvt_vgpu_err("fail to schedule workload\n");
+			gvt_vgpu_err("failed to submit desc %d\n", i);
 			return ret;
 		}
-		emulate_schedule_in = false;
 	}
+
 	return 0;
+
+inv_desc:
+	gvt_vgpu_err("descriptors content: desc0 %08x %08x desc1 %08x %08x\n",
+		     desc[0].udw, desc[0].ldw, desc[1].udw, desc[1].ldw);
+	return -EINVAL;
 }
 
 static void init_vgpu_execlist(struct intel_vgpu *vgpu, int ring_id)
@@ -780,8 +769,26 @@ static void init_vgpu_execlist(struct intel_vgpu *vgpu, int ring_id)
 	vgpu_vreg(vgpu, ctx_status_ptr_reg) = ctx_status_ptr.dw;
 }
 
+static void clean_workloads(struct intel_vgpu *vgpu, unsigned long engine_mask)
+{
+	struct drm_i915_private *dev_priv = vgpu->gvt->dev_priv;
+	struct intel_engine_cs *engine;
+	struct intel_vgpu_workload *pos, *n;
+	unsigned int tmp;
+
+	/* free the unsubmited workloads in the queues. */
+	for_each_engine_masked(engine, dev_priv, engine_mask, tmp) {
+		list_for_each_entry_safe(pos, n,
+			&vgpu->workload_q_head[engine->id], list) {
+			list_del_init(&pos->list);
+			free_workload(pos);
+		}
+	}
+}
+
 void intel_vgpu_clean_execlist(struct intel_vgpu *vgpu)
 {
+	clean_workloads(vgpu, ALL_ENGINES);
 	kmem_cache_destroy(vgpu->workloads);
 }
 
@@ -812,17 +819,9 @@ void intel_vgpu_reset_execlist(struct intel_vgpu *vgpu,
 {
 	struct drm_i915_private *dev_priv = vgpu->gvt->dev_priv;
 	struct intel_engine_cs *engine;
-	struct intel_vgpu_workload *pos, *n;
 	unsigned int tmp;
 
-	for_each_engine_masked(engine, dev_priv, engine_mask, tmp) {
-		/* free the unsubmited workload in the queue */
-		list_for_each_entry_safe(pos, n,
-			&vgpu->workload_q_head[engine->id], list) {
-			list_del_init(&pos->list);
-			free_workload(pos);
-		}
-
+	clean_workloads(vgpu, engine_mask);
+	for_each_engine_masked(engine, dev_priv, engine_mask, tmp)
 		init_vgpu_execlist(vgpu, engine->id);
-	}
 }
