@@ -1443,6 +1443,18 @@
 		status = "disabled";
 	};
 
+	gpu: gpu@ff9a0000 {
+		compatible = "rockchip,rk3399-mali", "arm,mali-t860";
+		reg = <0x0 0xff9a0000 0x0 0x10000>;
+		interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH 0>;
+		interrupt-names = "gpu", "job", "mmu";
+		clocks = <&cru ACLK_GPU>;
+		power-domains = <&power RK3399_PD_GPU>;
+		status = "disabled";
+	};
+
 	pinctrl: pinctrl {
 		compatible = "rockchip,rk3399-pinctrl";
 		rockchip,grf = <&grf>;
@@ -2107,16 +2119,6 @@
 		};
 
 		pcie {
-			pcie_clkreqn: pci-clkreqn {
-				rockchip,pins =
-					<2 26 RK_FUNC_2 &pcfg_pull_none>;
-			};
-
-			pcie_clkreqnb: pci-clkreqnb {
-				rockchip,pins =
-					<4 24 RK_FUNC_1 &pcfg_pull_none>;
-			};
-
 			pcie_clkreqn_cpm: pci-clkreqn-cpm {
 				rockchip,pins =
 					<2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
