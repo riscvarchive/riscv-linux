@@ -41,7 +41,7 @@
 #define ERRSEQ_CTR_INC		(1 << (ERRSEQ_SHIFT + 1))
 
 /**
- * __errseq_set - set a errseq_t for later reporting
+ * errseq_set - set a errseq_t for later reporting
  * @eseq: errseq_t field that should be set
  * @err: error to set
  *
@@ -57,7 +57,7 @@
  * value should not be used as a previously sampled value in later calls as it
  * will not have the SEEN flag set.
  */
-errseq_t __errseq_set(errseq_t *eseq, int err)
+errseq_t errseq_set(errseq_t *eseq, int err)
 {
 	errseq_t cur, old;
 
@@ -107,7 +107,7 @@ errseq_t __errseq_set(errseq_t *eseq, int err)
 	}
 	return cur;
 }
-EXPORT_SYMBOL(__errseq_set);
+EXPORT_SYMBOL(errseq_set);
 
 /**
  * errseq_sample - grab current errseq_t value
