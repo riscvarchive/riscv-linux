@@ -139,8 +139,8 @@ config GENERIC_BLKDEV
         tristate "Generic Block Device"
         default y
 
-config SIMPLE_NIC
-        tristate "Simple Ethernet NIC"
+config ICENET
+        tristate "IceNet Ethernet NIC"
         default y
 
 config RVC

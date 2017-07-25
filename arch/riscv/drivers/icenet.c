@@ -14,12 +14,13 @@
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 
-#define SIMPLE_NIC_NAME "simple-nic"
-#define SIMPLE_NIC_SEND_REQ 0
-#define SIMPLE_NIC_RECV_REQ 8
-#define SIMPLE_NIC_SEND_COMP 16
-#define SIMPLE_NIC_RECV_COMP 18
-#define SIMPLE_NIC_COUNTS 20
+#define ICENET_NAME "icenet"
+#define ICENET_SEND_REQ 0
+#define ICENET_RECV_REQ 8
+#define ICENET_SEND_COMP 16
+#define ICENET_RECV_COMP 18
+#define ICENET_COUNTS 20
+#define ICENET_MACADDR 24
 
 #define CIRC_BUF_LEN 16
 #define ALIGN_BYTES 8
@@ -72,7 +73,7 @@ static inline struct sk_buff *sk_buff_cq_pop(struct sk_buff_cq *cq)
 	return skb;
 }
 
-struct simple_nic_device {
+struct icenet_device {
 	struct device *dev;
 	void __iomem *iomem;
 	struct sk_buff_cq send_cq;
@@ -81,29 +82,29 @@ struct simple_nic_device {
 	int irq;
 };
 
-static inline int send_req_avail(struct simple_nic_device *nic)
+static inline int send_req_avail(struct icenet_device *nic)
 {
-	return ioread16(nic->iomem + SIMPLE_NIC_COUNTS) & 0xf;
+	return ioread16(nic->iomem + ICENET_COUNTS) & 0xf;
 }
 
-static inline int recv_req_avail(struct simple_nic_device *nic)
+static inline int recv_req_avail(struct icenet_device *nic)
 {
-	return (ioread16(nic->iomem + SIMPLE_NIC_COUNTS) >> 4) & 0xf;
+	return (ioread16(nic->iomem + ICENET_COUNTS) >> 4) & 0xf;
 }
 
-static inline int send_comp_avail(struct simple_nic_device *nic)
+static inline int send_comp_avail(struct icenet_device *nic)
 {
-	return (ioread16(nic->iomem + SIMPLE_NIC_COUNTS) >> 8) & 0xf;
+	return (ioread16(nic->iomem + ICENET_COUNTS) >> 8) & 0xf;
 }
 
-static inline int recv_comp_avail(struct simple_nic_device *nic)
+static inline int recv_comp_avail(struct icenet_device *nic)
 {
-	return (ioread16(nic->iomem + SIMPLE_NIC_COUNTS) >> 12) & 0xf;
+	return (ioread16(nic->iomem + ICENET_COUNTS) >> 12) & 0xf;
 }
 
 
 static inline void post_send(
-		struct simple_nic_device *nic, struct sk_buff *skb)
+		struct icenet_device *nic, struct sk_buff *skb)
 {
 	uintptr_t addr = virt_to_phys(skb->data), align;
 	uint64_t len = skb->len, packet;
@@ -125,14 +126,14 @@ static inline void post_send(
 
 	packet = (len << 48) | (addr & 0xffffffffffffL);
 
-	iowrite64(packet, nic->iomem + SIMPLE_NIC_SEND_REQ);
+	iowrite64(packet, nic->iomem + ICENET_SEND_REQ);
 	sk_buff_cq_push(&nic->send_cq, skb, data);
 
-	printk(KERN_DEBUG "SimpleNIC: tx addr=%lx len=%llu\n", addr, len);
+	printk(KERN_DEBUG "IceNet: tx addr=%lx len=%llu\n", addr, len);
 }
 
 static inline void post_recv(
-		struct simple_nic_device *nic, struct sk_buff *skb)
+		struct icenet_device *nic, struct sk_buff *skb)
 {
 	int align = DMA_PTR_ALIGN(skb->data) - skb->data;
 	uintptr_t addr;
@@ -140,11 +141,11 @@ static inline void post_recv(
 	skb_reserve(skb, align);
 	addr = virt_to_phys(skb->data);
 
-	iowrite64(addr, nic->iomem + SIMPLE_NIC_RECV_REQ);
+	iowrite64(addr, nic->iomem + ICENET_RECV_REQ);
 	sk_buff_cq_push(&nic->recv_cq, skb, NULL);
 }
 
-static inline int can_send(struct simple_nic_device *nic)
+static inline int can_send(struct icenet_device *nic)
 {
 	int avail = send_req_avail(nic);
 	int space = SK_BUFF_CQ_SPACE(nic->send_cq);
@@ -154,11 +155,11 @@ static inline int can_send(struct simple_nic_device *nic)
 
 static void complete_send(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	struct sk_buff *skb;
 
 	while (send_comp_avail(nic) > 0) {
-		ioread16(nic->iomem + SIMPLE_NIC_SEND_COMP);
+		ioread16(nic->iomem + ICENET_SEND_COMP);
 		BUG_ON(SK_BUFF_CQ_COUNT(nic->send_cq) == 0);
 		skb = sk_buff_cq_pop(&nic->send_cq);
 
@@ -171,12 +172,12 @@ static void complete_send(struct net_device *ndev)
 
 static void complete_recv(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	struct sk_buff *skb;
 	int len;
 
 	while (recv_comp_avail(nic) > 0) {
-		len = ioread16(nic->iomem + SIMPLE_NIC_RECV_COMP);
+		len = ioread16(nic->iomem + ICENET_RECV_COMP);
 		skb = sk_buff_cq_pop(&nic->recv_cq);
 		skb_put(skb, len);
 		skb_pull(skb, NET_IP_ALIGN);
@@ -187,14 +188,14 @@ static void complete_recv(struct net_device *ndev)
 		ndev->stats.rx_bytes += len;
 		netif_rx(skb);
 
-		printk(KERN_DEBUG "SimpleNIC: rx addr=%p, len=%d\n",
+		printk(KERN_DEBUG "IceNet: rx addr=%p, len=%d\n",
 				skb->data, len);
 	}
 }
 
 static void alloc_recv(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	int hw_recv_cnt = recv_req_avail(nic);
 	int sw_recv_cnt = SK_BUFF_CQ_SPACE(nic->recv_cq);
 	int recv_cnt = (hw_recv_cnt < sw_recv_cnt) ? hw_recv_cnt : sw_recv_cnt;
@@ -206,10 +207,10 @@ static void alloc_recv(struct net_device *ndev)
 	}
 }
 
-static irqreturn_t simple_nic_isr(int irq, void *data)
+static irqreturn_t icenet_isr(int irq, void *data)
 {
 	struct net_device *ndev = data;
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 
 	if (irq != nic->irq)
 		return IRQ_NONE;
@@ -225,9 +226,9 @@ static irqreturn_t simple_nic_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static int simple_nic_parse_addr(struct net_device *ndev)
+static int icenet_parse_addr(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	struct device *dev = nic->dev;
 	struct device_node *node = dev->of_node;
 	struct resource regs;
@@ -248,17 +249,17 @@ static int simple_nic_parse_addr(struct net_device *ndev)
 	return 0;
 }
 
-static int simple_nic_parse_irq(struct net_device *ndev)
+static int icenet_parse_irq(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	struct device *dev = nic->dev;
 	struct device_node *node = dev->of_node;
 	int err;
 
 	nic->irq = irq_of_parse_and_map(node, 0);
-	err = devm_request_irq(dev, nic->irq, simple_nic_isr,
+	err = devm_request_irq(dev, nic->irq, icenet_isr,
 			IRQF_SHARED | IRQF_NO_THREAD,
-			SIMPLE_NIC_NAME, ndev);
+			ICENET_NAME, ndev);
 	if (err) {
 		dev_err(dev, "could not obtain irq %d\n", nic->irq);
 		return err;
@@ -267,43 +268,43 @@ static int simple_nic_parse_irq(struct net_device *ndev)
 	return 0;
 }
 
-static int simple_nic_open(struct net_device *ndev)
+static int icenet_open(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	unsigned long flags;
 
 	spin_lock_irqsave(&nic->lock, flags);
 
-	simple_nic_parse_irq(ndev);
+	icenet_parse_irq(ndev);
 	alloc_recv(ndev);
 	netif_start_queue(ndev);
 
 	spin_unlock_irqrestore(&nic->lock, flags);
 
-	printk(KERN_DEBUG "SimpleNIC: opened device\n");
+	printk(KERN_DEBUG "IceNet: opened device\n");
 
 	return 0;
 }
 
-static int simple_nic_stop(struct net_device *ndev)
+static int icenet_stop(struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	unsigned long flags;
 
 	spin_lock_irqsave(&nic->lock, flags);
 
 	netif_stop_queue(ndev);
-	devm_free_irq(nic->dev, nic->irq, SIMPLE_NIC_NAME);
+	devm_free_irq(nic->dev, nic->irq, ICENET_NAME);
 
 	spin_unlock_irqrestore(&nic->lock, flags);
 
-	printk(KERN_DEBUG "SimpleNIC: stopped device\n");
+	printk(KERN_DEBUG "IceNet: stopped device\n");
 	return 0;
 }
 
-static int simple_nic_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+static int icenet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
-	struct simple_nic_device *nic = netdev_priv(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
 	unsigned long flags;
 
 	spin_lock_irqsave(&nic->lock, flags);
@@ -319,23 +320,50 @@ static int simple_nic_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 	return NETDEV_TX_OK;
 }
 
-static const struct net_device_ops simple_nic_ops = {
-	.ndo_open = simple_nic_open,
-	.ndo_stop = simple_nic_stop,
-	.ndo_start_xmit = simple_nic_start_xmit
+static void icenet_change_mac_address(struct net_device *ndev)
+{
+	struct icenet_device *nic = netdev_priv(ndev);
+	unsigned long macaddr = 0;
+
+	memcpy(&macaddr, ndev->dev_addr, 6);
+	iowrite64(macaddr, nic->iomem + ICENET_MACADDR);
+}
+
+static int icenet_set_mac_address(struct net_device *ndev, void *addr)
+{
+	if (!is_valid_ether_addr(addr))
+		return -EADDRNOTAVAIL;
+
+	memcpy(ndev->dev_addr, addr, 6);
+	icenet_change_mac_address(ndev);
+
+	return 0;
+}
+
+static void icenet_init_mac_address(struct net_device *ndev)
+{
+	eth_hw_addr_random(ndev);
+	icenet_change_mac_address(ndev);
+}
+
+static const struct net_device_ops icenet_ops = {
+	.ndo_open = icenet_open,
+	.ndo_stop = icenet_stop,
+	.ndo_start_xmit = icenet_start_xmit,
+	.ndo_set_mac_address = icenet_set_mac_address
 };
 
-static int simple_nic_probe(struct platform_device *pdev)
+static int icenet_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct net_device *ndev;
-	struct simple_nic_device *nic;
+	struct icenet_device *nic;
 	int ret;
 
 	if (!dev->of_node)
 		return -ENODEV;
 
-	ndev = devm_alloc_etherdev(dev, sizeof(struct simple_nic_device));
+	ndev = devm_alloc_etherdev(dev, sizeof(struct icenet_device));
 	if (!ndev)
 		return -ENOMEM;
 
@@ -345,21 +373,21 @@ static int simple_nic_probe(struct platform_device *pdev)
 
 	ether_setup(ndev);
 	ndev->flags &= ~IFF_MULTICAST;
-	ndev->netdev_ops = &simple_nic_ops;
+	ndev->netdev_ops = &icenet_ops;
 
 	spin_lock_init(&nic->lock);
 	sk_buff_cq_init(&nic->send_cq);
 	sk_buff_cq_init(&nic->recv_cq);
-	if ((ret = simple_nic_parse_addr(ndev)) < 0)
+	if ((ret = icenet_parse_addr(ndev)) < 0)
 		return ret;
 
-	eth_hw_addr_random(ndev);
+	icenet_init_mac_address(ndev);
 	if ((ret = register_netdev(ndev)) < 0) {
 		dev_err(dev, "Failed to register netdev\n");
 		return ret;
 	}
 
-	printk(KERN_INFO "Registered SimpleNIC %02x:%02x:%02x:%02x:%02x:%02x\n",
+	printk(KERN_INFO "Registered IceNet SimpleNIC %02x:%02x:%02x:%02x:%02x:%02x\n",
 			ndev->dev_addr[0],
 			ndev->dev_addr[1],
 			ndev->dev_addr[2],
@@ -370,7 +398,7 @@ static int simple_nic_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int simple_nic_remove(struct platform_device *pdev)
+static int icenet_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev;
 	ndev = platform_get_drvdata(pdev);
@@ -378,19 +406,19 @@ static int simple_nic_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static struct of_device_id simple_nic_of_match[] = {
+static struct of_device_id icenet_of_match[] = {
 	{ .compatible = "ucbbar,simple-nic" },
 	{}
 };
 
-static struct platform_driver simple_nic_driver = {
+static struct platform_driver icenet_driver = {
 	.driver = {
-		.name = SIMPLE_NIC_NAME,
-		.of_match_table = simple_nic_of_match,
+		.name = ICENET_NAME,
+		.of_match_table = icenet_of_match,
 		.suppress_bind_attrs = true
 	},
-	.probe = simple_nic_probe,
-	.remove = simple_nic_remove
+	.probe = icenet_probe,
+	.remove = icenet_remove
 };
 
-builtin_platform_driver(simple_nic_driver);
+builtin_platform_driver(icenet_driver);
