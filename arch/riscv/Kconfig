@@ -19,7 +19,7 @@ config RISCV
 	select GENERIC_STRNCPY_FROM_USER
 	select GENERIC_STRNLEN_USER
 	select GENERIC_SMP_IDLE_THREAD
-	select GENERIC_ATOMIC64 if !64BIT || !RV_ATOMIC
+	select GENERIC_ATOMIC64 if !64BIT || !ISA_A
 	select ARCH_WANT_OPTIONAL_GPIOLIB
 	select HAVE_MEMBLOCK
 	select HAVE_DMA_API_DEBUG
@@ -27,8 +27,8 @@ config RISCV
 	select HAVE_GENERIC_DMA_COHERENT
 	select IRQ_DOMAIN
 	select NO_BOOTMEM
-	select RV_ATOMIC if SMP
-	select RV_SYSRISCV_ATOMIC if !RV_ATOMIC
+	select ISA_A if SMP
+	select SYSRISCV_ATOMIC if !ISA_A
 	select SPARSE_IRQ
 	select SYSCTL_EXCEPTION_TRACE
 	select HAVE_ARCH_TRACEHOOK
@@ -99,14 +99,33 @@ config NR_CPUS
 	depends on SMP
 	default "8"
 
-choice
-	prompt "CPU selection"
-	default CPU_RV_GENERIC
+config CPU_SUPPORTS_32BIT_KERNEL
+	bool
+config CPU_SUPPORTS_64BIT_KERNEL
+	bool
 
-config CPU_RV_GENERIC
-	bool "Generic RISC-V"
+choice
+	prompt "Base ISA"
+	default ARCH_RV64I
+
+config ARCH_RV32I
+	bool "RV32I"
 	select CPU_SUPPORTS_32BIT_KERNEL
+	select 32BIT
+
+config ARCH_RV64I
+	bool "RV64I"
 	select CPU_SUPPORTS_64BIT_KERNEL
+	select 64BIT
+
+endchoice
+
+choice
+	prompt "CPU Tuning"
+	default TUNE_GENERIC
+
+config TUNE_GENERIC
+	bool "generic"
 
 endchoice
 
@@ -120,11 +139,6 @@ config PLIC
 	   interrupt sources (MSI, GPIO, etc) are subordinate to the PLIC.
 
 	   If you don't know what to do here, say Y.
-
-config CPU_SUPPORTS_32BIT_KERNEL
-	bool
-config CPU_SUPPORTS_64BIT_KERNEL
-	bool
 
 config SBI_CONSOLE
 	tristate "SBI console support"
@@ -143,25 +157,25 @@ config ICENET
         tristate "IceNet Ethernet NIC"
         default y
 
-config RVC
-	bool "Use compressed instructions (RV32C or RV64C)"
+config ISA_C
+	bool "Emit compressed instructions when building Linux"
 	default n
 
-config RV_ATOMIC
-	bool "Use atomic memory instructions (RV32A or RV64A)"
+config ISA_A
+	bool "Emit atomic instructions when building Linux"
 	default y
 
-config RV_SYSRISCV_ATOMIC
+config SYSRISCV_ATOMIC
 	bool "Include support for atomic operation syscalls"
 	default n
 	help
 	  If atomic memory instructions are present, i.e.,
-	  CONFIG_RV_ATOMIC, this includes support for the syscall that
+	  CONFIG_ISA_A, this includes support for the syscall that
 	  provides atomic accesses.  This is only useful to run
 	  binaries that require atomic access but were compiled with
 	  -mno-atomic.
 
-	  If CONFIG_RV_ATOMIC is unset, this option is mandatory.
+	  If CONFIG_ISA_A is unset, this option is mandatory.
 
 config RV_PUM
 	def_bool y

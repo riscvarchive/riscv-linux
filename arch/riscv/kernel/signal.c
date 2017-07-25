@@ -38,17 +38,45 @@ struct rt_sigframe {
 	struct ucontext uc;
 };
 
+static long restore_d_state(struct pt_regs *regs,
+	struct __riscv_d_ext_state __user *state)
+{
+	long err;
+	err = __copy_from_user(&current->thread.fstate, state, sizeof(*state));
+	if (likely(!err))
+		fstate_restore(current, regs);
+	return err;
+}
+
+static long save_d_state(struct pt_regs *regs,
+	struct __riscv_d_ext_state __user *state)
+{
+	fstate_save(current, regs);
+	return __copy_to_user(state, &current->thread.fstate, sizeof(*state));
+}
+
 static long restore_sigcontext(struct pt_regs *regs,
 	struct sigcontext __user *sc)
 {
-	struct task_struct *task = current;
 	long err;
+	size_t i;
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_from_user(regs, &sc->sc_regs, sizeof(sc->sc_regs));
-	err |= __copy_from_user(&task->thread.fstate, &sc->sc_fpregs,
-		sizeof(sc->sc_fpregs));
-	if (likely(!err))
-		fstate_restore(task, regs);
+	if (unlikely(err))
+		return err;
+	/* Restore the floating-point state. */
+	err = restore_d_state(regs, &sc->sc_fpregs.d);
+	if (unlikely(err))
+		return err;
+	/* We support no other extension state at this time. */
+	for (i = 0; i < ARRAY_SIZE(sc->sc_fpregs.q.reserved); i++) {
+		u32 value;
+		err = __get_user(value, &sc->sc_fpregs.q.reserved[i]);
+		if (unlikely(err))
+			break;
+		if (value != 0)
+			return -EINVAL;
+	}
 	return err;
 }
 
@@ -92,16 +120,19 @@ badframe:
 	return 0;
 }
 
-static long setup_sigcontext(struct sigcontext __user *sc,
+static long setup_sigcontext(struct rt_sigframe __user *frame,
 	struct pt_regs *regs)
 {
-	struct task_struct *task = current;
+	struct sigcontext __user *sc = &frame->uc.uc_mcontext;
 	long err;
+	size_t i;
 	/* sc_regs is structured the same as the start of pt_regs */
 	err = __copy_to_user(&sc->sc_regs, regs, sizeof(sc->sc_regs));
-	fstate_save(task, regs);
-	err |= __copy_to_user(&sc->sc_fpregs, &task->thread.fstate,
-		sizeof(sc->sc_fpregs));
+	/* Save the floating-point state. */
+	err |= save_d_state(regs, &sc->sc_fpregs.d);
+	/* We support no other extension state at this time. */
+	for (i = 0; i < ARRAY_SIZE(sc->sc_fpregs.q.reserved); i++)
+		err |= __put_user(0, &sc->sc_fpregs.q.reserved[i]);
 	return err;
 }
 
@@ -145,7 +176,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	err |= __put_user(0, &frame->uc.uc_flags);
 	err |= __put_user(NULL, &frame->uc.uc_link);
 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
-	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs);
+	err |= setup_sigcontext(frame, regs);
 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
 	if (err)
 		return -EFAULT;

@@ -74,7 +74,7 @@ void show_regs(struct pt_regs *regs)
 		regs->sstatus, regs->sbadaddr, regs->scause);
 }
 
-void start_thread(struct pt_regs *regs, unsigned long pc, 
+void start_thread(struct pt_regs *regs, unsigned long pc,
 	unsigned long sp)
 {
 	regs->sstatus = SR_PIE /* User mode, irqs on */ | SR_FS_INITIAL;
@@ -89,8 +89,7 @@ void flush_thread(void)
 	 *	frm: round to nearest, ties to even (IEEE default)
 	 *	fflags: accrued exceptions cleared
 	 */
-	memset(&current->thread.fstate, 0,
-		sizeof(struct user_fpregs_struct));
+	memset(&current->thread.fstate, 0, sizeof(current->thread.fstate));
 }
 
 int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)

@@ -24,7 +24,7 @@
  */
 struct sigcontext {
 	struct user_regs_struct sc_regs;
-	struct user_fpregs_struct sc_fpregs;
+	union __riscv_fp_state sc_fpregs;
 };
 
 #endif /* _UAPI_ASM_RISCV_SIGCONTEXT_H */

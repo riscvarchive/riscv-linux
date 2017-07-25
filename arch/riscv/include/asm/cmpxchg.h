@@ -17,7 +17,7 @@
 
 #include <linux/bug.h>
 
-#ifdef CONFIG_RV_ATOMIC
+#ifdef CONFIG_ISA_A
 
 #include <asm/barrier.h>
 
@@ -116,10 +116,10 @@
 	cmpxchg_local((ptr), (o), (n));		\
 })
 
-#else /* !CONFIG_RV_ATOMIC */
+#else /* !CONFIG_ISA_A */
 
 #include <asm-generic/cmpxchg.h>
 
-#endif /* CONFIG_RV_ATOMIC */
+#endif /* CONFIG_ISA_A */
 
 #endif /* _ASM_RISCV_CMPXCHG_H */

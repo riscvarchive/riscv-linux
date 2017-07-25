@@ -48,7 +48,7 @@ struct thread_struct {
 	unsigned long ra;
 	unsigned long sp;	/* Kernel mode stack */
 	unsigned long s[12];	/* s[0]: frame pointer */
-	struct user_fpregs_struct fstate;
+	struct __riscv_d_ext_state fstate;
 };
 
 #define INIT_THREAD {					\

@@ -15,13 +15,13 @@ KBUILD_AFLAGS_MODULE += -fPIC
 KBUILD_CFLAGS_MODULE += -fPIC
 
 ifeq ($(ARCH),riscv)
-	KBUILD_DEFCONFIG = riscv64_spike
+	KBUILD_DEFCONFIG = spike64_defconfig
 else
-	KBUILD_DEFCONFIG = $(ARCH)_spike
+	KBUILD_DEFCONFIG = $(subst riscv,spike,$(ARCH))_defconfig
 endif
 
 export BITS
-ifeq ($(CONFIG_64BIT),y)
+ifeq ($(CONFIG_ARCH_RV64I),y)
 	BITS := 64
 	UTS_MACHINE := riscv64
 
@@ -39,21 +39,25 @@ else
 	LDFLAGS += -melf32lriscv
 endif
 
-ifeq ($(CONFIG_RV_ATOMIC),y)
-	KBUILD_RV_ATOMIC = a
-endif
-
 KBUILD_CFLAGS += -Wall
 
-ifeq ($(CONFIG_RVC),y)
-	KBUILD_RVC = c
+ifeq ($(CONFIG_ISA_A),y)
+	KBUILD_ARCH_A = a
+endif
+ifeq ($(CONFIG_ISA_C),y)
+	KBUILD_ARCH_C = c
 endif
 
-KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_RV_ATOMIC)fd$(KBUILD_RVC)
+KBUILD_AFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)fd$(KBUILD_ARCH_C)
 
-KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_RV_ATOMIC)$(KBUILD_RVC)
+KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
 KBUILD_CFLAGS += -mno-save-restore
-KBUILD_CFLAGS += -mstrict-align
+
+# GCC versions that support the "-mstrict-align" option default to allowing
+# unaligned accesses.  While unaligned accesses are explicitly allowed in the
+# RISC-V ISA, they're emulated by machine mode traps on all extant
+# architectures.  It's faster to have GCC emit only aligned accesses.
+KBUILD_CFLAGS += $(call cc-option,-mstrict-align)
 
 head-y := arch/riscv/kernel/head.o
 
