@@ -3133,6 +3133,15 @@ out_unlock:
 	return ret ?: nbytes;
 }
 
+/**
+ * cgroup_enable_threaded - make @cgrp threaded
+ * @cgrp: the target cgroup
+ *
+ * Called when "threaded" is written to the cgroup.type interface file and
+ * tries to make @cgrp threaded and join the parent's resource domain.
+ * This function is never called on the root cgroup as cgroup.type doesn't
+ * exist on it.
+ */
 static int cgroup_enable_threaded(struct cgroup *cgrp)
 {
 	struct cgroup *parent = cgroup_parent(cgrp);
@@ -3149,13 +3158,6 @@ static int cgroup_enable_threaded(struct cgroup *cgrp)
 	if (!cgroup_is_valid_domain(dom_cgrp) ||
 	    !cgroup_can_be_thread_root(dom_cgrp))
 		return -EOPNOTSUPP;
-
-	/*
-	 * Allow enabling thread mode only on empty cgroups to avoid
-	 * implicit migrations and recursive operations.
-	 */
-	if (cgroup_has_tasks(cgrp) || css_has_online_children(&cgrp->self))
-		return -EBUSY;
 
 	/*
 	 * The following shouldn't cause actual migrations and should
