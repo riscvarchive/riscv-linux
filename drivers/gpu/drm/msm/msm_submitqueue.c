@@ -123,9 +123,9 @@ int msm_submitqueue_init(struct drm_device *drm, struct msm_file_private *ctx)
 
 	/*
 	 * Add the "default" submitqueue with id 0
-	 * "medium" priority (3) and no flags
+	 * "low" priority (2) and no flags
 	 */
-	return msm_submitqueue_create(drm, ctx, 3, 0, NULL);
+	return msm_submitqueue_create(drm, ctx, 2, 0, NULL);
 }
 
 int msm_submitqueue_remove(struct msm_file_private *ctx, u32 id)
