@@ -29,6 +29,7 @@
 #define MAX_FRAME_SIZE (190 * ALIGN_BYTES)
 #define DMA_PTR_ALIGN(p) ((typeof(p)) (__ALIGN_KERNEL((uintptr_t) (p), ALIGN_BYTES)))
 #define DMA_LEN_ALIGN(n) (((((n) - 1) >> ALIGN_SHIFT) + 1) << ALIGN_SHIFT)
+#define MACADDR_BYTES 6
 
 struct sk_buff_cq_entry {
 	struct sk_buff *skb;
@@ -320,37 +321,22 @@ static int icenet_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 	return NETDEV_TX_OK;
 }
 
-static void icenet_change_mac_address(struct net_device *ndev)
-{
-	struct icenet_device *nic = netdev_priv(ndev);
-	unsigned long macaddr = 0;
-
-	memcpy(&macaddr, ndev->dev_addr, 6);
-	iowrite64(macaddr, nic->iomem + ICENET_MACADDR);
-}
-
-static int icenet_set_mac_address(struct net_device *ndev, void *addr)
-{
-	if (!is_valid_ether_addr(addr))
-		return -EADDRNOTAVAIL;
-
-	memcpy(ndev->dev_addr, addr, 6);
-	icenet_change_mac_address(ndev);
-
-	return 0;
-}
-
 static void icenet_init_mac_address(struct net_device *ndev)
 {
-	eth_hw_addr_random(ndev);
-	icenet_change_mac_address(ndev);
+	struct icenet_device *nic = netdev_priv(ndev);
+	uint64_t macaddr = ioread64(nic->iomem + ICENET_MACADDR);
+
+	ndev->addr_assign_type = NET_ADDR_PERM;
+	memcpy(ndev->dev_addr, &macaddr, MACADDR_BYTES);
+
+	if (!is_valid_ether_addr(ndev->dev_addr))
+		printk(KERN_WARNING "Invalid MAC address\n");
 }
 
 static const struct net_device_ops icenet_ops = {
 	.ndo_open = icenet_open,
 	.ndo_stop = icenet_stop,
-	.ndo_start_xmit = icenet_start_xmit,
-	.ndo_set_mac_address = icenet_set_mac_address
+	.ndo_start_xmit = icenet_start_xmit
 };
 
 static int icenet_probe(struct platform_device *pdev)
@@ -387,7 +373,7 @@ static int icenet_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	printk(KERN_INFO "Registered IceNet SimpleNIC %02x:%02x:%02x:%02x:%02x:%02x\n",
+	printk(KERN_INFO "Registered IceNet NIC %02x:%02x:%02x:%02x:%02x:%02x\n",
 			ndev->dev_addr[0],
 			ndev->dev_addr[1],
 			ndev->dev_addr[2],
@@ -407,7 +393,7 @@ static int icenet_remove(struct platform_device *pdev)
 }
 
 static struct of_device_id icenet_of_match[] = {
-	{ .compatible = "ucbbar,simple-nic" },
+	{ .compatible = "ucbbar,ice-nic" },
 	{}
 };
 
