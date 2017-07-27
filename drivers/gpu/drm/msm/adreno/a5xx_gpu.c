@@ -99,7 +99,7 @@ static void a5xx_submit(struct msm_gpu *gpu, struct msm_gem_submit *submit,
 	struct msm_file_private *ctx)
 {
 	struct msm_drm_private *priv = gpu->dev->dev_private;
-	struct msm_ringbuffer *ring = gpu->rb;
+	struct msm_ringbuffer *ring = submit->ring;
 	unsigned int i, ibs = 0;
 
 	for (i = 0; i < submit->nr_cmds; i++) {
@@ -124,11 +124,11 @@ static void a5xx_submit(struct msm_gpu *gpu, struct msm_gem_submit *submit,
 
 	OUT_PKT7(ring, CP_EVENT_WRITE, 4);
 	OUT_RING(ring, CACHE_FLUSH_TS | (1 << 31));
-	OUT_RING(ring, lower_32_bits(rbmemptr(gpu, fence)));
-	OUT_RING(ring, upper_32_bits(rbmemptr(gpu, fence)));
+	OUT_RING(ring, lower_32_bits(rbmemptr(ring, fence)));
+	OUT_RING(ring, upper_32_bits(rbmemptr(ring, fence)));
 	OUT_RING(ring, submit->seqno);
 
-	gpu->funcs->flush(gpu);
+	gpu->funcs->flush(gpu, ring);
 }
 
 static const struct {
@@ -244,7 +244,7 @@ void a5xx_set_hwcg(struct msm_gpu *gpu, bool state)
 static int a5xx_me_init(struct msm_gpu *gpu)
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
-	struct msm_ringbuffer *ring = gpu->rb;
+	struct msm_ringbuffer *ring = gpu->rb[0];
 
 	OUT_PKT7(ring, CP_ME_INIT, 8);
 
@@ -275,9 +275,8 @@ static int a5xx_me_init(struct msm_gpu *gpu)
 	OUT_RING(ring, 0x00000000);
 	OUT_RING(ring, 0x00000000);
 
-	gpu->funcs->flush(gpu);
-
-	return a5xx_idle(gpu) ? 0 : -EINVAL;
+	gpu->funcs->flush(gpu, ring);
+	return a5xx_idle(gpu, ring) ? 0 : -EINVAL;
 }
 
 static struct drm_gem_object *a5xx_ucode_load_bo(struct msm_gpu *gpu,
@@ -565,11 +564,11 @@ static int a5xx_hw_init(struct msm_gpu *gpu)
 	 * ticking correctly
 	 */
 	if (adreno_is_a530(adreno_gpu)) {
-		OUT_PKT7(gpu->rb, CP_EVENT_WRITE, 1);
-		OUT_RING(gpu->rb, 0x0F);
+		OUT_PKT7(gpu->rb[0], CP_EVENT_WRITE, 1);
+		OUT_RING(gpu->rb[0], 0x0F);
 
-		gpu->funcs->flush(gpu);
-		if (!a5xx_idle(gpu))
+		gpu->funcs->flush(gpu, gpu->rb[0]);
+		if (!a5xx_idle(gpu, gpu->rb[0]))
 			return -EINVAL;
 	}
 
@@ -582,11 +581,11 @@ static int a5xx_hw_init(struct msm_gpu *gpu)
 	 */
 	ret = a5xx_zap_shader_init(gpu);
 	if (!ret) {
-		OUT_PKT7(gpu->rb, CP_SET_SECURE_MODE, 1);
-		OUT_RING(gpu->rb, 0x00000000);
+		OUT_PKT7(gpu->rb[0], CP_SET_SECURE_MODE, 1);
+		OUT_RING(gpu->rb[0], 0x00000000);
 
-		gpu->funcs->flush(gpu);
-		if (!a5xx_idle(gpu))
+		gpu->funcs->flush(gpu, gpu->rb[0]);
+		if (!a5xx_idle(gpu, gpu->rb[0]))
 			return -EINVAL;
 	} else {
 		/* Print a warning so if we die, we know why */
@@ -660,18 +659,19 @@ static inline bool _a5xx_check_idle(struct msm_gpu *gpu)
 		A5XX_RBBM_INT_0_MASK_MISC_HANG_DETECT);
 }
 
-bool a5xx_idle(struct msm_gpu *gpu)
+bool a5xx_idle(struct msm_gpu *gpu, struct msm_ringbuffer *ring)
 {
 	/* wait for CP to drain ringbuffer: */
-	if (!adreno_idle(gpu))
+	if (!adreno_idle(gpu, ring))
 		return false;
 
 	if (spin_until(_a5xx_check_idle(gpu))) {
-		DRM_ERROR("%s: %ps: timeout waiting for GPU to idle: status %8.8X irq %8.8X\n",
+		DRM_ERROR("%s: %ps: timeout waiting for GPU to idle: status %8.8X irq %8.8X rptr/wptr %d/%d\n",
 			gpu->name, __builtin_return_address(0),
 			gpu_read(gpu, REG_A5XX_RBBM_STATUS),
-			gpu_read(gpu, REG_A5XX_RBBM_INT_0_STATUS));
-
+			gpu_read(gpu, REG_A5XX_RBBM_INT_0_STATUS),
+			gpu_read(gpu, REG_A5XX_CP_RB_RPTR),
+			gpu_read(gpu, REG_A5XX_CP_RB_WPTR));
 		return false;
 	}
 
@@ -995,6 +995,7 @@ static const struct adreno_gpu_funcs funcs = {
 		.recover = a5xx_recover,
 		.submit = a5xx_submit,
 		.flush = adreno_flush,
+		.active_ring = adreno_active_ring,
 		.irq = a5xx_irq,
 		.destroy = a5xx_destroy,
 #ifdef CONFIG_DEBUG_FS
@@ -1030,7 +1031,7 @@ struct msm_gpu *a5xx_gpu_init(struct drm_device *dev)
 
 	a5xx_gpu->lm_leakage = 0x4E001A;
 
-	ret = adreno_gpu_init(dev, pdev, adreno_gpu, &funcs);
+	ret = adreno_gpu_init(dev, pdev, adreno_gpu, &funcs, 1);
 	if (ret) {
 		a5xx_destroy(&(a5xx_gpu->base.base));
 		return ERR_PTR(ret);
