@@ -5217,14 +5217,15 @@ static int __build_all_zonelists(void *data)
 	 * This node is hotadded and no memory is yet present.   So just
 	 * building zonelists is fine - no need to touch other nodes.
 	 */
-	if (self && !node_online(self->node_id))
+	if (self && !node_online(self->node_id)) {
 		build_zonelists(self);
-	else
+	} else {
 		for_each_online_node(nid) {
 			pg_data_t *pgdat = NODE_DATA(nid);
 
 			build_zonelists(pgdat);
 		}
+	}
 
 	/*
 	 * Initialize the boot_pagesets that are going to be used
