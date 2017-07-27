@@ -5213,8 +5213,9 @@ static int __build_all_zonelists(void *data)
 	memset(node_load, 0, sizeof(node_load));
 #endif
 
-	/* This node is hotadded and no memory preset yet.
-	 * So just build zonelists is fine, no need to touch other nodes.
+	/*
+	 * This node is hotadded and no memory is yet present.   So just
+	 * building zonelists is fine - no need to touch other nodes.
 	 */
 	if (self && !node_online(self->node_id))
 		build_zonelists(self);
