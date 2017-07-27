@@ -233,7 +233,8 @@ static int submit_fence_sync(struct msm_gem_submit *submit)
 		struct msm_gem_object *msm_obj = submit->bos[i].obj;
 		bool write = submit->bos[i].flags & MSM_SUBMIT_BO_WRITE;
 
-		ret = msm_gem_sync_object(&msm_obj->base, submit->gpu->fctx, write);
+		ret = msm_gem_sync_object(&msm_obj->base, submit->queue->fctx,
+			write);
 		if (ret)
 			break;
 	}
@@ -426,7 +427,7 @@ int msm_ioctl_gem_submit(struct drm_device *dev, void *data,
 		 * Wait if the fence is from a foreign context, or if the fence
 		 * array contains any fence from a foreign context.
 		 */
-		if (!dma_fence_match_context(in_fence, gpu->fctx->context)) {
+		if (!dma_fence_match_context(in_fence, queue->fctx->context)) {
 			ret = dma_fence_wait(in_fence, true);
 			if (ret)
 				return ret;
@@ -531,7 +532,7 @@ int msm_ioctl_gem_submit(struct drm_device *dev, void *data,
 
 	submit->nr_cmds = i;
 
-	submit->fence = msm_fence_alloc(gpu->fctx);
+	submit->fence = msm_fence_alloc(queue->fctx);
 	if (IS_ERR(submit->fence)) {
 		ret = PTR_ERR(submit->fence);
 		submit->fence = NULL;

@@ -221,6 +221,19 @@ int msm_gpu_hw_init(struct msm_gpu *gpu)
  * Hangcheck detection for locked gpu:
  */
 
+static void update_fences(struct msm_gpu *gpu, uint32_t fence)
+{
+	struct msm_gem_submit *submit;
+
+	list_for_each_entry(submit, &gpu->submit_list, node) {
+		if (submit->seqno > fence)
+			break;
+
+		msm_update_fence(submit->queue->fctx,
+			submit->fence->seqno);
+	}
+}
+
 static void retire_submits(struct msm_gpu *gpu);
 
 static void recover_worker(struct work_struct *work)
@@ -230,13 +243,13 @@ static void recover_worker(struct work_struct *work)
 	struct msm_gem_submit *submit;
 	uint32_t fence = gpu->funcs->last_fence(gpu);
 
-	msm_update_fence(gpu->fctx, fence + 1);
+	update_fences(gpu, fence + 1);
 
 	mutex_lock(&dev->struct_mutex);
 
 	dev_err(dev->dev, "%s: hangcheck recover!\n", gpu->name);
 	list_for_each_entry(submit, &gpu->submit_list, node) {
-		if (submit->fence->seqno == (fence + 1)) {
+		if (submit->seqno == (fence + 1)) {
 			struct task_struct *task;
 
 			rcu_read_lock();
@@ -286,7 +299,7 @@ static void hangcheck_handler(unsigned long data)
 	if (fence != gpu->hangcheck_fence) {
 		/* some progress has been made.. ya! */
 		gpu->hangcheck_fence = fence;
-	} else if (fence < gpu->fctx->last_fence) {
+	} else if (fence < gpu->seqno) {
 		/* no progress and not done.. hung! */
 		gpu->hangcheck_fence = fence;
 		dev_err(dev->dev, "%s: hangcheck detected gpu lockup!\n",
@@ -294,12 +307,12 @@ static void hangcheck_handler(unsigned long data)
 		dev_err(dev->dev, "%s:     completed fence: %u\n",
 				gpu->name, fence);
 		dev_err(dev->dev, "%s:     submitted fence: %u\n",
-				gpu->name, gpu->fctx->last_fence);
+				gpu->name, gpu->seqno);
 		queue_work(priv->wq, &gpu->recover_work);
 	}
 
 	/* if still more pending work, reset the hangcheck timer: */
-	if (gpu->fctx->last_fence > gpu->hangcheck_fence)
+	if (gpu->seqno > gpu->hangcheck_fence)
 		hangcheck_timer_reset(gpu);
 
 	/* workaround for missing irq: */
@@ -451,7 +464,7 @@ static void retire_worker(struct work_struct *work)
 	struct drm_device *dev = gpu->dev;
 	uint32_t fence = gpu->funcs->last_fence(gpu);
 
-	msm_update_fence(gpu->fctx, fence);
+	update_fences(gpu, fence);
 
 	mutex_lock(&dev->struct_mutex);
 	retire_submits(gpu);
@@ -479,6 +492,8 @@ void msm_gpu_submit(struct msm_gpu *gpu, struct msm_gem_submit *submit,
 	pm_runtime_get_sync(&gpu->pdev->dev);
 
 	msm_gpu_hw_init(gpu);
+
+	submit->seqno = ++gpu->seqno;
 
 	list_add_tail(&submit->node, &gpu->submit_list);
 
@@ -575,12 +590,6 @@ int msm_gpu_init(struct drm_device *drm, struct platform_device *pdev,
 	gpu->dev = drm;
 	gpu->funcs = funcs;
 	gpu->name = name;
-	gpu->fctx = msm_fence_context_alloc(drm, name);
-	if (IS_ERR(gpu->fctx)) {
-		ret = PTR_ERR(gpu->fctx);
-		gpu->fctx = NULL;
-		goto fail;
-	}
 
 	INIT_LIST_HEAD(&gpu->active_list);
 	INIT_WORK(&gpu->retire_work, retire_worker);
@@ -693,7 +702,4 @@ void msm_gpu_cleanup(struct msm_gpu *gpu)
 			msm_gem_put_iova(gpu->rb->bo, gpu->aspace);
 		msm_ringbuffer_destroy(gpu->rb);
 	}
-
-	if (gpu->fctx)
-		msm_fence_context_free(gpu->fctx);
 }

@@ -121,13 +121,13 @@ static void a5xx_submit(struct msm_gpu *gpu, struct msm_gem_submit *submit,
 	}
 
 	OUT_PKT4(ring, REG_A5XX_CP_SCRATCH_REG(2), 1);
-	OUT_RING(ring, submit->fence->seqno);
+	OUT_RING(ring, submit->seqno);
 
 	OUT_PKT7(ring, CP_EVENT_WRITE, 4);
 	OUT_RING(ring, CACHE_FLUSH_TS | (1 << 31));
 	OUT_RING(ring, lower_32_bits(rbmemptr(adreno_gpu, fence)));
 	OUT_RING(ring, upper_32_bits(rbmemptr(adreno_gpu, fence)));
-	OUT_RING(ring, submit->fence->seqno);
+	OUT_RING(ring, submit->seqno);
 
 	gpu->funcs->flush(gpu);
 }

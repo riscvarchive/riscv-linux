@@ -93,8 +93,8 @@ struct msm_gpu {
 	/* list of GEM active objects: */
 	struct list_head active_list;
 
-	/* fencing: */
-	struct msm_fence_context *fctx;
+	/* The sequence number for ring submissions */
+	uint32_t seqno;
 
 	/* does gpu need hw_init? */
 	bool needs_hw_init;
@@ -134,7 +134,7 @@ struct msm_gpu {
 
 static inline bool msm_gpu_active(struct msm_gpu *gpu)
 {
-	return gpu->fctx->last_fence > gpu->funcs->last_fence(gpu);
+	return gpu->seqno > gpu->funcs->last_fence(gpu);
 }
 
 /* Perf-Counters:
@@ -157,6 +157,8 @@ struct msm_gpu_submitqueue {
 	int faults;
 	struct list_head node;
 	struct kref ref;
+
+	struct msm_fence_context *fctx;
 };
 
 static inline void gpu_write(struct msm_gpu *gpu, u32 reg, u32 data)

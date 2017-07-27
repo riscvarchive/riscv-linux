@@ -19,6 +19,7 @@ void msm_submitqueue_destroy(struct kref *kref)
 	struct msm_gpu_submitqueue *queue = container_of(kref,
 		struct msm_gpu_submitqueue, ref);
 
+	msm_fence_context_free(queue->fctx);
 	kfree(queue);
 }
 
@@ -60,16 +61,17 @@ void msm_submitqueue_close(struct msm_file_private *ctx)
 		msm_submitqueue_put(entry);
 }
 
-int msm_submitqueue_create(struct msm_file_private *ctx, u32 prio, u32 flags,
-		u32 *id)
+int msm_submitqueue_create(struct drm_device *drm, struct msm_file_private *ctx,
+		u32 prio, u32 flags, u32 *id)
 {
 	struct msm_gpu_submitqueue *queue;
+	char name[32];
+	int ret = 0;
 
 	if (!ctx)
 		return -ENODEV;
 
 	queue = kzalloc(sizeof(*queue), GFP_KERNEL);
-
 	if (!queue)
 		return -ENOMEM;
 
@@ -86,12 +88,31 @@ int msm_submitqueue_create(struct msm_file_private *ctx, u32 prio, u32 flags,
 
 	list_add_tail(&queue->node, &ctx->submitqueues);
 
+	/*
+	 * Get another reference to the queue before releasing the lock
+	 * so it does't get destroyed while we are still setting it up
+	 */
+	kref_get(&queue->ref);
+
 	write_unlock(&ctx->queuelock);
 
-	return 0;
+	/* FIXME: What should the name be? */
+	sprintf(name, "gpu-queue-%d", queue->id);
+
+	/* Allocate a fence domain for the queue */
+
+	queue->fctx = msm_fence_context_alloc(drm, name);
+	if (IS_ERR(queue->fctx)) {
+		ret = PTR_ERR(queue->fctx);
+		msm_submitqueue_put(queue);
+	}
+
+	msm_submitqueue_put(queue);
+
+	return ret;
 }
 
-int msm_submitqueue_init(struct msm_file_private *ctx)
+int msm_submitqueue_init(struct drm_device *drm, struct msm_file_private *ctx)
 {
 	if (!ctx)
 		return 0;
@@ -104,7 +125,7 @@ int msm_submitqueue_init(struct msm_file_private *ctx)
 	 * Add the "default" submitqueue with id 0
 	 * "medium" priority (3) and no flags
 	 */
-	return msm_submitqueue_create(ctx, 3, 0, NULL);
+	return msm_submitqueue_create(drm, ctx, 3, 0, NULL);
 }
 
 int msm_submitqueue_remove(struct msm_file_private *ctx, u32 id)

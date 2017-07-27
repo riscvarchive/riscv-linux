@@ -314,11 +314,11 @@ void msm_writel(u32 data, void __iomem *addr);
 u32 msm_readl(const void __iomem *addr);
 
 struct msm_gpu_submitqueue;
-int msm_submitqueue_init(struct msm_file_private *ctx);
+int msm_submitqueue_init(struct drm_device *drm, struct msm_file_private *ctx);
 struct msm_gpu_submitqueue *msm_submitqueue_get(struct msm_file_private *ctx,
 		u32 id);
-int msm_submitqueue_create(struct msm_file_private *ctx, u32 prio,
-		u32 flags, u32 *id);
+int msm_submitqueue_create(struct drm_device *drm, struct msm_file_private *ctx,
+		u32 prio, u32 flags, u32 *id);
 int msm_submitqueue_remove(struct msm_file_private *ctx, u32 id);
 void msm_submitqueue_close(struct msm_file_private *ctx);
 

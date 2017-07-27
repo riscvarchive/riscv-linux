@@ -141,6 +141,7 @@ struct msm_gem_submit {
 	struct list_head node;   /* node in gpu submit_list */
 	struct list_head bo_list;
 	struct ww_acquire_ctx ticket;
+	uint32_t seqno;		/* Sequence number of the submit on the ring */
 	struct dma_fence *fence;
 	struct msm_gpu_submitqueue *queue;
 	struct pid *pid;    /* submitting process */
