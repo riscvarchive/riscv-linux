@@ -413,6 +413,16 @@ void __wait_rcu_gp(bool checktiny, int n, call_rcu_func_t *crcu_array,
 			wait_for_completion(&rs_array[i].completion);
 		destroy_rcu_head_on_stack(&rs_array[i].head);
 	}
+
+	/*
+	 * If we migrated after we registered a callback, but before the
+	 * corresponding wait_for_completion(), we might now be running
+	 * on a CPU that has not yet noticed that the corresponding grace
+	 * period has ended.  That CPU might not yet be fully ordered
+	 * against the completion of the grace period, so the full memory
+	 * barrier below enforces that ordering via the completion's state.
+	 */
+	smp_mb(); /* ^^^ */
 }
 EXPORT_SYMBOL_GPL(__wait_rcu_gp);
 
