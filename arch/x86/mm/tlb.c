@@ -132,7 +132,8 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
 	 * due to instruction fetches or for no reason at all,
 	 * and neither LOCK nor MFENCE orders them.
 	 * Fortunately, load_cr3() is serializing and gives the
-	 * ordering guarantee we need.
+	 * ordering guarantee we need. This full barrier is also
+	 * required by the membarrier system call.
 	 */
 	load_cr3(next->pgd);
 
