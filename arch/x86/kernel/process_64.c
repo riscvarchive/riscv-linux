@@ -69,8 +69,7 @@ void __show_regs(struct pt_regs *regs, int all)
 	unsigned int fsindex, gsindex;
 	unsigned int ds, cs, es;
 
-	printk(KERN_DEFAULT "RIP: %04lx:%pS\n", regs->cs & 0xffff,
-		(void *)regs->ip);
+	printk(KERN_DEFAULT "RIP: %04lx:%pS\n", regs->cs, (void *)regs->ip);
 	printk(KERN_DEFAULT "RSP: %04lx:%016lx EFLAGS: %08lx", regs->ss,
 		regs->sp, regs->flags);
 	if (regs->orig_ax != -1)
@@ -278,6 +277,9 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	int cpu = smp_processor_id();
 	struct tss_struct *tss = &per_cpu(cpu_tss, cpu);
 	unsigned prev_fsindex, prev_gsindex;
+
+	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ENTRY) &&
+		     this_cpu_read(irq_count) != -1);
 
 	switch_fpu_prepare(prev_fpu, cpu);
 
