@@ -1,5 +1,5 @@
 /*
- * DMA function for TMIO MMC implementations
+ * DMA support use of SYS DMAC with SDHI SD/SDIO controller
  *
  * Copyright (C) 2016-17 Renesas Electronics Corporation
  * Copyright (C) 2016-17 Sang Engineering, Wolfram Sang
@@ -124,6 +124,11 @@ static void renesas_sdhi_sys_dmac_abort_dma(struct tmio_mmc_host *host)
 		dmaengine_terminate_all(host->chan_tx);
 
 	renesas_sdhi_sys_dmac_enable_dma(host, true);
+}
+
+static void renesas_sdhi_sys_dmac_dataend_dma(struct tmio_mmc_host *host)
+{
+	complete(&host->dma_dataend);
 }
 
 static void renesas_sdhi_sys_dmac_dma_callback(void *arg)
@@ -451,6 +456,7 @@ static const struct tmio_mmc_dma_ops renesas_sdhi_sys_dmac_dma_ops = {
 	.request = renesas_sdhi_sys_dmac_request_dma,
 	.release = renesas_sdhi_sys_dmac_release_dma,
 	.abort = renesas_sdhi_sys_dmac_abort_dma,
+	.dataend = renesas_sdhi_sys_dmac_dataend_dma,
 };
 
 static int renesas_sdhi_sys_dmac_probe(struct platform_device *pdev)
