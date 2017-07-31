@@ -2544,6 +2544,8 @@ extern int filemap_fdatawait_range(struct address_space *, loff_t lstart,
 				   loff_t lend);
 extern bool filemap_range_has_page(struct address_space *, loff_t lstart,
 				  loff_t lend);
+extern int __must_check file_fdatawait_range(struct file *file, loff_t lstart,
+						loff_t lend);
 extern int filemap_write_and_wait(struct address_space *mapping);
 extern int filemap_write_and_wait_range(struct address_space *mapping,
 				        loff_t lstart, loff_t lend);
@@ -2552,11 +2554,14 @@ extern int __filemap_fdatawrite_range(struct address_space *mapping,
 extern int filemap_fdatawrite_range(struct address_space *mapping,
 				loff_t start, loff_t end);
 extern int filemap_check_errors(struct address_space *mapping);
-
 extern void __filemap_set_wb_err(struct address_space *mapping, int err);
+
+extern int __must_check file_fdatawait_range(struct file *file, loff_t lstart,
+						loff_t lend);
 extern int __must_check file_check_and_advance_wb_err(struct file *file);
 extern int __must_check file_write_and_wait_range(struct file *file,
 						loff_t start, loff_t end);
+extern int __must_check file_write_and_wait(struct file *file);
 
 /**
  * filemap_set_wb_err - set a writeback error on an address_space
@@ -2571,8 +2576,6 @@ extern int __must_check file_write_and_wait_range(struct file *file,
  * When a writeback error occurs, most filesystems will want to call
  * filemap_set_wb_err to record the error in the mapping so that it will be
  * automatically reported whenever fsync is called on the file.
- *
- * FIXME: mention FS_* flag here?
  */
 static inline void filemap_set_wb_err(struct address_space *mapping, int err)
 {
