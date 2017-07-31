@@ -45,10 +45,7 @@ static inline int futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
 	pagefault_disable();
 
 	do {
-		if (op == FUTEX_OP_SET)
-			ret = oldval = 0;
-		else
-			ret = get_user(oldval, uaddr);
+		ret = get_user(oldval, uaddr);
 
 		if (ret) break;
 
