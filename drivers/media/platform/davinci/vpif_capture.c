@@ -312,7 +312,7 @@ static void vpif_stop_streaming(struct vb2_queue *vq)
 	spin_unlock_irqrestore(&common->irqlock, flags);
 }
 
-static struct vb2_ops video_qops = {
+static const struct vb2_ops video_qops = {
 	.queue_setup		= vpif_buffer_queue_setup,
 	.buf_prepare		= vpif_buffer_prepare,
 	.start_streaming	= vpif_start_streaming,
@@ -1344,7 +1344,7 @@ static const struct v4l2_ioctl_ops vpif_ioctl_ops = {
 };
 
 /* vpif file operations */
-static struct v4l2_file_operations vpif_fops = {
+static const struct v4l2_file_operations vpif_fops = {
 	.owner = THIS_MODULE,
 	.open = v4l2_fh_open,
 	.release = vb2_fop_release,
@@ -1593,9 +1593,11 @@ vpif_capture_get_pdata(struct platform_device *pdev)
 	}
 
 done:
-	pdata->asd_sizes[0] = i;
-	pdata->subdev_count = i;
-	pdata->card_name = "DA850/OMAP-L138 Video Capture";
+	if (pdata) {
+		pdata->asd_sizes[0] = i;
+		pdata->subdev_count = i;
+		pdata->card_name = "DA850/OMAP-L138 Video Capture";
+	}
 
 	return pdata;
 }

@@ -638,6 +638,9 @@ static unsigned int pxa_mbus_config_compatible(const struct v4l2_mbus_config *cf
 		mipi_clock = common_flags & (V4L2_MBUS_CSI2_NONCONTINUOUS_CLOCK |
 					     V4L2_MBUS_CSI2_CONTINUOUS_CLOCK);
 		return (!mipi_lanes || !mipi_clock) ? 0 : common_flags;
+	default:
+		__WARN();
+		return -EINVAL;
 	}
 	return 0;
 }
@@ -1557,7 +1560,7 @@ static void pxac_vb2_stop_streaming(struct vb2_queue *vq)
 		pxa_camera_wakeup(pcdev, buf, VB2_BUF_STATE_ERROR);
 }
 
-static struct vb2_ops pxac_vb2_ops = {
+static const struct vb2_ops pxac_vb2_ops = {
 	.queue_setup		= pxac_vb2_queue_setup,
 	.buf_init		= pxac_vb2_init,
 	.buf_prepare		= pxac_vb2_prepare,

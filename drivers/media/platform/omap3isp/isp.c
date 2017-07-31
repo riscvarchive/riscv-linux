@@ -1859,6 +1859,7 @@ static void isp_cleanup_modules(struct isp_device *isp)
 	omap3isp_ccdc_cleanup(isp);
 	omap3isp_ccp2_cleanup(isp);
 	omap3isp_csi2_cleanup(isp);
+	omap3isp_csiphy_cleanup(isp);
 }
 
 static int isp_initialize_modules(struct isp_device *isp)
@@ -1868,7 +1869,7 @@ static int isp_initialize_modules(struct isp_device *isp)
 	ret = omap3isp_csiphy_init(isp);
 	if (ret < 0) {
 		dev_err(isp->dev, "CSI PHY initialization failed\n");
-		goto error_csiphy;
+		return ret;
 	}
 
 	ret = omap3isp_csi2_init(isp);
@@ -1879,7 +1880,8 @@ static int isp_initialize_modules(struct isp_device *isp)
 
 	ret = omap3isp_ccp2_init(isp);
 	if (ret < 0) {
-		dev_err(isp->dev, "CCP2 initialization failed\n");
+		if (ret != -EPROBE_DEFER)
+			dev_err(isp->dev, "CCP2 initialization failed\n");
 		goto error_ccp2;
 	}
 
@@ -1936,7 +1938,8 @@ error_ccdc:
 error_ccp2:
 	omap3isp_csi2_cleanup(isp);
 error_csi2:
-error_csiphy:
+	omap3isp_csiphy_cleanup(isp);
+
 	return ret;
 }
 
@@ -2039,6 +2042,7 @@ static int isp_fwnode_parse(struct device *dev, struct fwnode_handle *fwnode,
 			!!(vep.bus.parallel.flags & V4L2_MBUS_FIELD_EVEN_LOW);
 		buscfg->bus.parallel.data_pol =
 			!!(vep.bus.parallel.flags & V4L2_MBUS_DATA_ACTIVE_LOW);
+		buscfg->bus.parallel.bt656 = vep.bus_type == V4L2_MBUS_BT656;
 		break;
 
 	case ISP_OF_PHY_CSIPHY1:
@@ -2059,7 +2063,10 @@ static int isp_fwnode_parse(struct device *dev, struct fwnode_handle *fwnode,
 			buscfg->bus.csi2.lanecfg.clk.pol,
 			buscfg->bus.csi2.lanecfg.clk.pos);
 
-		for (i = 0; i < ISP_CSIPHY2_NUM_DATA_LANES; i++) {
+		buscfg->bus.csi2.num_data_lanes =
+			vep.bus.mipi_csi2.num_data_lanes;
+
+		for (i = 0; i < buscfg->bus.csi2.num_data_lanes; i++) {
 			buscfg->bus.csi2.lanecfg.data[i].pos =
 				vep.bus.mipi_csi2.data_lanes[i];
 			buscfg->bus.csi2.lanecfg.data[i].pol =
@@ -2080,7 +2087,7 @@ static int isp_fwnode_parse(struct device *dev, struct fwnode_handle *fwnode,
 	default:
 		dev_warn(dev, "%s: invalid interface %u\n",
 			 to_of_node(fwnode)->full_name, vep.base.port);
-		break;
+		return -EINVAL;
 	}
 
 	return 0;
@@ -2105,10 +2112,12 @@ static int isp_fwnodes_parse(struct device *dev,
 		if (!isd)
 			goto error;
 
-		notifier->subdevs[notifier->num_subdevs] = &isd->asd;
+		if (isp_fwnode_parse(dev, fwnode, isd)) {
+			devm_kfree(dev, isd);
+			continue;
+		}
 
-		if (isp_fwnode_parse(dev, fwnode, isd))
-			goto error;
+		notifier->subdevs[notifier->num_subdevs] = &isd->asd;
 
 		isd->asd.match.fwnode.fwnode =
 			fwnode_graph_get_remote_port_parent(fwnode);
