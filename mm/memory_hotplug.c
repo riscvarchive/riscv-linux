@@ -689,6 +689,10 @@ static int online_pages_range(unsigned long start_pfn, unsigned long nr_pages,
 	if (PageReserved(pfn_to_page(start_pfn)))
 		for (i = 0; i < nr_pages; i++) {
 			page = pfn_to_page(start_pfn + i);
+			if (PageHWPoison(page)) {
+				ClearPageReserved(page);
+				continue;
+			}
 			(*online_page_callback)(page);
 			onlined_pages++;
 		}
