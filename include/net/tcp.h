@@ -139,6 +139,7 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #endif
 #define TCP_RTO_MAX	((unsigned)(120*HZ))
 #define TCP_RTO_MIN	((unsigned)(HZ/5))
+#define TCP_TIMEOUT_MIN	(2U) /* Min timeout for TCP timers in jiffies */
 #define TCP_TIMEOUT_INIT ((unsigned)(1*HZ))	/* RFC6298 2.1 initial RTO value	*/
 #define TCP_TIMEOUT_FALLBACK ((unsigned)(3*HZ))	/* RFC 1122 initial RTO value, now
 						 * used as a fallback RTO for the
@@ -150,8 +151,6 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCP_RESOURCE_PROBE_INTERVAL ((unsigned)(HZ/2U)) /* Maximal interval between probes
 					                 * for local resources.
 					                 */
-#define TCP_REO_TIMEOUT_MIN	(2000) /* Min RACK reordering timeout in usec */
-
 #define TCP_KEEPALIVE_TIME	(120*60*HZ)	/* two hours */
 #define TCP_KEEPALIVE_PROBES	9		/* Max of 9 keepalive probes	*/
 #define TCP_KEEPALIVE_INTVL	(75*HZ)
@@ -363,7 +362,7 @@ void tcp_delack_timer_handler(struct sock *sk);
 int tcp_ioctl(struct sock *sk, int cmd, unsigned long arg);
 int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb);
 void tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
-			 const struct tcphdr *th, unsigned int len);
+			 const struct tcphdr *th);
 void tcp_rcv_space_adjust(struct sock *sk);
 int tcp_twsk_unique(struct sock *sk, struct sock *sktw, void *twp);
 void tcp_twsk_destructor(struct sock *sk);

@@ -3405,7 +3405,6 @@ u32 kernel_sock_ip_overhead(struct sock *sk)
 	struct inet_sock *inet;
 	struct ip_options_rcu *opt;
 	u32 overhead = 0;
-	bool owned_by_user;
 #if IS_ENABLED(CONFIG_IPV6)
 	struct ipv6_pinfo *np;
 	struct ipv6_txoptions *optv6 = NULL;
@@ -3414,13 +3413,12 @@ u32 kernel_sock_ip_overhead(struct sock *sk)
 	if (!sk)
 		return overhead;
 
-	owned_by_user = sock_owned_by_user(sk);
 	switch (sk->sk_family) {
 	case AF_INET:
 		inet = inet_sk(sk);
 		overhead += sizeof(struct iphdr);
 		opt = rcu_dereference_protected(inet->inet_opt,
-						owned_by_user);
+						sock_owned_by_user(sk));
 		if (opt)
 			overhead += opt->opt.optlen;
 		return overhead;
@@ -3430,7 +3428,7 @@ u32 kernel_sock_ip_overhead(struct sock *sk)
 		overhead += sizeof(struct ipv6hdr);
 		if (np)
 			optv6 = rcu_dereference_protected(np->opt,
-							  owned_by_user);
+							  sock_owned_by_user(sk));
 		if (optv6)
 			overhead += (optv6->opt_flen + optv6->opt_nflen);
 		return overhead;
