@@ -36,18 +36,28 @@
 #define CGROUP_WEIGHT_DFL		100
 #define CGROUP_WEIGHT_MAX		10000
 
+/* walk only threadgroup leaders */
+#define CSS_TASK_ITER_PROCS		(1U << 0)
+/* walk all threaded css_sets in the domain */
+#define CSS_TASK_ITER_THREADED		(1U << 1)
+
 /* a css_task_iter should be treated as an opaque object */
 struct css_task_iter {
 	struct cgroup_subsys		*ss;
+	unsigned int			flags;
 
 	struct list_head		*cset_pos;
 	struct list_head		*cset_head;
+
+	struct list_head		*tcset_pos;
+	struct list_head		*tcset_head;
 
 	struct list_head		*task_pos;
 	struct list_head		*tasks_head;
 	struct list_head		*mg_tasks_head;
 
 	struct css_set			*cur_cset;
+	struct css_set			*cur_dcset;
 	struct task_struct		*cur_task;
 	struct list_head		iters_node;	/* css_set->task_iters */
 };
@@ -129,7 +139,7 @@ struct task_struct *cgroup_taskset_first(struct cgroup_taskset *tset,
 struct task_struct *cgroup_taskset_next(struct cgroup_taskset *tset,
 					struct cgroup_subsys_state **dst_cssp);
 
-void css_task_iter_start(struct cgroup_subsys_state *css,
+void css_task_iter_start(struct cgroup_subsys_state *css, unsigned int flags,
 			 struct css_task_iter *it);
 struct task_struct *css_task_iter_next(struct css_task_iter *it);
 void css_task_iter_end(struct css_task_iter *it);
@@ -537,7 +547,8 @@ static inline bool task_under_cgroup_hierarchy(struct task_struct *task,
 /* no synchronization, the result can only be used as a hint */
 static inline bool cgroup_is_populated(struct cgroup *cgrp)
 {
-	return cgrp->populated_cnt;
+	return cgrp->nr_populated_csets + cgrp->nr_populated_domain_children +
+		cgrp->nr_populated_threaded_children;
 }
 
 /* returns ino associated with a cgroup */
