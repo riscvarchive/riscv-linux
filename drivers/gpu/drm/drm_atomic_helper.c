@@ -2720,6 +2720,7 @@ int drm_atomic_helper_disable_all(struct drm_device *dev,
 	struct drm_plane *plane;
 	struct drm_crtc_state *crtc_state;
 	struct drm_crtc *crtc;
+	unsigned plane_mask = 0;
 	int ret, i;
 
 	state = drm_atomic_state_alloc(dev);
@@ -2762,10 +2763,14 @@ int drm_atomic_helper_disable_all(struct drm_device *dev,
 			goto free;
 
 		drm_atomic_set_fb_for_plane(plane_state, NULL);
+		plane_mask |= BIT(drm_plane_index(plane));
+		plane->old_fb = plane->fb;
 	}
 
 	ret = drm_atomic_commit(state);
 free:
+	if (plane_mask)
+		drm_atomic_clean_old_fb(dev, plane_mask, ret);
 	drm_atomic_state_put(state);
 	return ret;
 }
@@ -2896,11 +2901,16 @@ int drm_atomic_helper_commit_duplicated_state(struct drm_atomic_state *state,
 	struct drm_connector_state *new_conn_state;
 	struct drm_crtc *crtc;
 	struct drm_crtc_state *new_crtc_state;
+	unsigned plane_mask = 0;
+	struct drm_device *dev = state->dev;
+	int ret;
 
 	state->acquire_ctx = ctx;
 
-	for_each_new_plane_in_state(state, plane, new_plane_state, i)
+	for_each_new_plane_in_state(state, plane, new_plane_state, i) {
+		plane_mask |= BIT(drm_plane_index(plane));
 		state->planes[i].old_state = plane->state;
+	}
 
 	for_each_new_crtc_in_state(state, crtc, new_crtc_state, i)
 		state->crtcs[i].old_state = crtc->state;
@@ -2908,7 +2918,11 @@ int drm_atomic_helper_commit_duplicated_state(struct drm_atomic_state *state,
 	for_each_new_connector_in_state(state, connector, new_conn_state, i)
 		state->connectors[i].old_state = connector->state;
 
-	return drm_atomic_commit(state);
+	ret = drm_atomic_commit(state);
+	if (plane_mask)
+		drm_atomic_clean_old_fb(dev, plane_mask, ret);
+
+	return ret;
 }
 EXPORT_SYMBOL(drm_atomic_helper_commit_duplicated_state);
 
