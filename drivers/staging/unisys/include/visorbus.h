@@ -23,7 +23,6 @@
  *
  *  There should be nothing in this file that is private to the visorbus
  *  bus implementation itself.
- *
  */
 
 #ifndef __VISORBUS_H__
@@ -45,6 +44,7 @@ extern struct bus_type visorbus_type;
 
 typedef void (*visorbus_state_complete_func) (struct visor_device *dev,
 					      int status);
+
 struct visorchipset_state {
 	u32 created:1;
 	u32 attached:1;
@@ -171,6 +171,10 @@ struct visor_device {
 };
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)
+
+int visor_check_channel(struct channel_header *ch, uuid_le expected_uuid,
+			char *chname, u64 expected_min_bytes,
+			u32 expected_version, u64 expected_signature);
 
 int visorbus_register_visor_driver(struct visor_driver *drv);
 void visorbus_unregister_visor_driver(struct visor_driver *drv);
