@@ -413,6 +413,16 @@ void __wait_rcu_gp(bool checktiny, int n, call_rcu_func_t *crcu_array,
 			wait_for_completion(&rs_array[i].completion);
 		destroy_rcu_head_on_stack(&rs_array[i].head);
 	}
+
+	/*
+	 * If we migrated after we registered a callback, but before the
+	 * corresponding wait_for_completion(), we might now be running
+	 * on a CPU that has not yet noticed that the corresponding grace
+	 * period has ended.  That CPU might not yet be fully ordered
+	 * against the completion of the grace period, so the full memory
+	 * barrier below enforces that ordering via the completion's state.
+	 */
+	smp_mb(); /* ^^^ */
 }
 EXPORT_SYMBOL_GPL(__wait_rcu_gp);
 
@@ -568,7 +578,7 @@ static DECLARE_WAIT_QUEUE_HEAD(rcu_tasks_cbs_wq);
 static DEFINE_RAW_SPINLOCK(rcu_tasks_cbs_lock);
 
 /* Track exiting tasks in order to allow them to be waited for. */
-DEFINE_SRCU(tasks_rcu_exit_srcu);
+DEFINE_STATIC_SRCU(tasks_rcu_exit_srcu);
 
 /* Control stall timeouts.  Disable with <= 0, otherwise jiffies till stall. */
 #define RCU_TASK_STALL_TIMEOUT (HZ * 60 * 10)
@@ -873,6 +883,22 @@ static void rcu_spawn_tasks_kthread(void)
 	smp_mb(); /* Ensure others see full kthread. */
 	WRITE_ONCE(rcu_tasks_kthread_ptr, t);
 	mutex_unlock(&rcu_tasks_kthread_mutex);
+}
+
+/* Do the srcu_read_lock() for the above synchronize_srcu().  */
+void exit_tasks_rcu_start(void)
+{
+	preempt_disable();
+	current->rcu_tasks_idx = __srcu_read_lock(&tasks_rcu_exit_srcu);
+	preempt_enable();
+}
+
+/* Do the srcu_read_unlock() for the above synchronize_srcu().  */
+void exit_tasks_rcu_finish(void)
+{
+	preempt_disable();
+	__srcu_read_unlock(&tasks_rcu_exit_srcu, current->rcu_tasks_idx);
+	preempt_enable();
 }
 
 #endif /* #ifdef CONFIG_TASKS_RCU */
