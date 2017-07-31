@@ -185,7 +185,7 @@ static inline struct perf_evsel *perf_evsel__newtp(const char *sys, const char *
 	return perf_evsel__newtp_idx(sys, name, 0);
 }
 
-struct perf_evsel *perf_evsel__new_cycles(void);
+struct perf_evsel *perf_evsel__new_cycles(bool precise);
 
 struct event_format *event_format__new(const char *sys, const char *name);
 
@@ -298,6 +298,8 @@ static inline bool perf_evsel__match2(struct perf_evsel *e1,
 
 int perf_evsel__read(struct perf_evsel *evsel, int cpu, int thread,
 		     struct perf_counts_values *count);
+
+int perf_evsel__read_counter(struct perf_evsel *evsel, int cpu, int thread);
 
 int __perf_evsel__read_on_cpu(struct perf_evsel *evsel,
 			      int cpu, int thread, bool scale);
@@ -436,5 +438,6 @@ int perf_event_attr__fprintf(FILE *fp, struct perf_event_attr *attr,
 			     attr__fprintf_f attr__fprintf, void *priv);
 
 char *perf_evsel__env_arch(struct perf_evsel *evsel);
+char *perf_evsel__env_cpuid(struct perf_evsel *evsel);
 
 #endif /* __PERF_EVSEL_H */
