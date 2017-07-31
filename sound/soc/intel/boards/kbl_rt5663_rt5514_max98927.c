@@ -319,7 +319,9 @@ static int kabylake_rt5663_hw_params(struct snd_pcm_substream *substream,
 	int ret;
 
 	/* use ASRC for internal clocks, as PLL rate isn't multiple of BCLK */
-	rt5663_sel_asrc_clk_src(codec_dai->codec, RT5663_DA_STEREO_FILTER, 1);
+	rt5663_sel_asrc_clk_src(codec_dai->codec,
+			RT5663_DA_STEREO_FILTER | RT5663_AD_STEREO_FILTER,
+			RT5663_CLK_SEL_I2S1_ASRC);
 
 	ret = snd_soc_dai_set_sysclk(codec_dai,
 			RT5663_SCLK_S_MCLK, 24576000, SND_SOC_CLOCK_IN);
@@ -349,27 +351,25 @@ static int kabylake_ssp0_hw_params(struct snd_pcm_substream *substream,
 				return ret;
 			}
 
-			ret = snd_soc_dai_set_pll(codec_dai, 0,
-				RT5514_PLL1_S_BCLK, RT5514_AIF1_BCLK_FREQ,
-						RT5514_AIF1_SYSCLK_FREQ);
-			if (ret < 0) {
-				dev_err(rtd->dev, "set bclk err: %d\n", ret);
-				return ret;
-			}
-
 			ret = snd_soc_dai_set_sysclk(codec_dai,
-				RT5514_SCLK_S_PLL1, RT5514_AIF1_SYSCLK_FREQ,
-							SND_SOC_CLOCK_IN);
+				RT5514_SCLK_S_MCLK, 24576000, SND_SOC_CLOCK_IN);
 			if (ret < 0) {
-				dev_err(rtd->dev, "set sclk err: %d\n", ret);
+				dev_err(rtd->dev, "set sysclk err: %d\n", ret);
 				return ret;
 			}
 		}
-		if (!strcmp(codec_dai->component->name, MAXIM_DEV0_NAME) ||
-			!strcmp(codec_dai->component->name, MAXIM_DEV1_NAME)) {
-			ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xF0, 3, 8, 16);
+		if (!strcmp(codec_dai->component->name, MAXIM_DEV0_NAME)) {
+			ret = snd_soc_dai_set_tdm_slot(codec_dai, 0x30, 3, 8, 16);
 			if (ret < 0) {
-				dev_err(rtd->dev, "set TDM slot err:%d\n", ret);
+				dev_err(rtd->dev, "DEV0 TDM slot err:%d\n", ret);
+				return ret;
+			}
+		}
+
+		if (!strcmp(codec_dai->component->name, MAXIM_DEV1_NAME)) {
+			ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xC0, 3, 8, 16);
+			if (ret < 0) {
+				dev_err(rtd->dev, "DEV1 TDM slot err:%d\n", ret);
 				return ret;
 			}
 		}

@@ -1171,9 +1171,8 @@ static int sun4i_codec_spk_event(struct snd_soc_dapm_widget *w,
 {
 	struct sun4i_codec *scodec = snd_soc_card_get_drvdata(w->dapm->card);
 
-	if (scodec->gpio_pa)
-		gpiod_set_value_cansleep(scodec->gpio_pa,
-					 !!SND_SOC_DAPM_EVENT_ON(event));
+	gpiod_set_value_cansleep(scodec->gpio_pa,
+				 !!SND_SOC_DAPM_EVENT_ON(event));
 
 	return 0;
 }
@@ -1574,7 +1573,8 @@ static int sun4i_codec_probe(struct platform_device *pdev)
 	}
 
 	if (quirks->has_reset) {
-		scodec->rst = devm_reset_control_get(&pdev->dev, NULL);
+		scodec->rst = devm_reset_control_get_exclusive(&pdev->dev,
+							       NULL);
 		if (IS_ERR(scodec->rst)) {
 			dev_err(&pdev->dev, "Failed to get reset control\n");
 			return PTR_ERR(scodec->rst);
