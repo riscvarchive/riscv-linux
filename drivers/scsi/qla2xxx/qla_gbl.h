@@ -10,17 +10,6 @@
 #include <linux/interrupt.h>
 
 /*
- * Global functions prototype in qla_nvme.c source file.
- */
-extern void qla_nvme_register_hba(scsi_qla_host_t *);
-extern int  qla_nvme_register_remote(scsi_qla_host_t *, fc_port_t *);
-extern void qla_nvme_delete(scsi_qla_host_t *);
-extern void qla_nvme_abort(struct qla_hw_data *, srb_t *sp);
-extern void qla24xx_nvme_ls4_iocb(scsi_qla_host_t *, struct pt_ls4_request *,
-    struct req_que *);
-extern void qla24xx_async_gffid_sp_done(void *, int);
-
-/*
  * Global Function Prototypes in qla_init.c source file.
  */
 extern int qla2x00_initialize_adapter(scsi_qla_host_t *);
@@ -494,6 +483,9 @@ int qla24xx_gidlist_wait(struct scsi_qla_host *, void *, dma_addr_t,
     uint16_t *);
 int __qla24xx_parse_gpdb(struct scsi_qla_host *, fc_port_t *,
 	struct port_database_24xx *);
+
+extern int qla27xx_get_zio_threshold(scsi_qla_host_t *, uint16_t *);
+extern int qla27xx_set_zio_threshold(scsi_qla_host_t *, uint16_t);
 
 /*
  * Global Function Prototypes in qla_isr.c source file.
