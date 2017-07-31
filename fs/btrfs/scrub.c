@@ -1704,7 +1704,7 @@ static int scrub_submit_raid56_bio_wait(struct btrfs_fs_info *fs_info,
 	if (ret)
 		return ret;
 
-	wait_for_completion(&done.event);
+	wait_for_completion_io(&done.event);
 	if (done.status)
 		return -EIO;
 
@@ -3869,8 +3869,7 @@ int scrub_enumerate_chunks(struct scrub_ctx *sctx,
 			ro_set = 0;
 		} else {
 			btrfs_warn(fs_info,
-				   "failed setting block group ro, ret=%d\n",
-				   ret);
+				   "failed setting block group ro: %d", ret);
 			btrfs_put_block_group(cache);
 			break;
 		}
