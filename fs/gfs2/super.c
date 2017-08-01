@@ -1564,6 +1564,12 @@ static void gfs2_evict_inode(struct inode *inode)
 			goto out_truncate;
 	}
 
+	/*
+	 * The inode may have been recreated in the meantime.
+	 */
+	if (inode->i_nlink)
+		goto out_truncate;
+
 alloc_failed:
 	if (gfs2_holder_initialized(&ip->i_iopen_gh) &&
 	    test_bit(HIF_HOLDER, &ip->i_iopen_gh.gh_iflags)) {
@@ -1653,12 +1659,22 @@ out:
 	glock_clear_object(ip->i_gl, ip);
 	wait_on_bit_io(&ip->i_flags, GIF_GLOP_PENDING, TASK_UNINTERRUPTIBLE);
 	gfs2_glock_add_to_lru(ip->i_gl);
-	gfs2_glock_put(ip->i_gl);
+	if (current->flags & PF_MEMALLOC)
+		gfs2_glock_queue_put(ip->i_gl);
+	else
+		gfs2_glock_put(ip->i_gl);
 	ip->i_gl = NULL;
 	if (gfs2_holder_initialized(&ip->i_iopen_gh)) {
-		glock_clear_object(ip->i_iopen_gh.gh_gl, ip);
+		struct gfs2_glock *gl = ip->i_iopen_gh.gh_gl;
+
+		glock_clear_object(gl, ip);
 		ip->i_iopen_gh.gh_flags |= GL_NOCACHE;
+		gfs2_glock_hold(gl);
 		gfs2_glock_dq_uninit(&ip->i_iopen_gh);
+		if (current->flags & PF_MEMALLOC)
+			gfs2_glock_queue_put(gl);
+		else
+			gfs2_glock_put(gl);
 	}
 }
 
