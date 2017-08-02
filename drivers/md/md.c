@@ -4283,6 +4283,8 @@ new_dev_store(struct mddev *mddev, const char *buf, size_t len)
 	if (err)
 		export_rdev(rdev);
 	mddev_unlock(mddev);
+	if (!err)
+		md_new_event(mddev);
 	return err ? err : len;
 }
 
@@ -7836,7 +7838,7 @@ static const struct file_operations md_seq_fops = {
 	.open           = md_seq_open,
 	.read           = seq_read,
 	.llseek         = seq_lseek,
-	.release	= seq_release_private,
+	.release	= seq_release,
 	.poll		= mdstat_poll,
 };
 
