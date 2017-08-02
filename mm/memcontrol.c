@@ -427,7 +427,7 @@ static void __mem_cgroup_remove_exceeded(struct mem_cgroup_per_node *mz,
 		return;
 
 	if (&mz->tree_node == mctz->rb_rightmost)
-		mctz->rb_rightmost = rb_next(&mz->tree_node);
+		mctz->rb_rightmost = rb_prev(&mz->tree_node);
 
 	rb_erase(&mz->tree_node, &mctz->rb_root);
 	mz->on_tree = false;
