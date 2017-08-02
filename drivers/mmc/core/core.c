@@ -295,10 +295,8 @@ static void mmc_mrq_pr_debug(struct mmc_host *host, struct mmc_request *mrq)
 
 static int mmc_mrq_prep(struct mmc_host *host, struct mmc_request *mrq)
 {
-#ifdef CONFIG_MMC_DEBUG
-	unsigned int i, sz;
+	unsigned int i, sz = 0;
 	struct scatterlist *sg;
-#endif
 
 	if (mrq->cmd) {
 		mrq->cmd->error = 0;
@@ -314,13 +312,12 @@ static int mmc_mrq_prep(struct mmc_host *host, struct mmc_request *mrq)
 		    mrq->data->blocks > host->max_blk_count ||
 		    mrq->data->blocks * mrq->data->blksz > host->max_req_size)
 			return -EINVAL;
-#ifdef CONFIG_MMC_DEBUG
-		sz = 0;
+
 		for_each_sg(mrq->data->sg, sg, mrq->data->sg_len, i)
 			sz += sg->length;
 		if (sz != mrq->data->blocks * mrq->data->blksz)
 			return -EINVAL;
-#endif
+
 		mrq->data->error = 0;
 		mrq->data->mrq = mrq;
 		if (mrq->stop) {
@@ -1137,11 +1134,11 @@ int mmc_of_parse_voltage(struct device_node *np, u32 *mask)
 	voltage_ranges = of_get_property(np, "voltage-ranges", &num_ranges);
 	num_ranges = num_ranges / sizeof(*voltage_ranges) / 2;
 	if (!voltage_ranges) {
-		pr_debug("%s: voltage-ranges unspecified\n", np->full_name);
+		pr_debug("%pOF: voltage-ranges unspecified\n", np);
 		return 0;
 	}
 	if (!num_ranges) {
-		pr_err("%s: voltage-ranges empty\n", np->full_name);
+		pr_err("%pOF: voltage-ranges empty\n", np);
 		return -EINVAL;
 	}
 
@@ -1153,8 +1150,8 @@ int mmc_of_parse_voltage(struct device_node *np, u32 *mask)
 				be32_to_cpu(voltage_ranges[j]),
 				be32_to_cpu(voltage_ranges[j + 1]));
 		if (!ocr_mask) {
-			pr_err("%s: voltage-range #%d is invalid\n",
-				np->full_name, i);
+			pr_err("%pOF: voltage-range #%d is invalid\n",
+				np, i);
 			return -EINVAL;
 		}
 		*mask |= ocr_mask;
@@ -1769,13 +1766,6 @@ void mmc_detach_bus(struct mmc_host *host)
 static void _mmc_detect_change(struct mmc_host *host, unsigned long delay,
 				bool cd_irq)
 {
-#ifdef CONFIG_MMC_DEBUG
-	unsigned long flags;
-	spin_lock_irqsave(&host->lock, flags);
-	WARN_ON(host->removed);
-	spin_unlock_irqrestore(&host->lock, flags);
-#endif
-
 	/*
 	 * If the device is configured as wakeup, we prevent a new sleep for
 	 * 5 s to give provision for user space to consume the event.
@@ -2446,10 +2436,9 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 {
 	host->f_init = freq;
 
-#ifdef CONFIG_MMC_DEBUG
-	pr_info("%s: %s: trying to init card at %u Hz\n",
+	pr_debug("%s: %s: trying to init card at %u Hz\n",
 		mmc_hostname(host), __func__, host->f_init);
-#endif
+
 	mmc_power_up(host, host->ocr_avail);
 
 	/*
@@ -2646,12 +2635,6 @@ void mmc_start_host(struct mmc_host *host)
 
 void mmc_stop_host(struct mmc_host *host)
 {
-#ifdef CONFIG_MMC_DEBUG
-	unsigned long flags;
-	spin_lock_irqsave(&host->lock, flags);
-	host->removed = 1;
-	spin_unlock_irqrestore(&host->lock, flags);
-#endif
 	if (host->slot.cd_irq >= 0) {
 		if (host->slot.cd_wake_enabled)
 			disable_irq_wake(host->slot.cd_irq);
@@ -2686,9 +2669,7 @@ int mmc_power_save_host(struct mmc_host *host)
 {
 	int ret = 0;
 
-#ifdef CONFIG_MMC_DEBUG
-	pr_info("%s: %s: powering down\n", mmc_hostname(host), __func__);
-#endif
+	pr_debug("%s: %s: powering down\n", mmc_hostname(host), __func__);
 
 	mmc_bus_get(host);
 
@@ -2712,9 +2693,7 @@ int mmc_power_restore_host(struct mmc_host *host)
 {
 	int ret;
 
-#ifdef CONFIG_MMC_DEBUG
-	pr_info("%s: %s: powering up\n", mmc_hostname(host), __func__);
-#endif
+	pr_debug("%s: %s: powering up\n", mmc_hostname(host), __func__);
 
 	mmc_bus_get(host);
 
