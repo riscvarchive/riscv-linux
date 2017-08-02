@@ -46,6 +46,7 @@ enum isp_interface_type {
  *		0 - Positive, 1 - Negative
  * @data_pol: Data polarity
  *		0 - Normal, 1 - One's complement
+ * @bt656: Data contain BT.656 embedded synchronization
  */
 struct isp_parallel_cfg {
 	unsigned int data_lane_shift:3;
@@ -54,6 +55,7 @@ struct isp_parallel_cfg {
 	unsigned int vs_pol:1;
 	unsigned int fld_pol:1;
 	unsigned int data_pol:1;
+	unsigned int bt656:1;
 };
 
 enum {
@@ -114,10 +116,13 @@ struct isp_ccp2_cfg {
 /**
  * struct isp_csi2_cfg - CSI2 interface configuration
  * @crc: Enable the cyclic redundancy check
+ * @lanecfg: CSI-2 lane configuration
+ * @num_data_lanes: The number of data lanes in use
  */
 struct isp_csi2_cfg {
 	unsigned crc:1;
 	struct isp_csiphy_lanes_cfg lanecfg;
+	u8 num_data_lanes;
 };
 
 struct isp_bus_cfg {
