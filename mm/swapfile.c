@@ -1374,7 +1374,7 @@ static bool swap_page_trans_huge_swapped(struct swap_info_struct *si,
 	bool ret = false;
 
 	ci = lock_cluster_or_swap_info(si, offset);
-	if (!cluster_is_huge(ci)) {
+	if (!ci || !cluster_is_huge(ci)) {
 		if (map[roffset] != SWAP_HAS_CACHE)
 			ret = true;
 		goto unlock_out;
