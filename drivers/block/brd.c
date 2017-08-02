@@ -322,19 +322,6 @@ io_error:
 	return BLK_QC_T_NONE;
 }
 
-static int brd_rw_page(struct block_device *bdev, sector_t sector,
-		       struct page *page, bool is_write)
-{
-	struct brd_device *brd = bdev->bd_disk->private_data;
-	int err;
-
-	if (PageTransHuge(page))
-		return -ENOTSUPP;
-	err = brd_do_bvec(brd, page, PAGE_SIZE, 0, is_write, sector);
-	page_endio(page, is_write, err);
-	return err;
-}
-
 #ifdef CONFIG_BLK_DEV_RAM_DAX
 static long __brd_direct_access(struct brd_device *brd, pgoff_t pgoff,
 		long nr_pages, void **kaddr, pfn_t *pfn)
@@ -374,7 +361,6 @@ static const struct dax_operations brd_dax_ops = {
 
 static const struct block_device_operations brd_fops = {
 	.owner =		THIS_MODULE,
-	.rw_page =		brd_rw_page,
 };
 
 /*
