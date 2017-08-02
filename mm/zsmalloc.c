@@ -2055,7 +2055,6 @@ unpin_objects:
 		}
 	}
 	kunmap_atomic(s_addr);
-
 	spin_unlock(&class->lock);
 	migrate_write_unlock(zspage);
 
