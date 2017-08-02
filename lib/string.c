@@ -979,9 +979,8 @@ char *strreplace(char *s, char old, char new)
 }
 EXPORT_SYMBOL(strreplace);
 
-void fortify_panic(const char *name)
+void fortify_overflow(const char *name)
 {
-	pr_emerg("detected buffer overflow in %s\n", name);
-	BUG();
+	WARN(1, "detected buffer overflow in %s\n", name);
 }
-EXPORT_SYMBOL(fortify_panic);
+EXPORT_SYMBOL(fortify_overflow);
