@@ -321,16 +321,7 @@ static int simple_nic_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 static int simple_nic_set_mac_address(struct net_device *ndev, void *addr)
 {
-	if (!is_valid_ether_addr(addr)) {
-		uint8_t *mac = (uint8_t *) addr;
-		printk(KERN_ERR "Invalid MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
-				mac[0], mac[1], mac[2],
-				mac[3], mac[4], mac[5]);
-		return -EADDRNOTAVAIL;
-	}
-
-	memcpy(ndev->dev_addr, addr, 6);
-	return 0;
+	return eth_mac_addr(ndev, addr);
 }
 
 static const struct net_device_ops simple_nic_ops = {
