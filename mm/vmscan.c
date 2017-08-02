@@ -1749,7 +1749,7 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 			return 0;
 
 		/* wait a bit for the reclaimer. */
-		schedule_timeout_interruptible(HZ/10);
+		msleep(100);
 		stalled = true;
 
 		/* We are about to die and free our memory. Return now. */
