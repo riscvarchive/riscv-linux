@@ -273,87 +273,85 @@ struct sctp_init_chunk {
 
 
 /* Section 3.3.2.1. IPv4 Address Parameter (5) */
-typedef struct sctp_ipv4addr_param {
+struct sctp_ipv4addr_param {
 	struct sctp_paramhdr param_hdr;
-	struct in_addr  addr;
-} sctp_ipv4addr_param_t;
+	struct in_addr addr;
+};
 
 /* Section 3.3.2.1. IPv6 Address Parameter (6) */
-typedef struct sctp_ipv6addr_param {
+struct sctp_ipv6addr_param {
 	struct sctp_paramhdr param_hdr;
 	struct in6_addr addr;
-} sctp_ipv6addr_param_t;
+};
 
 /* Section 3.3.2.1 Cookie Preservative (9) */
-typedef struct sctp_cookie_preserve_param {
+struct sctp_cookie_preserve_param {
 	struct sctp_paramhdr param_hdr;
-	__be32          lifespan_increment;
-} sctp_cookie_preserve_param_t;
+	__be32 lifespan_increment;
+};
 
 /* Section 3.3.2.1 Host Name Address (11) */
-typedef struct sctp_hostname_param {
+struct sctp_hostname_param {
 	struct sctp_paramhdr param_hdr;
 	uint8_t hostname[0];
-} sctp_hostname_param_t;
+};
 
 /* Section 3.3.2.1 Supported Address Types (12) */
-typedef struct sctp_supported_addrs_param {
+struct sctp_supported_addrs_param {
 	struct sctp_paramhdr param_hdr;
 	__be16 types[0];
-} sctp_supported_addrs_param_t;
-
-/* Appendix A. ECN Capable (32768) */
-typedef struct sctp_ecn_capable_param {
-	struct sctp_paramhdr param_hdr;
-} sctp_ecn_capable_param_t;
+};
 
 /* ADDIP Section 3.2.6 Adaptation Layer Indication */
-typedef struct sctp_adaptation_ind_param {
+struct sctp_adaptation_ind_param {
 	struct sctp_paramhdr param_hdr;
 	__be32 adaptation_ind;
-} sctp_adaptation_ind_param_t;
+};
 
 /* ADDIP Section 4.2.7 Supported Extensions Parameter */
-typedef struct sctp_supported_ext_param {
+struct sctp_supported_ext_param {
 	struct sctp_paramhdr param_hdr;
 	__u8 chunks[0];
-} sctp_supported_ext_param_t;
+};
 
 /* AUTH Section 3.1 Random */
-typedef struct sctp_random_param {
+struct sctp_random_param {
 	struct sctp_paramhdr param_hdr;
 	__u8 random_val[0];
-} sctp_random_param_t;
+};
 
 /* AUTH Section 3.2 Chunk List */
-typedef struct sctp_chunks_param {
+struct sctp_chunks_param {
 	struct sctp_paramhdr param_hdr;
 	__u8 chunks[0];
-} sctp_chunks_param_t;
+};
 
 /* AUTH Section 3.3 HMAC Algorithm */
-typedef struct sctp_hmac_algo_param {
+struct sctp_hmac_algo_param {
 	struct sctp_paramhdr param_hdr;
 	__be16 hmac_ids[0];
-} sctp_hmac_algo_param_t;
+};
 
 /* RFC 2960.  Section 3.3.3 Initiation Acknowledgement (INIT ACK) (2):
  *   The INIT ACK chunk is used to acknowledge the initiation of an SCTP
  *   association.
  */
-typedef struct sctp_init_chunk sctp_initack_chunk_t;
+struct sctp_initack_chunk {
+	struct sctp_chunkhdr chunk_hdr;
+	struct sctp_inithdr init_hdr;
+};
 
 /* Section 3.3.3.1 State Cookie (7) */
-typedef struct sctp_cookie_param {
+struct sctp_cookie_param {
 	struct sctp_paramhdr p;
 	__u8 body[0];
-} sctp_cookie_param_t;
+};
 
 /* Section 3.3.3.1 Unrecognized Parameters (8) */
-typedef struct sctp_unrecognized_param {
+struct sctp_unrecognized_param {
 	struct sctp_paramhdr param_hdr;
 	struct sctp_paramhdr unrecognized;
-} sctp_unrecognized_param_t;
+};
 
 
 
@@ -365,30 +363,28 @@ typedef struct sctp_unrecognized_param {
  *  subsequences of DATA chunks as represented by their TSNs.
  */
 
-typedef struct sctp_gap_ack_block {
+struct sctp_gap_ack_block {
 	__be16 start;
 	__be16 end;
-} sctp_gap_ack_block_t;
+};
 
-typedef __be32 sctp_dup_tsn_t;
+union sctp_sack_variable {
+	struct sctp_gap_ack_block gab;
+	__be32 dup;
+};
 
-typedef union {
-	sctp_gap_ack_block_t	gab;
-        sctp_dup_tsn_t		dup;
-} sctp_sack_variable_t;
-
-typedef struct sctp_sackhdr {
+struct sctp_sackhdr {
 	__be32 cum_tsn_ack;
 	__be32 a_rwnd;
 	__be16 num_gap_ack_blocks;
 	__be16 num_dup_tsns;
-	sctp_sack_variable_t variable[0];
-} sctp_sackhdr_t;
+	union sctp_sack_variable variable[0];
+};
 
-typedef struct sctp_sack_chunk {
+struct sctp_sack_chunk {
 	struct sctp_chunkhdr chunk_hdr;
-	sctp_sackhdr_t sack_hdr;
-} sctp_sack_chunk_t;
+	struct sctp_sackhdr sack_hdr;
+};
 
 
 /* RFC 2960.  Section 3.3.5 Heartbeat Request (HEARTBEAT) (4):
@@ -398,23 +394,23 @@ typedef struct sctp_sack_chunk {
  *  the present association.
  */
 
-typedef struct sctp_heartbeathdr {
+struct sctp_heartbeathdr {
 	struct sctp_paramhdr info;
-} sctp_heartbeathdr_t;
+};
 
-typedef struct sctp_heartbeat_chunk {
+struct sctp_heartbeat_chunk {
 	struct sctp_chunkhdr chunk_hdr;
-	sctp_heartbeathdr_t hb_hdr;
-} sctp_heartbeat_chunk_t;
+	struct sctp_heartbeathdr hb_hdr;
+};
 
 
 /* For the abort and shutdown ACK we must carry the init tag in the
  * common header. Just the common header is all that is needed with a
  * chunk descriptor.
  */
-typedef struct sctp_abort_chunk {
+struct sctp_abort_chunk {
 	struct sctp_chunkhdr uh;
-} sctp_abort_chunk_t;
+};
 
 
 /* For the graceful shutdown we must carry the tag (in common header)

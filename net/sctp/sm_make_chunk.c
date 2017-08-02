@@ -69,7 +69,8 @@ static struct sctp_chunk *sctp_make_data(const struct sctp_association *asoc,
 static struct sctp_chunk *_sctp_make_chunk(const struct sctp_association *asoc,
 					   __u8 type, __u8 flags, int paylen,
 					   gfp_t gfp);
-static sctp_cookie_param_t *sctp_pack_cookie(const struct sctp_endpoint *ep,
+static struct sctp_cookie_param *sctp_pack_cookie(
+					const struct sctp_endpoint *ep,
 					const struct sctp_association *asoc,
 					const struct sctp_chunk *init_chunk,
 					int *cookie_len,
@@ -223,10 +224,10 @@ struct sctp_chunk *sctp_make_init(const struct sctp_association *asoc,
 	struct sctp_chunk *retval = NULL;
 	int num_types, addrs_len = 0;
 	struct sctp_sock *sp;
-	sctp_supported_addrs_param_t sat;
+	struct sctp_supported_addrs_param sat;
 	__be16 types[2];
-	sctp_adaptation_ind_param_t aiparam;
-	sctp_supported_ext_param_t ext_param;
+	struct sctp_adaptation_ind_param aiparam;
+	struct sctp_supported_ext_param ext_param;
 	int num_ext = 0;
 	__u8 extensions[4];
 	struct sctp_paramhdr *auth_chunks = NULL,
@@ -305,8 +306,7 @@ struct sctp_chunk *sctp_make_init(const struct sctp_association *asoc,
 
 	/* If we have any extensions to report, account for that */
 	if (num_ext)
-		chunksize += SCTP_PAD4(sizeof(sctp_supported_ext_param_t) +
-				       num_ext);
+		chunksize += SCTP_PAD4(sizeof(ext_param) + num_ext);
 
 	/* RFC 2960 3.3.2 Initiation (INIT) (1)
 	 *
@@ -348,10 +348,8 @@ struct sctp_chunk *sctp_make_init(const struct sctp_association *asoc,
 	 */
 	if (num_ext) {
 		ext_param.param_hdr.type = SCTP_PARAM_SUPPORTED_EXT;
-		ext_param.param_hdr.length =
-			    htons(sizeof(sctp_supported_ext_param_t) + num_ext);
-		sctp_addto_chunk(retval, sizeof(sctp_supported_ext_param_t),
-				&ext_param);
+		ext_param.param_hdr.length = htons(sizeof(ext_param) + num_ext);
+		sctp_addto_chunk(retval, sizeof(ext_param), &ext_param);
 		sctp_addto_param(retval, num_ext, extensions);
 	}
 
@@ -390,11 +388,11 @@ struct sctp_chunk *sctp_make_init_ack(const struct sctp_association *asoc,
 	union sctp_params addrs;
 	struct sctp_sock *sp;
 	int addrs_len;
-	sctp_cookie_param_t *cookie;
+	struct sctp_cookie_param *cookie;
 	int cookie_len;
 	size_t chunksize;
-	sctp_adaptation_ind_param_t aiparam;
-	sctp_supported_ext_param_t ext_param;
+	struct sctp_adaptation_ind_param aiparam;
+	struct sctp_supported_ext_param ext_param;
 	int num_ext = 0;
 	__u8 extensions[4];
 	struct sctp_paramhdr *auth_chunks = NULL,
@@ -468,8 +466,7 @@ struct sctp_chunk *sctp_make_init_ack(const struct sctp_association *asoc,
 	}
 
 	if (num_ext)
-		chunksize += SCTP_PAD4(sizeof(sctp_supported_ext_param_t) +
-				       num_ext);
+		chunksize += SCTP_PAD4(sizeof(ext_param) + num_ext);
 
 	/* Now allocate and fill out the chunk.  */
 	retval = sctp_make_control(asoc, SCTP_CID_INIT_ACK, 0, chunksize, gfp);
@@ -495,10 +492,8 @@ struct sctp_chunk *sctp_make_init_ack(const struct sctp_association *asoc,
 		sctp_addto_chunk(retval, sizeof(ecap_param), &ecap_param);
 	if (num_ext) {
 		ext_param.param_hdr.type = SCTP_PARAM_SUPPORTED_EXT;
-		ext_param.param_hdr.length =
-			    htons(sizeof(sctp_supported_ext_param_t) + num_ext);
-		sctp_addto_chunk(retval, sizeof(sctp_supported_ext_param_t),
-				 &ext_param);
+		ext_param.param_hdr.length = htons(sizeof(ext_param) + num_ext);
+		sctp_addto_chunk(retval, sizeof(ext_param), &ext_param);
 		sctp_addto_param(retval, num_ext, extensions);
 	}
 	if (asoc->peer.prsctp_capable)
@@ -1601,14 +1596,15 @@ nodata:
 /* Build a cookie representing asoc.
  * This INCLUDES the param header needed to put the cookie in the INIT ACK.
  */
-static sctp_cookie_param_t *sctp_pack_cookie(const struct sctp_endpoint *ep,
-				      const struct sctp_association *asoc,
-				      const struct sctp_chunk *init_chunk,
-				      int *cookie_len,
-				      const __u8 *raw_addrs, int addrs_len)
+static struct sctp_cookie_param *sctp_pack_cookie(
+					const struct sctp_endpoint *ep,
+					const struct sctp_association *asoc,
+					const struct sctp_chunk *init_chunk,
+					int *cookie_len,
+					const __u8 *raw_addrs, int addrs_len)
 {
-	sctp_cookie_param_t *retval;
 	struct sctp_signed_cookie *cookie;
+	struct sctp_cookie_param *retval;
 	int headersize, bodysize;
 
 	/* Header size is static data prior to the actual cookie, including
@@ -3153,7 +3149,7 @@ bool sctp_verify_asconf(const struct sctp_association *asoc,
 		case SCTP_PARAM_ERR_CAUSE:
 			break;
 		case SCTP_PARAM_IPV4_ADDRESS:
-			if (length != sizeof(sctp_ipv4addr_param_t))
+			if (length != sizeof(struct sctp_ipv4addr_param))
 				return false;
 			/* ensure there is only one addr param and it's in the
 			 * beginning of addip_hdr params, or we reject it.
@@ -3163,7 +3159,7 @@ bool sctp_verify_asconf(const struct sctp_association *asoc,
 			addr_param_seen = true;
 			break;
 		case SCTP_PARAM_IPV6_ADDRESS:
-			if (length != sizeof(sctp_ipv6addr_param_t))
+			if (length != sizeof(struct sctp_ipv6addr_param))
 				return false;
 			if (param.v != addip->addip_hdr.params)
 				return false;

@@ -295,9 +295,7 @@ static u16 tcp_select_window(struct sock *sk)
 	/* RFC1323 scaling applied */
 	new_win >>= tp->rx_opt.rcv_wscale;
 
-	/* If we advertise zero window, disable fast path. */
 	if (new_win == 0) {
-		tp->pred_flags = 0;
 		if (old_win)
 			NET_INC_STATS(sock_net(sk),
 				      LINUX_MIB_TCPTOZEROWINDOWADV);
@@ -2378,7 +2376,6 @@ bool tcp_schedule_loss_probe(struct sock *sk)
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
 	u32 timeout, tlp_time_stamp, rto_time_stamp;
-	u32 rtt = usecs_to_jiffies(tp->srtt_us >> 3);
 
 	/* No consecutive loss probes. */
 	if (WARN_ON(icsk->icsk_pending == ICSK_TIME_LOSS_PROBE)) {
@@ -2407,15 +2404,19 @@ bool tcp_schedule_loss_probe(struct sock *sk)
 	     tcp_send_head(sk))
 		return false;
 
-	/* Probe timeout is at least 1.5*rtt + TCP_DELACK_MAX to account
+	/* Probe timeout is 2*rtt. Add minimum RTO to account
 	 * for delayed ack when there's one outstanding packet. If no RTT
 	 * sample is available then probe after TCP_TIMEOUT_INIT.
 	 */
-	timeout = rtt << 1 ? : TCP_TIMEOUT_INIT;
-	if (tp->packets_out == 1)
-		timeout = max_t(u32, timeout,
-				(rtt + (rtt >> 1) + TCP_DELACK_MAX));
-	timeout = max_t(u32, timeout, msecs_to_jiffies(10));
+	if (tp->srtt_us) {
+		timeout = usecs_to_jiffies(tp->srtt_us >> 2);
+		if (tp->packets_out == 1)
+			timeout += TCP_RTO_MIN;
+		else
+			timeout += TCP_TIMEOUT_MIN;
+	} else {
+		timeout = TCP_TIMEOUT_INIT;
+	}
 
 	/* If RTO is shorter, just schedule TLP in its place. */
 	tlp_time_stamp = tcp_jiffies32 + timeout;

@@ -30,7 +30,6 @@
 #include <linux/ethtool.h>
 #include <linux/phy.h>
 #include <linux/phy_led_triggers.h>
-#include <linux/timer.h>
 #include <linux/workqueue.h>
 #include <linux/mdio.h>
 #include <linux/io.h>
@@ -705,8 +704,8 @@ EXPORT_SYMBOL(phy_start_aneg);
  *
  * Description: The PHY infrastructure can run a state machine
  *   which tracks whether the PHY is starting up, negotiating,
- *   etc.  This function starts the timer which tracks the state
- *   of the PHY.  If you want to maintain your own state machine,
+ *   etc.  This function starts the delayed workqueue which tracks
+ *   the state of the PHY. If you want to maintain your own state machine,
  *   do not call this function.
  */
 void phy_start_machine(struct phy_device *phydev)
@@ -737,9 +736,9 @@ void phy_trigger_machine(struct phy_device *phydev, bool sync)
  * phy_stop_machine - stop the PHY state machine tracking
  * @phydev: target phy_device struct
  *
- * Description: Stops the state machine timer, sets the state to UP
- *   (unless it wasn't up yet). This function must be called BEFORE
- *   phy_detach.
+ * Description: Stops the state machine delayed workqueue, sets the
+ *   state to UP (unless it wasn't up yet). This function must be
+ *   called BEFORE phy_detach.
  */
 void phy_stop_machine(struct phy_device *phydev)
 {
@@ -1229,9 +1228,10 @@ void phy_state_machine(struct work_struct *work)
 	if (err < 0)
 		phy_error(phydev);
 
-	phydev_dbg(phydev, "PHY state change %s -> %s\n",
-		   phy_state_to_str(old_state),
-		   phy_state_to_str(phydev->state));
+	if (old_state != phydev->state)
+		phydev_dbg(phydev, "PHY state change %s -> %s\n",
+			   phy_state_to_str(old_state),
+			   phy_state_to_str(phydev->state));
 
 	/* Only re-schedule a PHY state machine change if we are polling the
 	 * PHY, if PHY_IGNORE_INTERRUPT is set, then we will be moving

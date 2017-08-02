@@ -3679,15 +3679,17 @@ enum mlxsw_reg_htgt_trap_group {
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_LACP,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_LLDP,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_IGMP,
-	MLXSW_REG_HTGT_TRAP_GROUP_SP_BGP_IPV4,
+	MLXSW_REG_HTGT_TRAP_GROUP_SP_BGP,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_OSPF,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_ARP,
-	MLXSW_REG_HTGT_TRAP_GROUP_SP_ARP_MISS,
+	MLXSW_REG_HTGT_TRAP_GROUP_SP_HOST_MISS,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_ROUTER_EXP,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_REMOTE_ROUTE,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_IP2ME,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_DHCP,
 	MLXSW_REG_HTGT_TRAP_GROUP_SP_EVENT,
+	MLXSW_REG_HTGT_TRAP_GROUP_SP_IPV6_MLD,
+	MLXSW_REG_HTGT_TRAP_GROUP_SP_IPV6_ND,
 };
 
 /* reg_htgt_trap_group
@@ -3952,10 +3954,12 @@ MLXSW_ITEM32(reg, rgcr, pcp_rw, 0x18, 16, 2);
  */
 MLXSW_ITEM32(reg, rgcr, activity_dis, 0x20, 0, 8);
 
-static inline void mlxsw_reg_rgcr_pack(char *payload, bool ipv4_en)
+static inline void mlxsw_reg_rgcr_pack(char *payload, bool ipv4_en,
+				       bool ipv6_en)
 {
 	MLXSW_REG_ZERO(rgcr, payload);
 	mlxsw_reg_rgcr_ipv4_en_set(payload, ipv4_en);
+	mlxsw_reg_rgcr_ipv6_en_set(payload, ipv6_en);
 }
 
 /* RITR - Router Interface Table Register
@@ -3988,16 +3992,16 @@ MLXSW_ITEM32(reg, ritr, ipv4, 0x00, 29, 1);
 MLXSW_ITEM32(reg, ritr, ipv6, 0x00, 28, 1);
 
 enum mlxsw_reg_ritr_if_type {
+	/* VLAN interface. */
 	MLXSW_REG_RITR_VLAN_IF,
+	/* FID interface. */
 	MLXSW_REG_RITR_FID_IF,
+	/* Sub-port interface. */
 	MLXSW_REG_RITR_SP_IF,
 };
 
 /* reg_ritr_type
- * Router interface type.
- * 0 - VLAN interface.
- * 1 - FID interface.
- * 2 - Sub-port interface.
+ * Router interface type as per enum mlxsw_reg_ritr_if_type.
  * Access: RW
  */
 MLXSW_ITEM32(reg, ritr, type, 0x00, 23, 3);
@@ -4203,10 +4207,12 @@ static inline void mlxsw_reg_ritr_pack(char *payload, bool enable,
 	MLXSW_REG_ZERO(ritr, payload);
 	mlxsw_reg_ritr_enable_set(payload, enable);
 	mlxsw_reg_ritr_ipv4_set(payload, 1);
+	mlxsw_reg_ritr_ipv6_set(payload, 1);
 	mlxsw_reg_ritr_type_set(payload, type);
 	mlxsw_reg_ritr_op_set(payload, op);
 	mlxsw_reg_ritr_rif_set(payload, rif);
 	mlxsw_reg_ritr_ipv4_fe_set(payload, 1);
+	mlxsw_reg_ritr_ipv6_fe_set(payload, 1);
 	mlxsw_reg_ritr_lb_en_set(payload, 1);
 	mlxsw_reg_ritr_virtual_router_set(payload, vr_id);
 	mlxsw_reg_ritr_mtu_set(payload, mtu);
@@ -4712,12 +4718,13 @@ MLXSW_ITEM32(reg, ralue, prefix_len, 0x08, 0, 8);
 /* reg_ralue_dip*
  * The prefix of the route or of the marker that the object of the LPM
  * is compared with. The most significant bits of the dip are the prefix.
- * The list significant bits must be '0' if the prefix_len is smaller
+ * The least significant bits must be '0' if the prefix_len is smaller
  * than 128 for IPv6 or smaller than 32 for IPv4.
  * IPv4 address uses bits dip[31:0] and bits dip[127:32] are reserved.
  * Access: Index
  */
 MLXSW_ITEM32(reg, ralue, dip4, 0x18, 0, 32);
+MLXSW_ITEM_BUF(reg, ralue, dip6, 0x0C, 16);
 
 enum mlxsw_reg_ralue_entry_type {
 	MLXSW_REG_RALUE_ENTRY_TYPE_MARKER_ENTRY = 1,
@@ -4806,7 +4813,7 @@ MLXSW_ITEM32(reg, ralue, ecmp_size, 0x28, 0, 13);
  */
 MLXSW_ITEM32(reg, ralue, local_erif, 0x24, 0, 16);
 
-/* reg_ralue_v
+/* reg_ralue_ip2me_v
  * Valid bit for the tunnel_ptr field.
  * If valid = 0 then trap to CPU as IP2ME trap ID.
  * If valid = 1 and the packet format allows NVE or IPinIP tunnel
@@ -4816,15 +4823,15 @@ MLXSW_ITEM32(reg, ralue, local_erif, 0x24, 0, 16);
  * Only relevant in case of IP2ME action.
  * Access: RW
  */
-MLXSW_ITEM32(reg, ralue, v, 0x24, 31, 1);
+MLXSW_ITEM32(reg, ralue, ip2me_v, 0x24, 31, 1);
 
-/* reg_ralue_tunnel_ptr
+/* reg_ralue_ip2me_tunnel_ptr
  * Tunnel Pointer for NVE or IPinIP tunnel decapsulation.
  * For Spectrum, pointer to KVD Linear.
  * Only relevant in case of IP2ME action.
  * Access: RW
  */
-MLXSW_ITEM32(reg, ralue, tunnel_ptr, 0x24, 0, 24);
+MLXSW_ITEM32(reg, ralue, ip2me_tunnel_ptr, 0x24, 0, 24);
 
 static inline void mlxsw_reg_ralue_pack(char *payload,
 					enum mlxsw_reg_ralxx_protocol protocol,
@@ -4849,6 +4856,16 @@ static inline void mlxsw_reg_ralue_pack4(char *payload,
 {
 	mlxsw_reg_ralue_pack(payload, protocol, op, virtual_router, prefix_len);
 	mlxsw_reg_ralue_dip4_set(payload, dip);
+}
+
+static inline void mlxsw_reg_ralue_pack6(char *payload,
+					 enum mlxsw_reg_ralxx_protocol protocol,
+					 enum mlxsw_reg_ralue_op op,
+					 u16 virtual_router, u8 prefix_len,
+					 const void *dip)
+{
+	mlxsw_reg_ralue_pack(payload, protocol, op, virtual_router, prefix_len);
+	mlxsw_reg_ralue_dip6_memcpy_to(payload, dip);
 }
 
 static inline void
@@ -4954,6 +4971,7 @@ MLXSW_ITEM32(reg, rauht, rif, 0x00, 0, 16);
  * Access: Index
  */
 MLXSW_ITEM32(reg, rauht, dip4, 0x1C, 0x0, 32);
+MLXSW_ITEM_BUF(reg, rauht, dip6, 0x10, 16);
 
 enum mlxsw_reg_rauht_trap_action {
 	MLXSW_REG_RAUHT_TRAP_ACTION_NOP,
@@ -5016,6 +5034,15 @@ static inline void mlxsw_reg_rauht_pack4(char *payload,
 {
 	mlxsw_reg_rauht_pack(payload, op, rif, mac);
 	mlxsw_reg_rauht_dip4_set(payload, dip);
+}
+
+static inline void mlxsw_reg_rauht_pack6(char *payload,
+					 enum mlxsw_reg_rauht_op op, u16 rif,
+					 const char *mac, const char *dip)
+{
+	mlxsw_reg_rauht_pack(payload, op, rif, mac);
+	mlxsw_reg_rauht_type_set(payload, MLXSW_REG_RAUHT_TYPE_IPV6);
+	mlxsw_reg_rauht_dip6_memcpy_to(payload, dip);
 }
 
 /* RALEU - Router Algorithmic LPM ECMP Update Register
@@ -5216,12 +5243,44 @@ MLXSW_ITEM32_INDEXED(reg, rauhtd, ipv4_ent_rif, MLXSW_REG_RAUHTD_BASE_LEN, 0,
 MLXSW_ITEM32_INDEXED(reg, rauhtd, ipv4_ent_dip, MLXSW_REG_RAUHTD_BASE_LEN, 0,
 		     32, MLXSW_REG_RAUHTD_IPV4_ENT_LEN, 0x04, false);
 
+#define MLXSW_REG_RAUHTD_IPV6_ENT_LEN 0x20
+
+/* reg_rauhtd_ipv6_ent_a
+ * Activity. Set for new entries. Set if a packet lookup has hit on the
+ * specific entry.
+ * Access: RO
+ */
+MLXSW_ITEM32_INDEXED(reg, rauhtd, ipv6_ent_a, MLXSW_REG_RAUHTD_BASE_LEN, 16, 1,
+		     MLXSW_REG_RAUHTD_IPV6_ENT_LEN, 0x00, false);
+
+/* reg_rauhtd_ipv6_ent_rif
+ * Router interface.
+ * Access: RO
+ */
+MLXSW_ITEM32_INDEXED(reg, rauhtd, ipv6_ent_rif, MLXSW_REG_RAUHTD_BASE_LEN, 0,
+		     16, MLXSW_REG_RAUHTD_IPV6_ENT_LEN, 0x00, false);
+
+/* reg_rauhtd_ipv6_ent_dip
+ * Destination IPv6 address.
+ * Access: RO
+ */
+MLXSW_ITEM_BUF_INDEXED(reg, rauhtd, ipv6_ent_dip, MLXSW_REG_RAUHTD_BASE_LEN,
+		       16, MLXSW_REG_RAUHTD_IPV6_ENT_LEN, 0x10);
+
 static inline void mlxsw_reg_rauhtd_ent_ipv4_unpack(char *payload,
 						    int ent_index, u16 *p_rif,
 						    u32 *p_dip)
 {
 	*p_rif = mlxsw_reg_rauhtd_ipv4_ent_rif_get(payload, ent_index);
 	*p_dip = mlxsw_reg_rauhtd_ipv4_ent_dip_get(payload, ent_index);
+}
+
+static inline void mlxsw_reg_rauhtd_ent_ipv6_unpack(char *payload,
+						    int rec_index, u16 *p_rif,
+						    char *p_dip)
+{
+	*p_rif = mlxsw_reg_rauhtd_ipv6_ent_rif_get(payload, rec_index);
+	mlxsw_reg_rauhtd_ipv6_ent_dip_memcpy_from(payload, rec_index, p_dip);
 }
 
 /* MFCR - Management Fan Control Register

@@ -345,6 +345,42 @@ static inline void skb_frag_size_sub(skb_frag_t *frag, int delta)
 	frag->size -= delta;
 }
 
+static inline bool skb_frag_must_loop(struct page *p)
+{
+#if defined(CONFIG_HIGHMEM)
+	if (PageHighMem(p))
+		return true;
+#endif
+	return false;
+}
+
+/**
+ *	skb_frag_foreach_page - loop over pages in a fragment
+ *
+ *	@f:		skb frag to operate on
+ *	@f_off:		offset from start of f->page.p
+ *	@f_len:		length from f_off to loop over
+ *	@p:		(temp var) current page
+ *	@p_off:		(temp var) offset from start of current page,
+ *	                           non-zero only on first page.
+ *	@p_len:		(temp var) length in current page,
+ *				   < PAGE_SIZE only on first and last page.
+ *	@copied:	(temp var) length so far, excluding current p_len.
+ *
+ *	A fragment can hold a compound page, in which case per-page
+ *	operations, notably kmap_atomic, must be called for each
+ *	regular page.
+ */
+#define skb_frag_foreach_page(f, f_off, f_len, p, p_off, p_len, copied)	\
+	for (p = skb_frag_page(f) + ((f_off) >> PAGE_SHIFT),		\
+	     p_off = (f_off) & (PAGE_SIZE - 1),				\
+	     p_len = skb_frag_must_loop(p) ?				\
+	     min_t(u32, f_len, PAGE_SIZE - p_off) : f_len,		\
+	     copied = 0;						\
+	     copied < f_len;						\
+	     copied += p_len, p++, p_off = 0,				\
+	     p_len = min_t(u32, f_len - copied, PAGE_SIZE))		\
+
 #define HAVE_HW_TIME_STAMP
 
 /**
@@ -463,39 +499,38 @@ enum {
 
 enum {
 	SKB_GSO_TCPV4 = 1 << 0,
-	SKB_GSO_UDP = 1 << 1,
 
 	/* This indicates the skb is from an untrusted source. */
-	SKB_GSO_DODGY = 1 << 2,
+	SKB_GSO_DODGY = 1 << 1,
 
 	/* This indicates the tcp segment has CWR set. */
-	SKB_GSO_TCP_ECN = 1 << 3,
+	SKB_GSO_TCP_ECN = 1 << 2,
 
-	SKB_GSO_TCP_FIXEDID = 1 << 4,
+	SKB_GSO_TCP_FIXEDID = 1 << 3,
 
-	SKB_GSO_TCPV6 = 1 << 5,
+	SKB_GSO_TCPV6 = 1 << 4,
 
-	SKB_GSO_FCOE = 1 << 6,
+	SKB_GSO_FCOE = 1 << 5,
 
-	SKB_GSO_GRE = 1 << 7,
+	SKB_GSO_GRE = 1 << 6,
 
-	SKB_GSO_GRE_CSUM = 1 << 8,
+	SKB_GSO_GRE_CSUM = 1 << 7,
 
-	SKB_GSO_IPXIP4 = 1 << 9,
+	SKB_GSO_IPXIP4 = 1 << 8,
 
-	SKB_GSO_IPXIP6 = 1 << 10,
+	SKB_GSO_IPXIP6 = 1 << 9,
 
-	SKB_GSO_UDP_TUNNEL = 1 << 11,
+	SKB_GSO_UDP_TUNNEL = 1 << 10,
 
-	SKB_GSO_UDP_TUNNEL_CSUM = 1 << 12,
+	SKB_GSO_UDP_TUNNEL_CSUM = 1 << 11,
 
-	SKB_GSO_PARTIAL = 1 << 13,
+	SKB_GSO_PARTIAL = 1 << 12,
 
-	SKB_GSO_TUNNEL_REMCSUM = 1 << 14,
+	SKB_GSO_TUNNEL_REMCSUM = 1 << 13,
 
-	SKB_GSO_SCTP = 1 << 15,
+	SKB_GSO_SCTP = 1 << 14,
 
-	SKB_GSO_ESP = 1 << 16,
+	SKB_GSO_ESP = 1 << 15,
 };
 
 #if BITS_PER_LONG > 32
@@ -943,12 +978,6 @@ static inline struct sk_buff *alloc_skb_fclone(unsigned int size,
 					       gfp_t priority)
 {
 	return __alloc_skb(size, priority, SKB_ALLOC_FCLONE, NUMA_NO_NODE);
-}
-
-struct sk_buff *__alloc_skb_head(gfp_t priority, int node);
-static inline struct sk_buff *alloc_skb_head(gfp_t priority)
-{
-	return __alloc_skb_head(priority, -1);
 }
 
 struct sk_buff *skb_morph(struct sk_buff *dst, struct sk_buff *src);
@@ -3120,6 +3149,9 @@ __wsum skb_copy_and_csum_bits(const struct sk_buff *skb, int offset, u8 *to,
 int skb_splice_bits(struct sk_buff *skb, struct sock *sk, unsigned int offset,
 		    struct pipe_inode_info *pipe, unsigned int len,
 		    unsigned int flags);
+int skb_send_sock_locked(struct sock *sk, struct sk_buff *skb, int offset,
+			 int len);
+int skb_send_sock(struct sock *sk, struct sk_buff *skb, int offset, int len);
 void skb_copy_and_csum_dev(const struct sk_buff *skb, u8 *to);
 unsigned int skb_zerocopy_headlen(const struct sk_buff *from);
 int skb_zerocopy(struct sk_buff *to, struct sk_buff *from,

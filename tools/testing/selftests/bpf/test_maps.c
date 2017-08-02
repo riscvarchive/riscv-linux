@@ -438,6 +438,21 @@ static void test_arraymap_percpu_many_keys(void)
 	close(fd);
 }
 
+static void test_devmap(int task, void *data)
+{
+	int fd;
+	__u32 key, value;
+
+	fd = bpf_create_map(BPF_MAP_TYPE_DEVMAP, sizeof(key), sizeof(value),
+			    2, 0);
+	if (fd < 0) {
+		printf("Failed to create arraymap '%s'!\n", strerror(errno));
+		exit(1);
+	}
+
+	close(fd);
+}
+
 #define MAP_SIZE (32 * 1024)
 
 static void test_map_large(void)
@@ -604,6 +619,8 @@ static void run_all_tests(void)
 	test_arraymap_percpu(0, NULL);
 
 	test_arraymap_percpu_many_keys();
+
+	test_devmap(0, NULL);
 
 	test_map_large();
 	test_map_parallel();
