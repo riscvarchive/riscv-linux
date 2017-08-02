@@ -901,7 +901,7 @@ static struct zone * __meminit move_pfn_range(int online_type, int nid,
 	return zone;
 }
 
-/* Must be protected by mem_hotplug_begin() */
+/* Must be protected by mem_hotplug_begin() or a device_lock */
 int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_type)
 {
 	unsigned long flags;
@@ -930,7 +930,6 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_typ
 	 * This means the page allocator ignores this zone.
 	 * So, zonelist must be updated after online.
 	 */
-	mutex_lock(&zonelists_mutex);
 	if (!populated_zone(zone)) {
 		need_zonelists_rebuild = 1;
 		setup_zone_pageset(zone);
@@ -941,7 +940,6 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_typ
 	if (ret) {
 		if (need_zonelists_rebuild)
 			zone_pcp_reset(zone);
-		mutex_unlock(&zonelists_mutex);
 		goto failed_addition;
 	}
 
@@ -958,8 +956,6 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_typ
 		else
 			zone_pcp_update(zone);
 	}
-
-	mutex_unlock(&zonelists_mutex);
 
 	init_per_zone_wmark_min();
 
@@ -1031,9 +1027,7 @@ static pg_data_t __ref *hotadd_new_pgdat(int nid, u64 start)
 	 * The node we allocated has no zone fallback lists. For avoiding
 	 * to access not-initialized zonelist, build here.
 	 */
-	mutex_lock(&zonelists_mutex);
 	build_all_zonelists(pgdat);
-	mutex_unlock(&zonelists_mutex);
 
 	/*
 	 * zone->managed_pages is set to an approximate value in
@@ -1702,9 +1696,7 @@ repeat:
 
 	if (!populated_zone(zone)) {
 		zone_pcp_reset(zone);
-		mutex_lock(&zonelists_mutex);
 		build_all_zonelists(NULL);
-		mutex_unlock(&zonelists_mutex);
 	} else
 		zone_pcp_update(zone);
 
@@ -1730,7 +1722,7 @@ failed_removal:
 	return ret;
 }
 
-/* Must be protected by mem_hotplug_begin() */
+/* Must be protected by mem_hotplug_begin() or a device_lock */
 int offline_pages(unsigned long start_pfn, unsigned long nr_pages)
 {
 	return __offline_pages(start_pfn, start_pfn + nr_pages, 120 * HZ);
