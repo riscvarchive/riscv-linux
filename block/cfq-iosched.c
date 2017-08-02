@@ -1186,7 +1186,7 @@ static struct cfq_group *cfq_rb_first_group(struct cfq_rb_root *root)
 static void cfq_rb_erase(struct rb_node *n, struct cfq_rb_root *root)
 {
 	if (root->rb_rightmost == n)
-		root->rb_rightmost = rb_next(n);
+		root->rb_rightmost = rb_prev(n);
 
 	rb_erase_cached(n, &root->rb);
 	RB_CLEAR_NODE(n);
