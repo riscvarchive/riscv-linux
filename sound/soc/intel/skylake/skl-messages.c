@@ -540,6 +540,14 @@ static void skl_setup_cpr_gateway_cfg(struct skl_sst *ctx,
 	cpr_mconfig->gtw_cfg.dma_buffer_size =
 				mconfig->dma_buffer_size * dma_io_buf;
 
+	/* fallback to 2ms default value */
+	if (!cpr_mconfig->gtw_cfg.dma_buffer_size) {
+		if (mconfig->hw_conn_type == SKL_CONN_SOURCE)
+			cpr_mconfig->gtw_cfg.dma_buffer_size = 2 * mconfig->obs;
+		else
+			cpr_mconfig->gtw_cfg.dma_buffer_size = 2 * mconfig->ibs;
+	}
+
 	cpr_mconfig->cpr_feature_mask = 0;
 	cpr_mconfig->gtw_cfg.config_length  = 0;
 
@@ -942,7 +950,7 @@ static void skl_dump_bind_info(struct skl_sst *ctx, struct skl_module_cfg
 {
 	dev_dbg(ctx->dev, "%s: src module_id = %d  src_instance=%d\n",
 		__func__, src_module->id.module_id, src_module->id.pvt_id);
-	dev_dbg(ctx->dev, "%s: dst_module=%d dst_instacne=%d\n", __func__,
+	dev_dbg(ctx->dev, "%s: dst_module=%d dst_instance=%d\n", __func__,
 		 dst_module->id.module_id, dst_module->id.pvt_id);
 
 	dev_dbg(ctx->dev, "src_module state = %d dst module state = %d\n",
