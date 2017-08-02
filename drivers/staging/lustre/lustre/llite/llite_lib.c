@@ -222,9 +222,6 @@ static int client_common_fill_super(struct super_block *sb, char *md, char *dt,
 	else
 		sbi->ll_fop = &ll_file_operations_noflock;
 
-	/* real client */
-	data->ocd_connect_flags |= OBD_CONNECT_REAL;
-
 	/* always ping even if server suppress_pings */
 	if (sbi->ll_flags & LL_SBI_ALWAYS_PING)
 		data->ocd_connect_flags &= ~OBD_CONNECT_PINGLESS;
@@ -1319,6 +1316,7 @@ void ll_clear_inode(struct inode *inode)
 	ll_xattr_cache_destroy(inode);
 
 #ifdef CONFIG_FS_POSIX_ACL
+	forget_all_cached_acls(inode);
 	if (lli->lli_posix_acl) {
 		posix_acl_release(lli->lli_posix_acl);
 		lli->lli_posix_acl = NULL;
@@ -2543,7 +2541,7 @@ static int ll_linkea_decode(struct linkea_data *ldata, unsigned int linkno,
 	unsigned int idx;
 	int rc;
 
-	rc = linkea_init(ldata);
+	rc = linkea_init_with_rec(ldata);
 	if (rc < 0)
 		return rc;
 
