@@ -392,8 +392,10 @@ static inline bool nd_iostat_start(struct bio *bio, unsigned long *start)
 {
 	struct gendisk *disk = bio->bi_bdev->bd_disk;
 
-	if (!blk_queue_io_stat(disk->queue))
+	if (!blk_queue_io_stat(disk->queue)) {
+		*start = 0;
 		return false;
+	}
 
 	*start = jiffies;
 	generic_start_io_acct(bio_data_dir(bio),
