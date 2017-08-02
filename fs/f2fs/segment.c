@@ -309,17 +309,21 @@ static int __commit_inmem_pages(struct inode *inode,
 				inode_dec_dirty_pages(inode);
 				remove_dirty_inode(inode);
 			}
-
+retry:
 			fio.page = page;
 			fio.old_blkaddr = NULL_ADDR;
 			fio.encrypted_page = NULL;
 			fio.need_lock = LOCK_DONE;
 			err = do_write_data_page(&fio);
 			if (err) {
+				if (err == -ENOMEM) {
+					congestion_wait(BLK_RW_ASYNC, HZ/50);
+					cond_resched();
+					goto retry;
+				}
 				unlock_page(page);
 				break;
 			}
-
 			/* record old blkaddr for revoking */
 			cur->old_addr = fio.old_blkaddr;
 			last_idx = page->index;
@@ -481,6 +485,8 @@ repeat:
 	if (kthread_should_stop())
 		return 0;
 
+	sb_start_intwrite(sbi->sb);
+
 	if (!llist_empty(&fcc->issue_list)) {
 		struct flush_cmd *cmd, *next;
 		int ret;
@@ -498,6 +504,8 @@ repeat:
 		}
 		fcc->dispatch_list = NULL;
 	}
+
+	sb_end_intwrite(sbi->sb);
 
 	wait_event_interruptible(*q,
 		kthread_should_stop() || !llist_empty(&fcc->issue_list));
@@ -1009,6 +1017,9 @@ static void __issue_discard_cmd(struct f2fs_sb_info *sbi, bool issue_cond)
 		!__check_rb_tree_consistence(sbi, &dcc->root));
 	blk_start_plug(&plug);
 	for (i = MAX_PLIST_NUM - 1; i >= 0; i--) {
+		if (i + 1 < dcc->discard_granularity)
+			break;
+
 		pend_list = &dcc->pend_list[i];
 		list_for_each_entry_safe(dc, tmp, pend_list, list) {
 			f2fs_bug_on(sbi, dc->state != D_PREP);
@@ -1126,8 +1137,12 @@ static int issue_discard_thread(void *data)
 		if (kthread_should_stop())
 			return 0;
 
+		sb_start_intwrite(sbi->sb);
+
 		__issue_discard_cmd(sbi, true);
 		__wait_discard_cmd(sbi, true);
+
+		sb_end_intwrite(sbi->sb);
 
 		congestion_wait(BLK_RW_SYNC, HZ/50);
 	} while (!kthread_should_stop());
@@ -1434,6 +1449,7 @@ static int create_discard_cmd_control(struct f2fs_sb_info *sbi)
 	atomic_set(&dcc->discard_cmd_cnt, 0);
 	dcc->nr_discards = 0;
 	dcc->max_discards = MAIN_SEGS(sbi) << sbi->log_blocks_per_seg;
+	dcc->discard_granularity = DEFAULT_DISCARD_GRANULARITY;
 	dcc->undiscard_blks = 0;
 	dcc->root = RB_ROOT;
 
