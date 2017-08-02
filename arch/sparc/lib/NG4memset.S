@@ -13,14 +13,14 @@
 	.globl		NG4memset
 NG4memset:
 	andcc		%o1, 0xff, %o4
-	be,pt		%icc, 1f
+	be,pt		%xcc, 1f
 	 mov		%o2, %o1
 	sllx		%o4, 8, %g1
 	or		%g1, %o4, %o2
 	sllx		%o2, 16, %g1
 	or		%g1, %o2, %o2
 	sllx		%o2, 32, %g1
-	ba,pt		%icc, 1f
+	ba,pt		%xcc, 1f
 	 or		%g1, %o2, %o4
 	.size		NG4memset,.-NG4memset
 
@@ -29,7 +29,7 @@ NG4memset:
 NG4bzero:
 	clr		%o4
 1:	cmp		%o1, 16
-	ble		%icc, .Ltiny
+	ble		%xcc, .Ltiny
 	 mov		%o0, %o3
 	sub		%g0, %o0, %g1
 	and		%g1, 0x7, %g1
@@ -37,7 +37,7 @@ NG4bzero:
 	 sub		%o1, %g1, %o1
 1:	stb		%o4, [%o0 + 0x00]
 	subcc		%g1, 1, %g1
-	bne,pt		%icc, 1b
+	bne,pt		%xcc, 1b
 	 add		%o0, 1, %o0
 .Laligned8:
 	cmp		%o1, 64 + (64 - 8)
@@ -48,7 +48,7 @@ NG4bzero:
 	 sub		%o1, %g1, %o1
 1:	stx		%o4, [%o0 + 0x00]
 	subcc		%g1, 8, %g1
-	bne,pt		%icc, 1b
+	bne,pt		%xcc, 1b
 	 add		%o0, 0x8, %o0
 .Laligned64:
 	andn		%o1, 64 - 1, %g1
@@ -58,30 +58,30 @@ NG4bzero:
 1:	stxa		%o4, [%o0 + %g0] ASI_BLK_INIT_QUAD_LDD_P
 	subcc		%g1, 0x40, %g1
 	stxa		%o4, [%o0 + %g2] ASI_BLK_INIT_QUAD_LDD_P
-	bne,pt		%icc, 1b
+	bne,pt		%xcc, 1b
 	 add		%o0, 0x40, %o0
 .Lpostloop:
 	cmp		%o1, 8
-	bl,pn		%icc, .Ltiny
+	bl,pn		%xcc, .Ltiny
 	 membar		#StoreStore|#StoreLoad
 .Lmedium:
 	andn		%o1, 0x7, %g1
 	sub		%o1, %g1, %o1
 1:	stx		%o4, [%o0 + 0x00]
 	subcc		%g1, 0x8, %g1
-	bne,pt		%icc, 1b
+	bne,pt		%xcc, 1b
 	 add		%o0, 0x08, %o0
 	andcc		%o1, 0x4, %g1
-	be,pt		%icc, .Ltiny
+	be,pt		%xcc, .Ltiny
 	 sub		%o1, %g1, %o1
 	stw		%o4, [%o0 + 0x00]
 	add		%o0, 0x4, %o0
 .Ltiny:
 	cmp		%o1, 0
-	be,pn		%icc, .Lexit
+	be,pn		%xcc, .Lexit
 1:	 subcc		%o1, 1, %o1
 	stb		%o4, [%o0 + 0x00]
-	bne,pt		%icc, 1b
+	bne,pt		%xcc, 1b
 	 add		%o0, 1, %o0
 .Lexit:
 	retl
@@ -99,8 +99,8 @@ NG4bzero:
 	stxa		%o4, [%o0 + %g2] ASI_BLK_INIT_QUAD_LDD_P
 	stxa		%o4, [%o0 + %g3] ASI_BLK_INIT_QUAD_LDD_P
 	stxa		%o4, [%o0 + %o5] ASI_BLK_INIT_QUAD_LDD_P
-	bne,pt		%icc, 1b
+	bne,pt		%xcc, 1b
 	 add		%o0, 0x30, %o0
-	ba,a,pt		%icc, .Lpostloop
+	ba,a,pt		%xcc, .Lpostloop
 	 nop
 	.size		NG4bzero,.-NG4bzero
