@@ -217,7 +217,7 @@ static inline swp_entry_t pmd_to_swp_entry(pmd_t pmd)
 
 static inline pmd_t swp_entry_to_pmd(swp_entry_t entry)
 {
-	return (pmd_t){ 0 };
+	return __pmd(0);
 }
 
 static inline int is_pmd_migration_entry(pmd_t pmd)
