@@ -1844,7 +1844,7 @@ static int ocfs2_mount_volume(struct super_block *sb)
 	status = ocfs2_dlm_init(osb);
 	if (status < 0) {
 		mlog_errno(status);
-		if (status == -EBADR)
+		if (status == -EBADR && ocfs2_userspace_stack(osb))
 			mlog(ML_ERROR, "couldn't mount because cluster name on"
 			" disk does not match the running cluster name.\n");
 		goto leave;
