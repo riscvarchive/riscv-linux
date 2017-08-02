@@ -183,6 +183,20 @@ noinline void __set_page_owner(struct page *page, unsigned int order,
 	__set_bit(PAGE_EXT_OWNER, &page_ext->flags);
 }
 
+static void __set_page_owner_init(struct page_ext *page_ext,
+					depot_stack_handle_t handle)
+{
+	struct page_owner *page_owner;
+
+	page_owner = get_page_owner(page_ext);
+	page_owner->handle = handle;
+	page_owner->order = 0;
+	page_owner->gfp_mask = 0;
+	page_owner->last_migrate_reason = -1;
+
+	__set_bit(PAGE_EXT_OWNER, &page_ext->flags);
+}
+
 void __set_page_owner_migrate_reason(struct page *page, int reason)
 {
 	struct page_ext *page_ext = lookup_page_ext(page);
@@ -520,9 +534,12 @@ static void init_pages_in_zone(pg_data_t *pgdat, struct zone *zone)
 	unsigned long pfn = zone->zone_start_pfn, block_end_pfn;
 	unsigned long end_pfn = pfn + zone->spanned_pages;
 	unsigned long count = 0;
+	depot_stack_handle_t init_handle;
 
 	/* Scan block by block. First and last block may be incomplete */
 	pfn = zone->zone_start_pfn;
+
+	init_handle = save_stack(0);
 
 	/*
 	 * Walk the zone in pageblock_nr_pages steps. If a page block spans
@@ -570,7 +587,7 @@ static void init_pages_in_zone(pg_data_t *pgdat, struct zone *zone)
 				continue;
 
 			/* Found early allocated page */
-			set_page_owner(page, 0, 0);
+			__set_page_owner_init(page_ext, init_handle);
 			count++;
 		}
 	}
