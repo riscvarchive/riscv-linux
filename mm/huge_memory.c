@@ -327,7 +327,7 @@ static struct attribute *hugepage_attr[] = {
 	NULL,
 };
 
-static struct attribute_group hugepage_attr_group = {
+static const struct attribute_group hugepage_attr_group = {
 	.attrs = hugepage_attr,
 };
 
