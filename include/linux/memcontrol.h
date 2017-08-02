@@ -537,14 +537,14 @@ static inline void mod_memcg_state(struct mem_cgroup *memcg,
  * Kernel pages are an exception to this, since they'll never move.
  */
 static inline void __mod_memcg_page_state(struct page *page,
-					  enum memcg_stat_item idx, int val)
+					  int idx, int val)
 {
 	if (page->mem_cgroup)
 		__mod_memcg_state(page->mem_cgroup, idx, val);
 }
 
 static inline void mod_memcg_page_state(struct page *page,
-					enum memcg_stat_item idx, int val)
+					int idx, int val)
 {
 	if (page->mem_cgroup)
 		mod_memcg_state(page->mem_cgroup, idx, val);
@@ -862,13 +862,13 @@ static inline void mod_memcg_state(struct mem_cgroup *memcg,
 }
 
 static inline void __mod_memcg_page_state(struct page *page,
-					  enum memcg_stat_item idx,
+					  int idx,
 					  int nr)
 {
 }
 
 static inline void mod_memcg_page_state(struct page *page,
-					enum memcg_stat_item idx,
+					int idx,
 					int nr)
 {
 }
@@ -932,26 +932,30 @@ void count_memcg_event_mm(struct mm_struct *mm, enum vm_event_item idx)
 }
 #endif /* CONFIG_MEMCG */
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void __inc_memcg_state(struct mem_cgroup *memcg,
-				     enum memcg_stat_item idx)
+				     int idx)
 {
 	__mod_memcg_state(memcg, idx, 1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void __dec_memcg_state(struct mem_cgroup *memcg,
-				     enum memcg_stat_item idx)
+				     int idx)
 {
 	__mod_memcg_state(memcg, idx, -1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void __inc_memcg_page_state(struct page *page,
-					  enum memcg_stat_item idx)
+					  int idx)
 {
 	__mod_memcg_page_state(page, idx, 1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void __dec_memcg_page_state(struct page *page,
-					  enum memcg_stat_item idx)
+					  int idx)
 {
 	__mod_memcg_page_state(page, idx, -1);
 }
@@ -980,26 +984,30 @@ static inline void __dec_lruvec_page_state(struct page *page,
 	__mod_lruvec_page_state(page, idx, -1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void inc_memcg_state(struct mem_cgroup *memcg,
-				   enum memcg_stat_item idx)
+				   int idx)
 {
 	mod_memcg_state(memcg, idx, 1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void dec_memcg_state(struct mem_cgroup *memcg,
-				   enum memcg_stat_item idx)
+				   int idx)
 {
 	mod_memcg_state(memcg, idx, -1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void inc_memcg_page_state(struct page *page,
-					enum memcg_stat_item idx)
+					int idx)
 {
 	mod_memcg_page_state(page, idx, 1);
 }
 
+/* idx can be of type enum memcg_stat_item or node_stat_item */
 static inline void dec_memcg_page_state(struct page *page,
-					enum memcg_stat_item idx)
+					int idx)
 {
 	mod_memcg_page_state(page, idx, -1);
 }
