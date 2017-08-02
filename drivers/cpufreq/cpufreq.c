@@ -524,6 +524,21 @@ unsigned int cpufreq_driver_resolve_freq(struct cpufreq_policy *policy,
 }
 EXPORT_SYMBOL_GPL(cpufreq_driver_resolve_freq);
 
+unsigned int cpufreq_policy_transition_delay_us(struct cpufreq_policy *policy)
+{
+	unsigned int latency;
+
+	if (policy->transition_delay_us)
+		return policy->transition_delay_us;
+
+	latency = policy->cpuinfo.transition_latency / NSEC_PER_USEC;
+	if (latency)
+		return latency * LATENCY_MULTIPLIER;
+
+	return LATENCY_MULTIPLIER;
+}
+EXPORT_SYMBOL_GPL(cpufreq_policy_transition_delay_us);
+
 /*********************************************************************
  *                          SYSFS INTERFACE                          *
  *********************************************************************/
@@ -1988,13 +2003,13 @@ static int cpufreq_init_governor(struct cpufreq_policy *policy)
 	if (!policy->governor)
 		return -EINVAL;
 
-	if (policy->governor->max_transition_latency &&
-	    policy->cpuinfo.transition_latency >
-	    policy->governor->max_transition_latency) {
+	/* Platform doesn't want dynamic frequency switching ? */
+	if (policy->governor->dynamic_switching &&
+	    cpufreq_driver->flags & CPUFREQ_NO_AUTO_DYNAMIC_SWITCHING) {
 		struct cpufreq_governor *gov = cpufreq_fallback_governor();
 
 		if (gov) {
-			pr_warn("%s governor failed, too long transition latency of HW, fallback to %s governor\n",
+			pr_warn("Can't use %s governor as dynamic switching is disallowed. Fallback to %s governor\n",
 				policy->governor->name, gov->name);
 			policy->governor = gov;
 		} else {
