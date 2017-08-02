@@ -646,7 +646,7 @@ static bool should_defer_flush(struct mm_struct *mm, enum ttu_flags flags)
  * the page and flushing the page. If this race occurs, it potentially allows
  * access to data via a stale TLB entry. Tracking all mm's that have TLB
  * batching in flight would be expensive during reclaim so instead track
- * whether TLB batching occured in the past and if so then do a flush here
+ * whether TLB batching occurred in the past and if so then do a flush here
  * if required. This will cost one additional flush per reclaim cycle paid
  * by the first operation at risk such as mprotect and mumap.
  *
