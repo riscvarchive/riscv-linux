@@ -5,6 +5,8 @@
 #include <linux/notifier.h>
 #include <uapi/linux/reboot.h>
 
+struct device;
+
 #define SYS_DOWN	0x0001	/* Notify of system down */
 #define SYS_RESTART	SYS_DOWN
 #define SYS_HALT	0x0002	/* Notify of system halt */
@@ -38,7 +40,6 @@ extern int reboot_force;
 extern int register_reboot_notifier(struct notifier_block *);
 extern int unregister_reboot_notifier(struct notifier_block *);
 
-struct device;
 extern int devm_register_reboot_notifier(struct device *, struct notifier_block *);
 
 extern int register_restart_handler(struct notifier_block *);
