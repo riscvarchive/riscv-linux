@@ -1410,7 +1410,7 @@ static int page_trans_huge_map_swapcount(struct page *page, int *total_mapcount,
 					 int *total_swapcount)
 {
 	int i, map_swapcount, _total_mapcount, _total_swapcount;
-	unsigned long offset;
+	unsigned long offset = 0;
 	struct swap_info_struct *si;
 	struct swap_cluster_info *ci = NULL;
 	unsigned char *map = NULL;
