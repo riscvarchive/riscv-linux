@@ -1236,22 +1236,6 @@ static blk_qc_t btt_make_request(struct request_queue *q, struct bio *bio)
 	return BLK_QC_T_NONE;
 }
 
-static int btt_rw_page(struct block_device *bdev, sector_t sector,
-		struct page *page, bool is_write)
-{
-	struct btt *btt = bdev->bd_disk->private_data;
-	int rc;
-	unsigned int len;
-
-	len = hpage_nr_pages(page) * PAGE_SIZE;
-	rc = btt_do_bvec(btt, NULL, page, len, 0, is_write, sector);
-	if (rc == 0)
-		page_endio(page, is_write, 0);
-
-	return rc;
-}
-
-
 static int btt_getgeo(struct block_device *bd, struct hd_geometry *geo)
 {
 	/* some standard values */
@@ -1263,7 +1247,6 @@ static int btt_getgeo(struct block_device *bd, struct hd_geometry *geo)
 
 static const struct block_device_operations btt_fops = {
 	.owner =		THIS_MODULE,
-	.rw_page =		btt_rw_page,
 	.getgeo =		btt_getgeo,
 	.revalidate_disk =	nvdimm_revalidate_disk,
 };
