@@ -319,10 +319,20 @@ static int simple_nic_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 	return NETDEV_TX_OK;
 }
 
+static int simple_nic_set_mac_address(struct net_device *ndev, void *addr)
+{
+	if (!is_valid_ether_addr(addr))
+		return -EADDRNOTAVAIL;
+
+	memcpy(ndev->dev_addr, addr, 6);
+	return 0;
+}
+
 static const struct net_device_ops simple_nic_ops = {
 	.ndo_open = simple_nic_open,
 	.ndo_stop = simple_nic_stop,
-	.ndo_start_xmit = simple_nic_start_xmit
+	.ndo_start_xmit = simple_nic_start_xmit,
+	.ndo_set_mac_address = simple_nic_set_mac_address
 };
 
 static int simple_nic_probe(struct platform_device *pdev)
