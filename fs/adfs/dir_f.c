@@ -283,11 +283,12 @@ __adfs_dir_get(struct adfs_dir *dir, int pos, struct object_info *obj)
 }
 
 static int
-__adfs_dir_put(struct adfs_dir *dir, int pos, struct object_info *obj)
+__adfs_dir_put(struct adfs_dir *dir, unsigned int pos, struct object_info *obj)
 {
 	struct super_block *sb = dir->sb;
 	struct adfs_direntry de;
-	int thissize, buffer, offset;
+	unsigned int buffer;
+	size_t thissize, offset;
 
 	buffer = pos >> sb->s_blocksize_bits;
 

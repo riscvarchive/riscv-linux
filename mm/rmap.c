@@ -390,7 +390,7 @@ void unlink_anon_vmas(struct vm_area_struct *vma)
 		 * Leave empty anon_vmas on the list - we'll need
 		 * to free them outside the lock.
 		 */
-		if (RB_EMPTY_ROOT(&anon_vma->rb_root)) {
+		if (RB_EMPTY_ROOT(&anon_vma->rb_root.rb_root)) {
 			anon_vma->parent->degree--;
 			continue;
 		}
@@ -424,7 +424,7 @@ static void anon_vma_ctor(void *data)
 
 	init_rwsem(&anon_vma->rwsem);
 	atomic_set(&anon_vma->refcount, 0);
-	anon_vma->rb_root = RB_ROOT;
+	anon_vma->rb_root = RB_ROOT_CACHED;
 }
 
 void __init anon_vma_init(void)
@@ -605,6 +605,13 @@ static void set_tlb_ubc_flush_pending(struct mm_struct *mm, bool writable)
 	tlb_ubc->flush_required = true;
 
 	/*
+	 * Ensure compiler does not re-order the setting of tlb_flush_batched
+	 * before the PTE is cleared.
+	 */
+	barrier();
+	mm->tlb_flush_batched = true;
+
+	/*
 	 * If the PTE was dirty then it's best to assume it's writable. The
 	 * caller must use try_to_unmap_flush_dirty() or try_to_unmap_flush()
 	 * before the page is queued for IO.
@@ -630,6 +637,35 @@ static bool should_defer_flush(struct mm_struct *mm, enum ttu_flags flags)
 	put_cpu();
 
 	return should_defer;
+}
+
+/*
+ * Reclaim unmaps pages under the PTL but do not flush the TLB prior to
+ * releasing the PTL if TLB flushes are batched. It's possible for a parallel
+ * operation such as mprotect or munmap to race between reclaim unmapping
+ * the page and flushing the page. If this race occurs, it potentially allows
+ * access to data via a stale TLB entry. Tracking all mm's that have TLB
+ * batching in flight would be expensive during reclaim so instead track
+ * whether TLB batching occurred in the past and if so then do a flush here
+ * if required. This will cost one additional flush per reclaim cycle paid
+ * by the first operation at risk such as mprotect and mumap.
+ *
+ * This must be called under the PTL so that an access to tlb_flush_batched
+ * that is potentially a "reclaim vs mprotect/munmap/etc" race will synchronise
+ * via the PTL.
+ */
+void flush_tlb_batched_pending(struct mm_struct *mm)
+{
+	if (mm->tlb_flush_batched) {
+		flush_tlb_mm(mm);
+
+		/*
+		 * Do not allow the compiler to re-order the clearing of
+		 * tlb_flush_batched before the tlb is flushed.
+		 */
+		barrier();
+		mm->tlb_flush_batched = false;
+	}
 }
 #else
 static void set_tlb_ubc_flush_pending(struct mm_struct *mm, bool writable)
@@ -1296,10 +1332,23 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 
 	if (flags & TTU_SPLIT_HUGE_PMD) {
 		split_huge_pmd_address(vma, address,
-				flags & TTU_MIGRATION, page);
+				flags & TTU_SPLIT_FREEZE, page);
 	}
 
 	while (page_vma_mapped_walk(&pvmw)) {
+#ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
+		/* PMD-mapped THP migration entry */
+		if (!pvmw.pte && (flags & TTU_MIGRATION)) {
+			VM_BUG_ON_PAGE(PageHuge(page) || !PageTransCompound(page), page);
+
+			if (!PageAnon(page))
+				continue;
+
+			set_pmd_migration_entry(&pvmw, page);
+			continue;
+		}
+#endif
+
 		/*
 		 * If the page is mlock()d, we cannot swap it out.
 		 * If it's recently referenced (perhaps page_referenced
@@ -1385,7 +1434,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			 */
 			dec_mm_counter(mm, mm_counter(page));
 		} else if (IS_ENABLED(CONFIG_MIGRATION) &&
-				(flags & TTU_MIGRATION)) {
+				(flags & (TTU_MIGRATION|TTU_SPLIT_FREEZE))) {
 			swp_entry_t entry;
 			pte_t swp_pte;
 			/*
@@ -1510,7 +1559,8 @@ bool try_to_unmap(struct page *page, enum ttu_flags flags)
 	 * locking requirements of exec(), migration skips
 	 * temporary VMAs until after exec() completes.
 	 */
-	if ((flags & TTU_MIGRATION) && !PageKsm(page) && PageAnon(page))
+	if ((flags & (TTU_MIGRATION|TTU_SPLIT_FREEZE))
+	    && !PageKsm(page) && PageAnon(page))
 		rwc.invalid_vma = invalid_migration_vma;
 
 	if (flags & TTU_RMAP_LOCKED)

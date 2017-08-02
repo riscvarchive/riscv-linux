@@ -3042,7 +3042,7 @@ static struct attribute *ksm_attrs[] = {
 	NULL,
 };
 
-static struct attribute_group ksm_attr_group = {
+static const struct attribute_group ksm_attr_group = {
 	.attrs = ksm_attrs,
 	.name = "ksm",
 };
