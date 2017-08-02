@@ -3,6 +3,7 @@
 HEADERS='
 include/uapi/linux/fcntl.h
 include/uapi/linux/perf_event.h
+include/uapi/linux/sched.h
 include/uapi/linux/stat.h
 include/linux/hash.h
 include/uapi/linux/hw_breakpoint.h
@@ -16,6 +17,7 @@ arch/x86/include/uapi/asm/perf_regs.h
 arch/x86/include/uapi/asm/kvm.h
 arch/x86/include/uapi/asm/kvm_perf.h
 arch/x86/include/uapi/asm/svm.h
+arch/x86/include/uapi/asm/unistd.h
 arch/x86/include/uapi/asm/vmx.h
 arch/powerpc/include/uapi/asm/kvm.h
 arch/s390/include/uapi/asm/kvm.h
