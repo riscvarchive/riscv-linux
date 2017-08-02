@@ -149,7 +149,11 @@ static inline int is_migration_entry(swp_entry_t swp)
 {
 	return 0;
 }
-#define migration_entry_to_page(swp) NULL
+static inline struct page *migration_entry_to_page(swp_entry_t entry)
+{
+	return NULL;
+}
+
 static inline void make_migration_entry_read(swp_entry_t *entryp) { }
 static inline void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 					spinlock_t *ptl) { }
