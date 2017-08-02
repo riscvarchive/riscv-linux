@@ -1827,6 +1827,8 @@ static void init_cgroup_housekeeping(struct cgroup *cgrp)
 	cgrp->self.cgroup = cgrp;
 	cgrp->self.flags |= CSS_ONLINE;
 	cgrp->dom_cgrp = cgrp;
+	cgrp->max_descendants = INT_MAX;
+	cgrp->max_depth = INT_MAX;
 
 	for_each_subsys(ss, ssid)
 		INIT_LIST_HEAD(&cgrp->e_csets[ssid]);
@@ -3213,10 +3215,108 @@ static ssize_t cgroup_type_write(struct kernfs_open_file *of, char *buf,
 	return ret ?: nbytes;
 }
 
+static int cgroup_max_descendants_show(struct seq_file *seq, void *v)
+{
+	struct cgroup *cgrp = seq_css(seq)->cgroup;
+	int descendants = READ_ONCE(cgrp->max_descendants);
+
+	if (descendants == INT_MAX)
+		seq_puts(seq, "max\n");
+	else
+		seq_printf(seq, "%d\n", descendants);
+
+	return 0;
+}
+
+static ssize_t cgroup_max_descendants_write(struct kernfs_open_file *of,
+					   char *buf, size_t nbytes, loff_t off)
+{
+	struct cgroup *cgrp;
+	int descendants;
+	ssize_t ret;
+
+	buf = strstrip(buf);
+	if (!strcmp(buf, "max")) {
+		descendants = INT_MAX;
+	} else {
+		ret = kstrtoint(buf, 0, &descendants);
+		if (ret)
+			return ret;
+	}
+
+	if (descendants < 0 || descendants > INT_MAX)
+		return -ERANGE;
+
+	cgrp = cgroup_kn_lock_live(of->kn, false);
+	if (!cgrp)
+		return -ENOENT;
+
+	cgrp->max_descendants = descendants;
+
+	cgroup_kn_unlock(of->kn);
+
+	return nbytes;
+}
+
+static int cgroup_max_depth_show(struct seq_file *seq, void *v)
+{
+	struct cgroup *cgrp = seq_css(seq)->cgroup;
+	int depth = READ_ONCE(cgrp->max_depth);
+
+	if (depth == INT_MAX)
+		seq_puts(seq, "max\n");
+	else
+		seq_printf(seq, "%d\n", depth);
+
+	return 0;
+}
+
+static ssize_t cgroup_max_depth_write(struct kernfs_open_file *of,
+				      char *buf, size_t nbytes, loff_t off)
+{
+	struct cgroup *cgrp;
+	ssize_t ret;
+	int depth;
+
+	buf = strstrip(buf);
+	if (!strcmp(buf, "max")) {
+		depth = INT_MAX;
+	} else {
+		ret = kstrtoint(buf, 0, &depth);
+		if (ret)
+			return ret;
+	}
+
+	if (depth < 0 || depth > INT_MAX)
+		return -ERANGE;
+
+	cgrp = cgroup_kn_lock_live(of->kn, false);
+	if (!cgrp)
+		return -ENOENT;
+
+	cgrp->max_depth = depth;
+
+	cgroup_kn_unlock(of->kn);
+
+	return nbytes;
+}
+
 static int cgroup_events_show(struct seq_file *seq, void *v)
 {
 	seq_printf(seq, "populated %d\n",
 		   cgroup_is_populated(seq_css(seq)->cgroup));
+	return 0;
+}
+
+static int cgroup_stats_show(struct seq_file *seq, void *v)
+{
+	struct cgroup *cgroup = seq_css(seq)->cgroup;
+
+	seq_printf(seq, "nr_descendants %d\n",
+		   cgroup->nr_descendants);
+	seq_printf(seq, "nr_dying_descendants %d\n",
+		   cgroup->nr_dying_descendants);
+
 	return 0;
 }
 
@@ -4313,6 +4413,20 @@ static struct cftype cgroup_base_files[] = {
 		.file_offset = offsetof(struct cgroup, events_file),
 		.seq_show = cgroup_events_show,
 	},
+	{
+		.name = "cgroup.max.descendants",
+		.seq_show = cgroup_max_descendants_show,
+		.write = cgroup_max_descendants_write,
+	},
+	{
+		.name = "cgroup.max.depth",
+		.seq_show = cgroup_max_depth_show,
+		.write = cgroup_max_depth_write,
+	},
+	{
+		.name = "cgroup.stat",
+		.seq_show = cgroup_stats_show,
+	},
 	{ }	/* terminate */
 };
 
@@ -4412,8 +4526,14 @@ static void css_release_work_fn(struct work_struct *work)
 		if (ss->css_released)
 			ss->css_released(css);
 	} else {
+		struct cgroup *tcgrp;
+
 		/* cgroup release path */
 		trace_cgroup_release(cgrp);
+
+		for (tcgrp = cgroup_parent(cgrp); tcgrp;
+		     tcgrp = cgroup_parent(tcgrp))
+			tcgrp->nr_dying_descendants--;
 
 		cgroup_idr_remove(&cgrp->root->cgroup_idr, cgrp->id);
 		cgrp->id = -1;
@@ -4613,8 +4733,12 @@ static struct cgroup *cgroup_create(struct cgroup *parent)
 	cgrp->root = root;
 	cgrp->level = level;
 
-	for (tcgrp = cgrp; tcgrp; tcgrp = cgroup_parent(tcgrp))
+	for (tcgrp = cgrp; tcgrp; tcgrp = cgroup_parent(tcgrp)) {
 		cgrp->ancestor_ids[tcgrp->level] = tcgrp->id;
+
+		if (tcgrp != cgrp)
+			tcgrp->nr_descendants++;
+	}
 
 	if (notify_on_release(parent))
 		set_bit(CGRP_NOTIFY_ON_RELEASE, &cgrp->flags);
@@ -4656,6 +4780,29 @@ out_free_cgrp:
 	return ERR_PTR(ret);
 }
 
+static bool cgroup_check_hierarchy_limits(struct cgroup *parent)
+{
+	struct cgroup *cgroup;
+	int ret = false;
+	int level = 1;
+
+	lockdep_assert_held(&cgroup_mutex);
+
+	for (cgroup = parent; cgroup; cgroup = cgroup_parent(cgroup)) {
+		if (cgroup->nr_descendants >= cgroup->max_descendants)
+			goto fail;
+
+		if (level > cgroup->max_depth)
+			goto fail;
+
+		level++;
+	}
+
+	ret = true;
+fail:
+	return ret;
+}
+
 int cgroup_mkdir(struct kernfs_node *parent_kn, const char *name, umode_t mode)
 {
 	struct cgroup *parent, *cgrp;
@@ -4669,6 +4816,11 @@ int cgroup_mkdir(struct kernfs_node *parent_kn, const char *name, umode_t mode)
 	parent = cgroup_kn_lock_live(parent_kn, false);
 	if (!parent)
 		return -ENODEV;
+
+	if (!cgroup_check_hierarchy_limits(parent)) {
+		ret = -EAGAIN;
+		goto out_unlock;
+	}
 
 	cgrp = cgroup_create(parent);
 	if (IS_ERR(cgrp)) {
@@ -4821,7 +4973,7 @@ static void kill_css(struct cgroup_subsys_state *css)
 static int cgroup_destroy_locked(struct cgroup *cgrp)
 	__releases(&cgroup_mutex) __acquires(&cgroup_mutex)
 {
-	struct cgroup *parent = cgroup_parent(cgrp);
+	struct cgroup *tcgrp, *parent = cgroup_parent(cgrp);
 	struct cgroup_subsys_state *css;
 	struct cgrp_cset_link *link;
 	int ssid;
@@ -4869,7 +5021,12 @@ static int cgroup_destroy_locked(struct cgroup *cgrp)
 	if (parent && cgroup_is_threaded(cgrp))
 		parent->nr_threaded_children--;
 
-	cgroup1_check_for_release(cgroup_parent(cgrp));
+	for (tcgrp = cgroup_parent(cgrp); tcgrp; tcgrp = cgroup_parent(tcgrp)) {
+		tcgrp->nr_descendants--;
+		tcgrp->nr_dying_descendants++;
+	}
+
+	cgroup1_check_for_release(parent);
 
 	/* put the base reference */
 	percpu_ref_kill(&cgrp->self.refcnt);
