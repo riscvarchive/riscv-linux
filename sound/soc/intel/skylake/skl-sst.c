@@ -561,9 +561,11 @@ int skl_sst_dsp_init(struct device *dev, void __iomem *mmio_base, int irq,
 	sst_dsp_mailbox_init(sst, (SKL_ADSP_SRAM0_BASE + SKL_ADSP_W0_STAT_SZ),
 			SKL_ADSP_W0_UP_SZ, SKL_ADSP_SRAM1_BASE, SKL_ADSP_W1_SZ);
 
-	sst->fw_ops = skl_fw_ops;
+	ret = skl_ipc_init(dev, skl);
+	if (ret)
+		return ret;
 
-	skl->cores.count = 2;
+	sst->fw_ops = skl_fw_ops;
 
 	return 0;
 }

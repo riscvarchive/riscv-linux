@@ -628,7 +628,7 @@ static int skl_link_hw_free(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static struct snd_soc_dai_ops skl_pcm_dai_ops = {
+static const struct snd_soc_dai_ops skl_pcm_dai_ops = {
 	.startup = skl_pcm_open,
 	.shutdown = skl_pcm_close,
 	.prepare = skl_pcm_prepare,
@@ -637,15 +637,15 @@ static struct snd_soc_dai_ops skl_pcm_dai_ops = {
 	.trigger = skl_pcm_trigger,
 };
 
-static struct snd_soc_dai_ops skl_dmic_dai_ops = {
+static const struct snd_soc_dai_ops skl_dmic_dai_ops = {
 	.hw_params = skl_be_hw_params,
 };
 
-static struct snd_soc_dai_ops skl_be_ssp_dai_ops = {
+static const struct snd_soc_dai_ops skl_be_ssp_dai_ops = {
 	.hw_params = skl_be_hw_params,
 };
 
-static struct snd_soc_dai_ops skl_link_dai_ops = {
+static const struct snd_soc_dai_ops skl_link_dai_ops = {
 	.prepare = skl_link_pcm_prepare,
 	.hw_params = skl_link_hw_params,
 	.hw_free = skl_link_hw_free,
@@ -672,6 +672,32 @@ static struct snd_soc_dai_driver skl_platform_dai[] = {
 		.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_16000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE,
 		.sig_bits = 32,
+	},
+},
+{
+	.name = "System Pin2",
+	.ops = &skl_pcm_dai_ops,
+	.playback = {
+		.stream_name = "Headset Playback",
+		.channels_min = HDA_MONO,
+		.channels_max = HDA_STEREO,
+		.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_16000 |
+			SNDRV_PCM_RATE_8000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE |
+			SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE,
+	},
+},
+{
+	.name = "Echoref Pin",
+	.ops = &skl_pcm_dai_ops,
+	.capture = {
+		.stream_name = "Echoreference Capture",
+		.channels_min = HDA_STEREO,
+		.channels_max = HDA_STEREO,
+		.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_16000 |
+			SNDRV_PCM_RATE_8000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE |
+			SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE,
 	},
 },
 {
