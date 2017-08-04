@@ -611,7 +611,7 @@ static struct attribute *solos_attrs[] = {
 	NULL
 };
 
-static struct attribute_group solos_attr_group = {
+static const struct attribute_group solos_attr_group = {
 	.attrs = solos_attrs,
 	.name = "parameters",
 };
@@ -628,7 +628,7 @@ static struct attribute *gpio_attrs[] = {
 	NULL
 };
 
-static struct attribute_group gpio_attr_group = {
+static const struct attribute_group gpio_attr_group = {
 	.attrs = gpio_attrs,
 	.name = "gpio",
 };
@@ -1476,7 +1476,7 @@ static void fpga_remove(struct pci_dev *dev)
 	kfree(card);
 }
 
-static struct pci_device_id fpga_pci_tbl[] = {
+static const struct pci_device_id fpga_pci_tbl[] = {
 	{ 0x10ee, 0x0300, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, }
 };

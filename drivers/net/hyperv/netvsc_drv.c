@@ -33,6 +33,9 @@
 #include <linux/if_vlan.h>
 #include <linux/in.h>
 #include <linux/slab.h>
+#include <linux/rtnetlink.h>
+#include <linux/netpoll.h>
+
 #include <net/arp.h>
 #include <net/route.h>
 #include <net/sock.h>
@@ -69,7 +72,8 @@ static void netvsc_set_multicast_list(struct net_device *net)
 static int netvsc_open(struct net_device *net)
 {
 	struct net_device_context *ndev_ctx = netdev_priv(net);
-	struct netvsc_device *nvdev = ndev_ctx->nvdev;
+	struct net_device *vf_netdev = rtnl_dereference(ndev_ctx->vf_netdev);
+	struct netvsc_device *nvdev = rtnl_dereference(ndev_ctx->nvdev);
 	struct rndis_device *rdev;
 	int ret = 0;
 
@@ -85,15 +89,29 @@ static int netvsc_open(struct net_device *net)
 	netif_tx_wake_all_queues(net);
 
 	rdev = nvdev->extension;
-	if (!rdev->link_state && !ndev_ctx->datapath)
+
+	if (!rdev->link_state)
 		netif_carrier_on(net);
 
-	return ret;
+	if (vf_netdev) {
+		/* Setting synthetic device up transparently sets
+		 * slave as up. If open fails, then slave will be
+		 * still be offline (and not used).
+		 */
+		ret = dev_open(vf_netdev);
+		if (ret)
+			netdev_warn(net,
+				    "unable to open slave: %s: %d\n",
+				    vf_netdev->name, ret);
+	}
+	return 0;
 }
 
 static int netvsc_close(struct net_device *net)
 {
 	struct net_device_context *net_device_ctx = netdev_priv(net);
+	struct net_device *vf_netdev
+		= rtnl_dereference(net_device_ctx->vf_netdev);
 	struct netvsc_device *nvdev = rtnl_dereference(net_device_ctx->nvdev);
 	int ret;
 	u32 aread, i, msec = 10, retry = 0, retry_max = 20;
@@ -138,6 +156,9 @@ static int netvsc_close(struct net_device *net)
 		netdev_err(net, "Ring buffer not empty after closing rndis\n");
 		ret = -ETIMEDOUT;
 	}
+
+	if (vf_netdev)
+		dev_close(vf_netdev);
 
 	return ret;
 }
@@ -222,13 +243,11 @@ static inline int netvsc_get_tx_queue(struct net_device *ndev,
  *
  * TODO support XPS - but get_xps_queue not exported
  */
-static u16 netvsc_select_queue(struct net_device *ndev, struct sk_buff *skb,
-			void *accel_priv, select_queue_fallback_t fallback)
+static u16 netvsc_pick_tx(struct net_device *ndev, struct sk_buff *skb)
 {
-	unsigned int num_tx_queues = ndev->real_num_tx_queues;
 	int q_idx = sk_tx_queue_get(skb->sk);
 
-	if (q_idx < 0 || skb->ooo_okay) {
+	if (q_idx < 0 || skb->ooo_okay || q_idx >= ndev->real_num_tx_queues) {
 		/* If forwarding a packet, we use the recorded queue when
 		 * available for better cache locality.
 		 */
@@ -238,10 +257,31 @@ static u16 netvsc_select_queue(struct net_device *ndev, struct sk_buff *skb,
 			q_idx = netvsc_get_tx_queue(ndev, skb, q_idx);
 	}
 
-	while (unlikely(q_idx >= num_tx_queues))
-		q_idx -= num_tx_queues;
-
 	return q_idx;
+}
+
+static u16 netvsc_select_queue(struct net_device *ndev, struct sk_buff *skb,
+			       void *accel_priv,
+			       select_queue_fallback_t fallback)
+{
+	struct net_device_context *ndc = netdev_priv(ndev);
+	struct net_device *vf_netdev;
+	u16 txq;
+
+	rcu_read_lock();
+	vf_netdev = rcu_dereference(ndc->vf_netdev);
+	if (vf_netdev) {
+		txq = skb_rx_queue_recorded(skb) ? skb_get_rx_queue(skb) : 0;
+		qdisc_skb_cb(skb)->slave_dev_queue_mapping = skb->queue_mapping;
+	} else {
+		txq = netvsc_pick_tx(ndev, skb);
+	}
+	rcu_read_unlock();
+
+	while (unlikely(txq >= ndev->real_num_tx_queues))
+		txq -= ndev->real_num_tx_queues;
+
+	return txq;
 }
 
 static u32 fill_pg_buf(struct page *page, u32 offset, u32 len,
@@ -280,9 +320,8 @@ static u32 fill_pg_buf(struct page *page, u32 offset, u32 len,
 
 static u32 init_page_array(void *hdr, u32 len, struct sk_buff *skb,
 			   struct hv_netvsc_packet *packet,
-			   struct hv_page_buffer **page_buf)
+			   struct hv_page_buffer *pb)
 {
-	struct hv_page_buffer *pb = *page_buf;
 	u32 slots_used = 0;
 	char *data = skb->data;
 	int frags = skb_shinfo(skb)->nr_frags;
@@ -359,11 +398,38 @@ static u32 net_checksum_info(struct sk_buff *skb)
 
 		if (ip6->nexthdr == IPPROTO_TCP)
 			return TRANSPORT_INFO_IPV6_TCP;
-		else if (ipv6_hdr(skb)->nexthdr == IPPROTO_UDP)
+		else if (ip6->nexthdr == IPPROTO_UDP)
 			return TRANSPORT_INFO_IPV6_UDP;
 	}
 
 	return TRANSPORT_INFO_NOT_IP;
+}
+
+/* Send skb on the slave VF device. */
+static int netvsc_vf_xmit(struct net_device *net, struct net_device *vf_netdev,
+			  struct sk_buff *skb)
+{
+	struct net_device_context *ndev_ctx = netdev_priv(net);
+	unsigned int len = skb->len;
+	int rc;
+
+	skb->dev = vf_netdev;
+	skb->queue_mapping = qdisc_skb_cb(skb)->slave_dev_queue_mapping;
+
+	rc = dev_queue_xmit(skb);
+	if (likely(rc == NET_XMIT_SUCCESS || rc == NET_XMIT_CN)) {
+		struct netvsc_vf_pcpu_stats *pcpu_stats
+			= this_cpu_ptr(ndev_ctx->vf_stats);
+
+		u64_stats_update_begin(&pcpu_stats->syncp);
+		pcpu_stats->tx_packets++;
+		pcpu_stats->tx_bytes += len;
+		u64_stats_update_end(&pcpu_stats->syncp);
+	} else {
+		this_cpu_inc(ndev_ctx->vf_stats->tx_dropped);
+	}
+
+	return rc;
 }
 
 static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
@@ -374,11 +440,19 @@ static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
 	unsigned int num_data_pgs;
 	struct rndis_message *rndis_msg;
 	struct rndis_packet *rndis_pkt;
+	struct net_device *vf_netdev;
 	u32 rndis_msg_size;
 	struct rndis_per_packet_info *ppi;
 	u32 hash;
-	struct hv_page_buffer page_buf[MAX_PAGE_BUFFER_COUNT];
-	struct hv_page_buffer *pb = page_buf;
+	struct hv_page_buffer pb[MAX_PAGE_BUFFER_COUNT];
+
+	/* if VF is present and up then redirect packets
+	 * already called with rcu_read_lock_bh
+	 */
+	vf_netdev = rcu_dereference_bh(net_device_ctx->vf_netdev);
+	if (vf_netdev && netif_running(vf_netdev) &&
+	    !netpoll_tx_running(net))
+		return netvsc_vf_xmit(net, vf_netdev, skb);
 
 	/* We will atmost need two pages to describe the rndis
 	 * header. We can only transmit MAX_PAGE_BUFFER_COUNT number
@@ -524,12 +598,12 @@ static int netvsc_start_xmit(struct sk_buff *skb, struct net_device *net)
 	rndis_msg->msg_len += rndis_msg_size;
 	packet->total_data_buflen = rndis_msg->msg_len;
 	packet->page_buf_cnt = init_page_array(rndis_msg, rndis_msg_size,
-					       skb, packet, &pb);
+					       skb, packet, pb);
 
 	/* timestamp packet in software */
 	skb_tx_timestamp(skb);
-	ret = netvsc_send(net_device_ctx->device_ctx, packet,
-			  rndis_msg, &pb, skb);
+
+	ret = netvsc_send(net_device_ctx, packet, rndis_msg, pb, skb);
 	if (likely(ret == 0))
 		return NETDEV_TX_OK;
 
@@ -658,29 +732,18 @@ int netvsc_recv_callback(struct net_device *net,
 	struct netvsc_device *net_device;
 	u16 q_idx = channel->offermsg.offer.sub_channel_index;
 	struct netvsc_channel *nvchan;
-	struct net_device *vf_netdev;
 	struct sk_buff *skb;
 	struct netvsc_stats *rx_stats;
 
 	if (net->reg_state != NETREG_REGISTERED)
 		return NVSP_STAT_FAIL;
 
-	/*
-	 * If necessary, inject this packet into the VF interface.
-	 * On Hyper-V, multicast and brodcast packets are only delivered
-	 * to the synthetic interface (after subjecting these to
-	 * policy filters on the host). Deliver these via the VF
-	 * interface in the guest.
-	 */
 	rcu_read_lock();
 	net_device = rcu_dereference(net_device_ctx->nvdev);
 	if (unlikely(!net_device))
 		goto drop;
 
 	nvchan = &net_device->chan_table[q_idx];
-	vf_netdev = rcu_dereference(net_device_ctx->vf_netdev);
-	if (vf_netdev && (vf_netdev->flags & IFF_UP))
-		net = vf_netdev;
 
 	/* Allocate a skb - TODO direct I/O to pages? */
 	skb = netvsc_alloc_recv_skb(net, &nvchan->napi,
@@ -692,8 +755,7 @@ drop:
 		return NVSP_STAT_FAIL;
 	}
 
-	if (net != vf_netdev)
-		skb_record_rx_queue(skb, q_idx);
+	skb_record_rx_queue(skb, q_idx);
 
 	/*
 	 * Even if injecting the packet, record the statistics
@@ -736,39 +798,16 @@ static void netvsc_get_channels(struct net_device *net,
 	}
 }
 
-static int netvsc_set_queues(struct net_device *net, struct hv_device *dev,
-			     u32 num_chn)
-{
-	struct netvsc_device_info device_info;
-	int ret;
-
-	memset(&device_info, 0, sizeof(device_info));
-	device_info.num_chn = num_chn;
-	device_info.ring_size = ring_size;
-	device_info.max_num_vrss_chns = num_chn;
-
-	ret = rndis_filter_device_add(dev, &device_info);
-	if (ret)
-		return ret;
-
-	ret = netif_set_real_num_tx_queues(net, num_chn);
-	if (ret)
-		return ret;
-
-	ret = netif_set_real_num_rx_queues(net, num_chn);
-
-	return ret;
-}
-
 static int netvsc_set_channels(struct net_device *net,
 			       struct ethtool_channels *channels)
 {
 	struct net_device_context *net_device_ctx = netdev_priv(net);
 	struct hv_device *dev = net_device_ctx->device_ctx;
 	struct netvsc_device *nvdev = rtnl_dereference(net_device_ctx->nvdev);
-	unsigned int count = channels->combined_count;
-	bool was_running;
-	int ret;
+	unsigned int orig, count = channels->combined_count;
+	struct netvsc_device_info device_info;
+	bool was_opened;
+	int ret = 0;
 
 	/* We do not support separate count for rx, tx, or other */
 	if (count == 0 ||
@@ -787,25 +826,32 @@ static int netvsc_set_channels(struct net_device *net,
 	if (count > nvdev->max_chn)
 		return -EINVAL;
 
-	was_running = netif_running(net);
-	if (was_running) {
-		ret = netvsc_close(net);
-		if (ret)
-			return ret;
-	}
+	orig = nvdev->num_chn;
+	was_opened = rndis_filter_opened(nvdev);
+	if (was_opened)
+		rndis_filter_close(nvdev);
 
 	rndis_filter_device_remove(dev, nvdev);
 
-	ret = netvsc_set_queues(net, dev, count);
-	if (ret == 0)
-		nvdev->num_chn = count;
-	else
-		netvsc_set_queues(net, dev, nvdev->num_chn);
+	memset(&device_info, 0, sizeof(device_info));
+	device_info.num_chn = count;
+	device_info.ring_size = ring_size;
 
-	if (was_running)
-		ret = netvsc_open(net);
+	nvdev = rndis_filter_device_add(dev, &device_info);
+	if (!IS_ERR(nvdev)) {
+		netif_set_real_num_tx_queues(net, nvdev->num_chn);
+		netif_set_real_num_rx_queues(net, nvdev->num_chn);
+	} else {
+		ret = PTR_ERR(nvdev);
+		device_info.num_chn = orig;
+		rndis_filter_device_add(dev, &device_info);
+	}
+
+	if (was_opened)
+		rndis_filter_open(nvdev);
 
 	/* We may have missed link change notifications */
+	net_device_ctx->last_reconfig = 0;
 	schedule_delayed_work(&net_device_ctx->dwork, 0);
 
 	return ret;
@@ -869,41 +915,53 @@ static int netvsc_set_link_ksettings(struct net_device *dev,
 static int netvsc_change_mtu(struct net_device *ndev, int mtu)
 {
 	struct net_device_context *ndevctx = netdev_priv(ndev);
+	struct net_device *vf_netdev = rtnl_dereference(ndevctx->vf_netdev);
 	struct netvsc_device *nvdev = rtnl_dereference(ndevctx->nvdev);
 	struct hv_device *hdev = ndevctx->device_ctx;
+	int orig_mtu = ndev->mtu;
 	struct netvsc_device_info device_info;
-	bool was_running;
+	bool was_opened;
 	int ret = 0;
 
 	if (!nvdev || nvdev->destroy)
 		return -ENODEV;
 
-	was_running = netif_running(ndev);
-	if (was_running) {
-		ret = netvsc_close(ndev);
+	/* Change MTU of underlying VF netdev first. */
+	if (vf_netdev) {
+		ret = dev_set_mtu(vf_netdev, mtu);
 		if (ret)
 			return ret;
 	}
 
+	netif_device_detach(ndev);
+	was_opened = rndis_filter_opened(nvdev);
+	if (was_opened)
+		rndis_filter_close(nvdev);
+
 	memset(&device_info, 0, sizeof(device_info));
 	device_info.ring_size = ring_size;
 	device_info.num_chn = nvdev->num_chn;
-	device_info.max_num_vrss_chns = nvdev->num_chn;
 
 	rndis_filter_device_remove(hdev, nvdev);
 
-	/* 'nvdev' has been freed in rndis_filter_device_remove() ->
-	 * netvsc_device_remove () -> free_netvsc_device().
-	 * We mustn't access it before it's re-created in
-	 * rndis_filter_device_add() -> netvsc_device_add().
-	 */
-
 	ndev->mtu = mtu;
 
-	rndis_filter_device_add(hdev, &device_info);
+	nvdev = rndis_filter_device_add(hdev, &device_info);
+	if (IS_ERR(nvdev)) {
+		ret = PTR_ERR(nvdev);
 
-	if (was_running)
-		ret = netvsc_open(ndev);
+		/* Attempt rollback to original MTU */
+		ndev->mtu = orig_mtu;
+		rndis_filter_device_add(hdev, &device_info);
+
+		if (vf_netdev)
+			dev_set_mtu(vf_netdev, orig_mtu);
+	}
+
+	if (was_opened)
+		rndis_filter_open(nvdev);
+
+	netif_device_attach(ndev);
 
 	/* We may have missed link change notifications */
 	schedule_delayed_work(&ndevctx->dwork, 0);
@@ -911,15 +969,55 @@ static int netvsc_change_mtu(struct net_device *ndev, int mtu)
 	return ret;
 }
 
+static void netvsc_get_vf_stats(struct net_device *net,
+				struct netvsc_vf_pcpu_stats *tot)
+{
+	struct net_device_context *ndev_ctx = netdev_priv(net);
+	int i;
+
+	memset(tot, 0, sizeof(*tot));
+
+	for_each_possible_cpu(i) {
+		const struct netvsc_vf_pcpu_stats *stats
+			= per_cpu_ptr(ndev_ctx->vf_stats, i);
+		u64 rx_packets, rx_bytes, tx_packets, tx_bytes;
+		unsigned int start;
+
+		do {
+			start = u64_stats_fetch_begin_irq(&stats->syncp);
+			rx_packets = stats->rx_packets;
+			tx_packets = stats->tx_packets;
+			rx_bytes = stats->rx_bytes;
+			tx_bytes = stats->tx_bytes;
+		} while (u64_stats_fetch_retry_irq(&stats->syncp, start));
+
+		tot->rx_packets += rx_packets;
+		tot->tx_packets += tx_packets;
+		tot->rx_bytes   += rx_bytes;
+		tot->tx_bytes   += tx_bytes;
+		tot->tx_dropped += stats->tx_dropped;
+	}
+}
+
 static void netvsc_get_stats64(struct net_device *net,
 			       struct rtnl_link_stats64 *t)
 {
 	struct net_device_context *ndev_ctx = netdev_priv(net);
 	struct netvsc_device *nvdev = rcu_dereference_rtnl(ndev_ctx->nvdev);
-	int i;
+	struct netvsc_vf_pcpu_stats vf_tot;
+		int i;
 
 	if (!nvdev)
 		return;
+
+	netdev_stats_to_stats64(t, &net->stats);
+
+	netvsc_get_vf_stats(net, &vf_tot);
+	t->rx_packets += vf_tot.rx_packets;
+	t->tx_packets += vf_tot.tx_packets;
+	t->rx_bytes   += vf_tot.rx_bytes;
+	t->tx_bytes   += vf_tot.tx_bytes;
+	t->tx_dropped += vf_tot.tx_dropped;
 
 	for (i = 0; i < nvdev->num_chn; i++) {
 		const struct netvsc_channel *nvchan = &nvdev->chan_table[i];
@@ -949,16 +1047,12 @@ static void netvsc_get_stats64(struct net_device *net,
 		t->rx_packets	+= packets;
 		t->multicast	+= multicast;
 	}
-
-	t->tx_dropped	= net->stats.tx_dropped;
-	t->tx_errors	= net->stats.tx_errors;
-
-	t->rx_dropped	= net->stats.rx_dropped;
-	t->rx_errors	= net->stats.rx_errors;
 }
 
 static int netvsc_set_mac_addr(struct net_device *ndev, void *p)
 {
+	struct net_device_context *ndc = netdev_priv(ndev);
+	struct netvsc_device *nvdev = rtnl_dereference(ndc->nvdev);
 	struct sockaddr *addr = p;
 	char save_adr[ETH_ALEN];
 	unsigned char save_aatype;
@@ -971,7 +1065,10 @@ static int netvsc_set_mac_addr(struct net_device *ndev, void *p)
 	if (err != 0)
 		return err;
 
-	err = rndis_filter_set_device_mac(ndev, addr->sa_data);
+	if (!nvdev)
+		return -ENODEV;
+
+	err = rndis_filter_set_device_mac(nvdev, addr->sa_data);
 	if (err != 0) {
 		/* roll back to saved MAC */
 		memcpy(ndev->dev_addr, save_adr, ETH_ALEN);
@@ -990,9 +1087,16 @@ static const struct {
 	{ "tx_no_space",  offsetof(struct netvsc_ethtool_stats, tx_no_space) },
 	{ "tx_too_big",	  offsetof(struct netvsc_ethtool_stats, tx_too_big) },
 	{ "tx_busy",	  offsetof(struct netvsc_ethtool_stats, tx_busy) },
+}, vf_stats[] = {
+	{ "vf_rx_packets", offsetof(struct netvsc_vf_pcpu_stats, rx_packets) },
+	{ "vf_rx_bytes",   offsetof(struct netvsc_vf_pcpu_stats, rx_bytes) },
+	{ "vf_tx_packets", offsetof(struct netvsc_vf_pcpu_stats, tx_packets) },
+	{ "vf_tx_bytes",   offsetof(struct netvsc_vf_pcpu_stats, tx_bytes) },
+	{ "vf_tx_dropped", offsetof(struct netvsc_vf_pcpu_stats, tx_dropped) },
 };
 
 #define NETVSC_GLOBAL_STATS_LEN	ARRAY_SIZE(netvsc_stats)
+#define NETVSC_VF_STATS_LEN	ARRAY_SIZE(vf_stats)
 
 /* 4 statistics per queue (rx/tx packets/bytes) */
 #define NETVSC_QUEUE_STATS_LEN(dev) ((dev)->num_chn * 4)
@@ -1007,7 +1111,9 @@ static int netvsc_get_sset_count(struct net_device *dev, int string_set)
 
 	switch (string_set) {
 	case ETH_SS_STATS:
-		return NETVSC_GLOBAL_STATS_LEN + NETVSC_QUEUE_STATS_LEN(nvdev);
+		return NETVSC_GLOBAL_STATS_LEN
+			+ NETVSC_VF_STATS_LEN
+			+ NETVSC_QUEUE_STATS_LEN(nvdev);
 	default:
 		return -EINVAL;
 	}
@@ -1017,9 +1123,10 @@ static void netvsc_get_ethtool_stats(struct net_device *dev,
 				     struct ethtool_stats *stats, u64 *data)
 {
 	struct net_device_context *ndc = netdev_priv(dev);
-	struct netvsc_device *nvdev = rcu_dereference(ndc->nvdev);
+	struct netvsc_device *nvdev = rtnl_dereference(ndc->nvdev);
 	const void *nds = &ndc->eth_stats;
 	const struct netvsc_stats *qstats;
+	struct netvsc_vf_pcpu_stats sum;
 	unsigned int start;
 	u64 packets, bytes;
 	int i, j;
@@ -1029,6 +1136,10 @@ static void netvsc_get_ethtool_stats(struct net_device *dev,
 
 	for (i = 0; i < NETVSC_GLOBAL_STATS_LEN; i++)
 		data[i] = *(unsigned long *)(nds + netvsc_stats[i].offset);
+
+	netvsc_get_vf_stats(dev, &sum);
+	for (j = 0; j < NETVSC_VF_STATS_LEN; j++)
+		data[i++] = *(u64 *)((void *)&sum + vf_stats[j].offset);
 
 	for (j = 0; j < nvdev->num_chn; j++) {
 		qstats = &nvdev->chan_table[j].tx_stats;
@@ -1055,7 +1166,7 @@ static void netvsc_get_ethtool_stats(struct net_device *dev,
 static void netvsc_get_strings(struct net_device *dev, u32 stringset, u8 *data)
 {
 	struct net_device_context *ndc = netdev_priv(dev);
-	struct netvsc_device *nvdev = rcu_dereference(ndc->nvdev);
+	struct netvsc_device *nvdev = rtnl_dereference(ndc->nvdev);
 	u8 *p = data;
 	int i;
 
@@ -1064,11 +1175,16 @@ static void netvsc_get_strings(struct net_device *dev, u32 stringset, u8 *data)
 
 	switch (stringset) {
 	case ETH_SS_STATS:
-		for (i = 0; i < ARRAY_SIZE(netvsc_stats); i++)
-			memcpy(p + i * ETH_GSTRING_LEN,
-			       netvsc_stats[i].name, ETH_GSTRING_LEN);
+		for (i = 0; i < ARRAY_SIZE(netvsc_stats); i++) {
+			memcpy(p, netvsc_stats[i].name, ETH_GSTRING_LEN);
+			p += ETH_GSTRING_LEN;
+		}
 
-		p += i * ETH_GSTRING_LEN;
+		for (i = 0; i < ARRAY_SIZE(vf_stats); i++) {
+			memcpy(p, vf_stats[i].name, ETH_GSTRING_LEN);
+			p += ETH_GSTRING_LEN;
+		}
+
 		for (i = 0; i < nvdev->num_chn; i++) {
 			sprintf(p, "tx_queue_%u_packets", i);
 			p += ETH_GSTRING_LEN;
@@ -1113,7 +1229,7 @@ netvsc_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *info,
 		 u32 *rules)
 {
 	struct net_device_context *ndc = netdev_priv(dev);
-	struct netvsc_device *nvdev = rcu_dereference(ndc->nvdev);
+	struct netvsc_device *nvdev = rtnl_dereference(ndc->nvdev);
 
 	if (!nvdev)
 		return -ENODEV;
@@ -1163,7 +1279,7 @@ static int netvsc_get_rxfh(struct net_device *dev, u32 *indir, u8 *key,
 			   u8 *hfunc)
 {
 	struct net_device_context *ndc = netdev_priv(dev);
-	struct netvsc_device *ndev = rcu_dereference(ndc->nvdev);
+	struct netvsc_device *ndev = rtnl_dereference(ndc->nvdev);
 	struct rndis_device *rndis_dev;
 	int i;
 
@@ -1308,8 +1424,7 @@ static void netvsc_link_change(struct work_struct *w)
 	case RNDIS_STATUS_MEDIA_CONNECT:
 		if (rdev->link_state) {
 			rdev->link_state = false;
-			if (!ndev_ctx->datapath)
-				netif_carrier_on(net);
+			netif_carrier_on(net);
 			netif_tx_wake_all_queues(net);
 		} else {
 			notify = true;
@@ -1386,7 +1501,7 @@ static struct net_device *get_netvsc_byref(struct net_device *vf_netdev)
 			continue;	/* not a netvsc device */
 
 		net_device_ctx = netdev_priv(dev);
-		if (net_device_ctx->nvdev == NULL)
+		if (!rtnl_dereference(net_device_ctx->nvdev))
 			continue;	/* device is removed */
 
 		if (rtnl_dereference(net_device_ctx->vf_netdev) == vf_netdev)
@@ -1394,6 +1509,104 @@ static struct net_device *get_netvsc_byref(struct net_device *vf_netdev)
 	}
 
 	return NULL;
+}
+
+/* Called when VF is injecting data into network stack.
+ * Change the associated network device from VF to netvsc.
+ * note: already called with rcu_read_lock
+ */
+static rx_handler_result_t netvsc_vf_handle_frame(struct sk_buff **pskb)
+{
+	struct sk_buff *skb = *pskb;
+	struct net_device *ndev = rcu_dereference(skb->dev->rx_handler_data);
+	struct net_device_context *ndev_ctx = netdev_priv(ndev);
+	struct netvsc_vf_pcpu_stats *pcpu_stats
+		 = this_cpu_ptr(ndev_ctx->vf_stats);
+
+	skb->dev = ndev;
+
+	u64_stats_update_begin(&pcpu_stats->syncp);
+	pcpu_stats->rx_packets++;
+	pcpu_stats->rx_bytes += skb->len;
+	u64_stats_update_end(&pcpu_stats->syncp);
+
+	return RX_HANDLER_ANOTHER;
+}
+
+static int netvsc_vf_join(struct net_device *vf_netdev,
+			  struct net_device *ndev)
+{
+	struct net_device_context *ndev_ctx = netdev_priv(ndev);
+	int ret;
+
+	ret = netdev_rx_handler_register(vf_netdev,
+					 netvsc_vf_handle_frame, ndev);
+	if (ret != 0) {
+		netdev_err(vf_netdev,
+			   "can not register netvsc VF receive handler (err = %d)\n",
+			   ret);
+		goto rx_handler_failed;
+	}
+
+	ret = netdev_upper_dev_link(vf_netdev, ndev);
+	if (ret != 0) {
+		netdev_err(vf_netdev,
+			   "can not set master device %s (err = %d)\n",
+			   ndev->name, ret);
+		goto upper_link_failed;
+	}
+
+	/* set slave flag before open to prevent IPv6 addrconf */
+	vf_netdev->flags |= IFF_SLAVE;
+
+	schedule_work(&ndev_ctx->vf_takeover);
+
+	netdev_info(vf_netdev, "joined to %s\n", ndev->name);
+	return 0;
+
+upper_link_failed:
+	netdev_rx_handler_unregister(vf_netdev);
+rx_handler_failed:
+	return ret;
+}
+
+static void __netvsc_vf_setup(struct net_device *ndev,
+			      struct net_device *vf_netdev)
+{
+	int ret;
+
+	call_netdevice_notifiers(NETDEV_JOIN, vf_netdev);
+
+	/* Align MTU of VF with master */
+	ret = dev_set_mtu(vf_netdev, ndev->mtu);
+	if (ret)
+		netdev_warn(vf_netdev,
+			    "unable to change mtu to %u\n", ndev->mtu);
+
+	if (netif_running(ndev)) {
+		ret = dev_open(vf_netdev);
+		if (ret)
+			netdev_warn(vf_netdev,
+				    "unable to open: %d\n", ret);
+	}
+}
+
+/* Setup VF as slave of the synthetic device.
+ * Runs in workqueue to avoid recursion in netlink callbacks.
+ */
+static void netvsc_vf_setup(struct work_struct *w)
+{
+	struct net_device_context *ndev_ctx
+		= container_of(w, struct net_device_context, vf_takeover);
+	struct net_device *ndev = hv_get_drvdata(ndev_ctx->device_ctx);
+	struct net_device *vf_netdev;
+
+	rtnl_lock();
+	vf_netdev = rtnl_dereference(ndev_ctx->vf_netdev);
+	if (vf_netdev)
+		__netvsc_vf_setup(ndev, vf_netdev);
+
+	rtnl_unlock();
 }
 
 static int netvsc_register_vf(struct net_device *vf_netdev)
@@ -1419,10 +1632,12 @@ static int netvsc_register_vf(struct net_device *vf_netdev)
 	if (!netvsc_dev || rtnl_dereference(net_device_ctx->vf_netdev))
 		return NOTIFY_DONE;
 
+	if (netvsc_vf_join(vf_netdev, ndev) != 0)
+		return NOTIFY_DONE;
+
 	netdev_info(ndev, "VF registering: %s\n", vf_netdev->name);
-	/*
-	 * Take a reference on the module.
-	 */
+
+	/* Prevent this module from being unloaded while VF is registered */
 	try_module_get(THIS_MODULE);
 
 	dev_hold(vf_netdev);
@@ -1430,61 +1645,59 @@ static int netvsc_register_vf(struct net_device *vf_netdev)
 	return NOTIFY_OK;
 }
 
-static int netvsc_vf_up(struct net_device *vf_netdev)
+/* Change datapath */
+static void netvsc_vf_update(struct work_struct *w)
 {
-	struct net_device *ndev;
+	struct net_device_context *ndev_ctx
+		= container_of(w, struct net_device_context, vf_notify);
+	struct net_device *ndev = hv_get_drvdata(ndev_ctx->device_ctx);
 	struct netvsc_device *netvsc_dev;
-	struct net_device_context *net_device_ctx;
+	struct net_device *vf_netdev;
+	bool vf_is_up;
 
-	ndev = get_netvsc_byref(vf_netdev);
-	if (!ndev)
-		return NOTIFY_DONE;
+	rtnl_lock();
+	vf_netdev = rtnl_dereference(ndev_ctx->vf_netdev);
+	if (!vf_netdev)
+		goto unlock;
 
-	net_device_ctx = netdev_priv(ndev);
-	netvsc_dev = rtnl_dereference(net_device_ctx->nvdev);
+	netvsc_dev = rtnl_dereference(ndev_ctx->nvdev);
+	if (!netvsc_dev)
+		goto unlock;
 
-	netdev_info(ndev, "VF up: %s\n", vf_netdev->name);
+	vf_is_up = netif_running(vf_netdev);
+	if (vf_is_up != ndev_ctx->datapath) {
+		if (vf_is_up) {
+			netdev_info(ndev, "VF up: %s\n", vf_netdev->name);
+			rndis_filter_open(netvsc_dev);
+			netvsc_switch_datapath(ndev, true);
+			netdev_info(ndev, "Data path switched to VF: %s\n",
+				    vf_netdev->name);
+		} else {
+			netdev_info(ndev, "VF down: %s\n", vf_netdev->name);
+			netvsc_switch_datapath(ndev, false);
+			rndis_filter_close(netvsc_dev);
+			netdev_info(ndev, "Data path switched from VF: %s\n",
+				    vf_netdev->name);
+		}
 
-	/*
-	 * Open the device before switching data path.
-	 */
-	rndis_filter_open(netvsc_dev);
-
-	/*
-	 * notify the host to switch the data path.
-	 */
-	netvsc_switch_datapath(ndev, true);
-	netdev_info(ndev, "Data path switched to VF: %s\n", vf_netdev->name);
-
-	netif_carrier_off(ndev);
-
-	/* Now notify peers through VF device. */
-	call_netdevice_notifiers(NETDEV_NOTIFY_PEERS, vf_netdev);
-
-	return NOTIFY_OK;
+		/* Now notify peers through VF device. */
+		call_netdevice_notifiers(NETDEV_NOTIFY_PEERS, ndev);
+	}
+unlock:
+	rtnl_unlock();
 }
 
-static int netvsc_vf_down(struct net_device *vf_netdev)
+static int netvsc_vf_notify(struct net_device *vf_netdev)
 {
-	struct net_device *ndev;
-	struct netvsc_device *netvsc_dev;
 	struct net_device_context *net_device_ctx;
+	struct net_device *ndev;
 
 	ndev = get_netvsc_byref(vf_netdev);
 	if (!ndev)
 		return NOTIFY_DONE;
 
 	net_device_ctx = netdev_priv(ndev);
-	netvsc_dev = rtnl_dereference(net_device_ctx->nvdev);
-
-	netdev_info(ndev, "VF down: %s\n", vf_netdev->name);
-	netvsc_switch_datapath(ndev, false);
-	netdev_info(ndev, "Data path switched from VF: %s\n", vf_netdev->name);
-	rndis_filter_close(netvsc_dev);
-	netif_carrier_on(ndev);
-
-	/* Now notify peers through netvsc device. */
-	call_netdevice_notifiers(NETDEV_NOTIFY_PEERS, ndev);
+	schedule_work(&net_device_ctx->vf_notify);
 
 	return NOTIFY_OK;
 }
@@ -1499,9 +1712,12 @@ static int netvsc_unregister_vf(struct net_device *vf_netdev)
 		return NOTIFY_DONE;
 
 	net_device_ctx = netdev_priv(ndev);
+	cancel_work_sync(&net_device_ctx->vf_takeover);
+	cancel_work_sync(&net_device_ctx->vf_notify);
 
 	netdev_info(ndev, "VF unregistering: %s\n", vf_netdev->name);
 
+	netdev_upper_dev_unlink(vf_netdev, ndev);
 	RCU_INIT_POINTER(net_device_ctx->vf_netdev, NULL);
 	dev_put(vf_netdev);
 	module_put(THIS_MODULE);
@@ -1515,12 +1731,12 @@ static int netvsc_probe(struct hv_device *dev,
 	struct net_device_context *net_device_ctx;
 	struct netvsc_device_info device_info;
 	struct netvsc_device *nvdev;
-	int ret;
+	int ret = -ENOMEM;
 
 	net = alloc_etherdev_mq(sizeof(struct net_device_context),
 				VRSS_CHANNEL_MAX);
 	if (!net)
-		return -ENOMEM;
+		goto no_net;
 
 	netif_carrier_off(net);
 
@@ -1539,6 +1755,13 @@ static int netvsc_probe(struct hv_device *dev,
 
 	spin_lock_init(&net_device_ctx->lock);
 	INIT_LIST_HEAD(&net_device_ctx->reconfig_events);
+	INIT_WORK(&net_device_ctx->vf_takeover, netvsc_vf_setup);
+	INIT_WORK(&net_device_ctx->vf_notify, netvsc_vf_update);
+
+	net_device_ctx->vf_stats
+		= netdev_alloc_pcpu_stats(struct netvsc_vf_pcpu_stats);
+	if (!net_device_ctx->vf_stats)
+		goto no_stats;
 
 	net->netdev_ops = &device_ops;
 	net->ethtool_ops = &ethtool_ops;
@@ -1551,13 +1774,14 @@ static int netvsc_probe(struct hv_device *dev,
 	memset(&device_info, 0, sizeof(device_info));
 	device_info.ring_size = ring_size;
 	device_info.num_chn = VRSS_CHANNEL_DEFAULT;
-	ret = rndis_filter_device_add(dev, &device_info);
-	if (ret != 0) {
+
+	nvdev = rndis_filter_device_add(dev, &device_info);
+	if (IS_ERR(nvdev)) {
+		ret = PTR_ERR(nvdev);
 		netdev_err(net, "unable to add netvsc device (ret %d)\n", ret);
-		free_netdev(net);
-		hv_set_drvdata(dev, NULL);
-		return ret;
+		goto rndis_failed;
 	}
+
 	memcpy(net->dev_addr, device_info.mac_adr, ETH_ALEN);
 
 	/* hw_features computed in rndis_filter_device_add */
@@ -1566,10 +1790,10 @@ static int netvsc_probe(struct hv_device *dev,
 		NETIF_F_HW_VLAN_CTAG_TX | NETIF_F_HW_VLAN_CTAG_RX;
 	net->vlan_features = net->features;
 
-	/* RCU not necessary here, device not registered */
-	nvdev = net_device_ctx->nvdev;
 	netif_set_real_num_tx_queues(net, nvdev->num_chn);
 	netif_set_real_num_rx_queues(net, nvdev->num_chn);
+
+	netdev_lockdep_set_classes(net);
 
 	/* MTU range: 68 - 1500 or 65521 */
 	net->min_mtu = NETVSC_MTU_MIN;
@@ -1581,10 +1805,19 @@ static int netvsc_probe(struct hv_device *dev,
 	ret = register_netdev(net);
 	if (ret != 0) {
 		pr_err("Unable to register netdev.\n");
-		rndis_filter_device_remove(dev, nvdev);
-		free_netdev(net);
+		goto register_failed;
 	}
 
+	return ret;
+
+register_failed:
+	rndis_filter_device_remove(dev, nvdev);
+rndis_failed:
+	free_percpu(net_device_ctx->vf_stats);
+no_stats:
+	hv_set_drvdata(dev, NULL);
+	free_netdev(net);
+no_net:
 	return ret;
 }
 
@@ -1611,13 +1844,15 @@ static int netvsc_remove(struct hv_device *dev)
 	 * removed. Also blocks mtu and channel changes.
 	 */
 	rtnl_lock();
-	rndis_filter_device_remove(dev, ndev_ctx->nvdev);
+	rndis_filter_device_remove(dev,
+				   rtnl_dereference(ndev_ctx->nvdev));
 	rtnl_unlock();
 
 	unregister_netdev(net);
 
 	hv_set_drvdata(dev, NULL);
 
+	free_percpu(ndev_ctx->vf_stats);
 	free_netdev(net);
 	return 0;
 }
@@ -1672,9 +1907,8 @@ static int netvsc_netdev_event(struct notifier_block *this,
 	case NETDEV_UNREGISTER:
 		return netvsc_unregister_vf(event_dev);
 	case NETDEV_UP:
-		return netvsc_vf_up(event_dev);
 	case NETDEV_DOWN:
-		return netvsc_vf_down(event_dev);
+		return netvsc_vf_notify(event_dev);
 	default:
 		return NOTIFY_DONE;
 	}

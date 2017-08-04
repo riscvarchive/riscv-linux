@@ -306,12 +306,10 @@ sctp_disposition_t sctp_sf_do_5_1B_init(struct net *net,
 					void *arg,
 					sctp_cmd_seq_t *commands)
 {
-	struct sctp_chunk *chunk = arg;
-	struct sctp_chunk *repl;
+	struct sctp_chunk *chunk = arg, *repl, *err_chunk;
+	struct sctp_unrecognized_param *unk_param;
 	struct sctp_association *new_asoc;
-	struct sctp_chunk *err_chunk;
 	struct sctp_packet *packet;
-	sctp_unrecognized_param_t *unk_param;
 	int len;
 
 	/* 6.10 Bundling
@@ -435,7 +433,7 @@ sctp_disposition_t sctp_sf_do_5_1B_init(struct net *net,
 		 * construct the parameters in INIT ACK by copying the
 		 * ERROR causes over.
 		 */
-		unk_param = (sctp_unrecognized_param_t *)
+		unk_param = (struct sctp_unrecognized_param *)
 			    ((__u8 *)(err_chunk->chunk_hdr) +
 			    sizeof(struct sctp_chunkhdr));
 		/* Replace the cause code with the "Unrecognized parameter"
@@ -518,7 +516,7 @@ sctp_disposition_t sctp_sf_do_5_1C_ack(struct net *net,
 		return sctp_sf_violation_chunk(net, ep, asoc, type, arg, commands);
 
 	/* Make sure that the INIT-ACK chunk has a valid length */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_initack_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_initack_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 	/* Grab the INIT header.  */
@@ -530,7 +528,7 @@ sctp_disposition_t sctp_sf_do_5_1C_ack(struct net *net,
 			      (struct sctp_init_chunk *)chunk->chunk_hdr, chunk,
 			      &err_chunk)) {
 
-		sctp_error_t error = SCTP_ERROR_NO_RESOURCE;
+		enum sctp_error error = SCTP_ERROR_NO_RESOURCE;
 
 		/* This chunk contains fatal error. It is to be discarded.
 		 * Send an ABORT, with causes.  If there are no causes,
@@ -1090,7 +1088,8 @@ sctp_disposition_t sctp_sf_beat_8_3(struct net *net,
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* Make sure that the HEARTBEAT chunk has a valid length. */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_heartbeat_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk,
+				     sizeof(struct sctp_heartbeat_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
@@ -1098,7 +1097,7 @@ sctp_disposition_t sctp_sf_beat_8_3(struct net *net,
 	 * respond with a HEARTBEAT ACK that contains the Heartbeat
 	 * Information field copied from the received HEARTBEAT chunk.
 	 */
-	chunk->subh.hb_hdr = (sctp_heartbeathdr_t *)chunk->skb->data;
+	chunk->subh.hb_hdr = (struct sctp_heartbeathdr *)chunk->skb->data;
 	param_hdr = (struct sctp_paramhdr *)chunk->subh.hb_hdr;
 	paylen = ntohs(chunk->chunk_hdr->length) - sizeof(struct sctp_chunkhdr);
 
@@ -1234,7 +1233,7 @@ static int sctp_sf_send_restart_abort(struct net *net, union sctp_addr *ssa,
 	union sctp_addr_param *addrparm;
 	struct sctp_errhdr *errhdr;
 	struct sctp_endpoint *ep;
-	char buffer[sizeof(struct sctp_errhdr)+sizeof(union sctp_addr_param)];
+	char buffer[sizeof(*errhdr) + sizeof(*addrparm)];
 	struct sctp_af *af = sctp_get_af_specific(ssa->v4.sin_family);
 
 	/* Build the error on the stack.   We are way to malloc crazy
@@ -1245,7 +1244,7 @@ static int sctp_sf_send_restart_abort(struct net *net, union sctp_addr *ssa,
 
 	/* Copy into a parm format. */
 	len = af->to_addr_param(ssa, addrparm);
-	len += sizeof(sctp_errhdr_t);
+	len += sizeof(*errhdr);
 
 	errhdr->cause = SCTP_ERROR_RESTART;
 	errhdr->length = htons(len);
@@ -1419,13 +1418,11 @@ static sctp_disposition_t sctp_sf_do_unexpected_init(
 	const sctp_subtype_t type,
 	void *arg, sctp_cmd_seq_t *commands)
 {
-	sctp_disposition_t retval;
-	struct sctp_chunk *chunk = arg;
-	struct sctp_chunk *repl;
+	struct sctp_chunk *chunk = arg, *repl, *err_chunk;
+	struct sctp_unrecognized_param *unk_param;
 	struct sctp_association *new_asoc;
-	struct sctp_chunk *err_chunk;
 	struct sctp_packet *packet;
-	sctp_unrecognized_param_t *unk_param;
+	sctp_disposition_t retval;
 	int len;
 
 	/* 6.10 Bundling
@@ -1555,7 +1552,7 @@ static sctp_disposition_t sctp_sf_do_unexpected_init(
 		 * construct the parameters in INIT ACK by copying the
 		 * ERROR causes over.
 		 */
-		unk_param = (sctp_unrecognized_param_t *)
+		unk_param = (struct sctp_unrecognized_param *)
 			    ((__u8 *)(err_chunk->chunk_hdr) +
 			    sizeof(struct sctp_chunkhdr));
 		/* Replace the cause code with the "Unrecognized parameter"
@@ -2167,7 +2164,7 @@ sctp_disposition_t sctp_sf_shutdown_pending_abort(
 	 * as we do not know its true length.  So, to be safe, discard the
 	 * packet.
 	 */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_abort_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_abort_chunk)))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* ADD-IP: Special case for ABORT chunks
@@ -2209,7 +2206,7 @@ sctp_disposition_t sctp_sf_shutdown_sent_abort(struct net *net,
 	 * as we do not know its true length.  So, to be safe, discard the
 	 * packet.
 	 */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_abort_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_abort_chunk)))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* ADD-IP: Special case for ABORT chunks
@@ -2273,7 +2270,7 @@ sctp_disposition_t sctp_sf_cookie_echoed_err(struct net *net,
 					sctp_cmd_seq_t *commands)
 {
 	struct sctp_chunk *chunk = arg;
-	sctp_errhdr_t *err;
+	struct sctp_errhdr *err;
 
 	if (!sctp_vtag_verify(chunk, asoc))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
@@ -2281,7 +2278,7 @@ sctp_disposition_t sctp_sf_cookie_echoed_err(struct net *net,
 	/* Make sure that the ERROR chunk has a valid length.
 	 * The parameter walking depends on this as well.
 	 */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_operr_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_operr_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
@@ -2336,13 +2333,12 @@ static sctp_disposition_t sctp_sf_do_5_2_6_stale(struct net *net,
 						 void *arg,
 						 sctp_cmd_seq_t *commands)
 {
-	struct sctp_chunk *chunk = arg;
-	u32 stale;
-	sctp_cookie_preserve_param_t bht;
-	sctp_errhdr_t *err;
-	struct sctp_chunk *reply;
-	struct sctp_bind_addr *bp;
 	int attempts = asoc->init_err_counter + 1;
+	struct sctp_chunk *chunk = arg, *reply;
+	struct sctp_cookie_preserve_param bht;
+	struct sctp_bind_addr *bp;
+	struct sctp_errhdr *err;
+	u32 stale;
 
 	if (attempts > asoc->max_init_attempts) {
 		sctp_add_cmd_sf(commands, SCTP_CMD_SET_SK_ERR,
@@ -2352,7 +2348,7 @@ static sctp_disposition_t sctp_sf_do_5_2_6_stale(struct net *net,
 		return SCTP_DISPOSITION_DELETE_TCB;
 	}
 
-	err = (sctp_errhdr_t *)(chunk->skb->data);
+	err = (struct sctp_errhdr *)(chunk->skb->data);
 
 	/* When calculating the time extension, an implementation
 	 * SHOULD use the RTT information measured based on the
@@ -2368,7 +2364,7 @@ static sctp_disposition_t sctp_sf_do_5_2_6_stale(struct net *net,
 	 * to give ample time to retransmit the new cookie and thus
 	 * yield a higher probability of success on the reattempt.
 	 */
-	stale = ntohl(*(__be32 *)((u8 *)err + sizeof(sctp_errhdr_t)));
+	stale = ntohl(*(__be32 *)((u8 *)err + sizeof(*err)));
 	stale = (stale * 2) / 1000;
 
 	bht.param_hdr.type = SCTP_PARAM_COOKIE_PRESERVATIVE;
@@ -2474,7 +2470,7 @@ sctp_disposition_t sctp_sf_do_9_1_abort(struct net *net,
 	 * as we do not know its true length.  So, to be safe, discard the
 	 * packet.
 	 */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_abort_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_abort_chunk)))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* ADD-IP: Special case for ABORT chunks
@@ -2503,13 +2499,14 @@ static sctp_disposition_t __sctp_sf_do_9_1_abort(struct net *net,
 	/* See if we have an error cause code in the chunk.  */
 	len = ntohs(chunk->chunk_hdr->length);
 	if (len >= sizeof(struct sctp_chunkhdr) + sizeof(struct sctp_errhdr)) {
+		struct sctp_errhdr *err;
 
-		sctp_errhdr_t *err;
 		sctp_walk_errors(err, chunk->chunk_hdr);
 		if ((void *)err != (void *)chunk->chunk_end)
-			return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
+			return sctp_sf_pdiscard(net, ep, asoc, type, arg,
+						commands);
 
-		error = ((sctp_errhdr_t *)chunk->skb->data)->cause;
+		error = ((struct sctp_errhdr *)chunk->skb->data)->cause;
 	}
 
 	sctp_add_cmd_sf(commands, SCTP_CMD_SET_SK_ERR, SCTP_ERROR(ECONNRESET));
@@ -2550,13 +2547,13 @@ sctp_disposition_t sctp_sf_cookie_wait_abort(struct net *net,
 	 * as we do not know its true length.  So, to be safe, discard the
 	 * packet.
 	 */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_abort_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_abort_chunk)))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* See if we have an error cause code in the chunk.  */
 	len = ntohs(chunk->chunk_hdr->length);
 	if (len >= sizeof(struct sctp_chunkhdr) + sizeof(struct sctp_errhdr))
-		error = ((sctp_errhdr_t *)chunk->skb->data)->cause;
+		error = ((struct sctp_errhdr *)chunk->skb->data)->cause;
 
 	return sctp_stop_t1_and_abort(net, commands, error, ECONNREFUSED, asoc,
 				      chunk->transport);
@@ -2660,8 +2657,8 @@ sctp_disposition_t sctp_sf_do_9_2_shutdown(struct net *net,
 					   sctp_cmd_seq_t *commands)
 {
 	struct sctp_chunk *chunk = arg;
-	sctp_shutdownhdr_t *sdh;
 	sctp_disposition_t disposition;
+	struct sctp_shutdownhdr *sdh;
 	struct sctp_ulpevent *ev;
 	__u32 ctsn;
 
@@ -2669,14 +2666,13 @@ sctp_disposition_t sctp_sf_do_9_2_shutdown(struct net *net,
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* Make sure that the SHUTDOWN chunk has a valid length. */
-	if (!sctp_chunk_length_valid(chunk,
-				      sizeof(struct sctp_shutdown_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_shutdown_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
 	/* Convert the elaborate header.  */
-	sdh = (sctp_shutdownhdr_t *)chunk->skb->data;
-	skb_pull(chunk->skb, sizeof(sctp_shutdownhdr_t));
+	sdh = (struct sctp_shutdownhdr *)chunk->skb->data;
+	skb_pull(chunk->skb, sizeof(*sdh));
 	chunk->subh.shutdown_hdr = sdh;
 	ctsn = ntohl(sdh->cum_tsn_ack);
 
@@ -2750,19 +2746,18 @@ sctp_disposition_t sctp_sf_do_9_2_shut_ctsn(struct net *net,
 					   sctp_cmd_seq_t *commands)
 {
 	struct sctp_chunk *chunk = arg;
-	sctp_shutdownhdr_t *sdh;
+	struct sctp_shutdownhdr *sdh;
 	__u32 ctsn;
 
 	if (!sctp_vtag_verify(chunk, asoc))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* Make sure that the SHUTDOWN chunk has a valid length. */
-	if (!sctp_chunk_length_valid(chunk,
-				      sizeof(struct sctp_shutdown_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_shutdown_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
-	sdh = (sctp_shutdownhdr_t *)chunk->skb->data;
+	sdh = (struct sctp_shutdownhdr *)chunk->skb->data;
 	ctsn = ntohl(sdh->cum_tsn_ack);
 
 	if (TSN_lt(ctsn, asoc->ctsn_ack_point)) {
@@ -2867,19 +2862,19 @@ sctp_disposition_t sctp_sf_do_ecn_cwr(struct net *net,
 				      void *arg,
 				      sctp_cmd_seq_t *commands)
 {
-	sctp_cwrhdr_t *cwr;
 	struct sctp_chunk *chunk = arg;
+	struct sctp_cwrhdr *cwr;
 	u32 lowest_tsn;
 
 	if (!sctp_vtag_verify(chunk, asoc))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_ecne_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_ecne_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
-	cwr = (sctp_cwrhdr_t *) chunk->skb->data;
-	skb_pull(chunk->skb, sizeof(sctp_cwrhdr_t));
+	cwr = (struct sctp_cwrhdr *)chunk->skb->data;
+	skb_pull(chunk->skb, sizeof(*cwr));
 
 	lowest_tsn = ntohl(cwr->lowest_tsn);
 
@@ -2923,18 +2918,18 @@ sctp_disposition_t sctp_sf_do_ecne(struct net *net,
 				   void *arg,
 				   sctp_cmd_seq_t *commands)
 {
-	sctp_ecnehdr_t *ecne;
 	struct sctp_chunk *chunk = arg;
+	struct sctp_ecnehdr *ecne;
 
 	if (!sctp_vtag_verify(chunk, asoc))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_ecne_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_ecne_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
-	ecne = (sctp_ecnehdr_t *) chunk->skb->data;
-	skb_pull(chunk->skb, sizeof(sctp_ecnehdr_t));
+	ecne = (struct sctp_ecnehdr *)chunk->skb->data;
+	skb_pull(chunk->skb, sizeof(*ecne));
 
 	/* If this is a newer ECNE than the last CWR packet we sent out */
 	sctp_add_cmd_sf(commands, SCTP_CMD_ECN_ECNE,
@@ -3192,14 +3187,14 @@ sctp_disposition_t sctp_sf_eat_sack_6_2(struct net *net,
 					sctp_cmd_seq_t *commands)
 {
 	struct sctp_chunk *chunk = arg;
-	sctp_sackhdr_t *sackh;
+	struct sctp_sackhdr *sackh;
 	__u32 ctsn;
 
 	if (!sctp_vtag_verify(chunk, asoc))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* Make sure that the SACK chunk has a valid length. */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_sack_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_sack_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
@@ -3316,13 +3311,13 @@ sctp_disposition_t sctp_sf_operr_notify(struct net *net,
 					sctp_cmd_seq_t *commands)
 {
 	struct sctp_chunk *chunk = arg;
-	sctp_errhdr_t *err;
+	struct sctp_errhdr *err;
 
 	if (!sctp_vtag_verify(chunk, asoc))
 		return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
 
 	/* Make sure that the ERROR chunk has a valid length. */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_operr_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_operr_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 	sctp_walk_errors(err, chunk->chunk_hdr);
@@ -3439,7 +3434,7 @@ sctp_disposition_t sctp_sf_ootb(struct net *net,
 	struct sctp_chunk *chunk = arg;
 	struct sk_buff *skb = chunk->skb;
 	struct sctp_chunkhdr *ch;
-	sctp_errhdr_t *err;
+	struct sctp_errhdr *err;
 	__u8 *ch_end;
 	int ootb_shut_ack = 0;
 	int ootb_cookie_ack = 0;
@@ -3618,7 +3613,7 @@ sctp_disposition_t sctp_sf_do_asconf(struct net *net,
 	struct sctp_chunk	*chunk = arg;
 	struct sctp_chunk	*asconf_ack = NULL;
 	struct sctp_paramhdr	*err_param = NULL;
-	sctp_addiphdr_t		*hdr;
+	struct sctp_addiphdr	*hdr;
 	__u32			serial;
 
 	if (!sctp_vtag_verify(chunk, asoc)) {
@@ -3634,14 +3629,15 @@ sctp_disposition_t sctp_sf_do_asconf(struct net *net,
 	 * described in [I-D.ietf-tsvwg-sctp-auth].
 	 */
 	if (!net->sctp.addip_noauth && !chunk->auth)
-		return sctp_sf_discard_chunk(net, ep, asoc, type, arg, commands);
+		return sctp_sf_discard_chunk(net, ep, asoc, type, arg,
+					     commands);
 
 	/* Make sure that the ASCONF ADDIP chunk has a valid length.  */
-	if (!sctp_chunk_length_valid(chunk, sizeof(sctp_addip_chunk_t)))
+	if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_addip_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
-	hdr = (sctp_addiphdr_t *)chunk->skb->data;
+	hdr = (struct sctp_addiphdr *)chunk->skb->data;
 	serial = ntohl(hdr->serial);
 
 	/* Verify the ASCONF chunk before processing it. */
@@ -3735,7 +3731,7 @@ sctp_disposition_t sctp_sf_do_asconf_ack(struct net *net,
 	struct sctp_chunk	*last_asconf = asoc->addip_last_asconf;
 	struct sctp_chunk	*abort;
 	struct sctp_paramhdr	*err_param = NULL;
-	sctp_addiphdr_t		*addip_hdr;
+	struct sctp_addiphdr	*addip_hdr;
 	__u32			sent_serial, rcvd_serial;
 
 	if (!sctp_vtag_verify(asconf_ack, asoc)) {
@@ -3751,14 +3747,16 @@ sctp_disposition_t sctp_sf_do_asconf_ack(struct net *net,
 	 * described in [I-D.ietf-tsvwg-sctp-auth].
 	 */
 	if (!net->sctp.addip_noauth && !asconf_ack->auth)
-		return sctp_sf_discard_chunk(net, ep, asoc, type, arg, commands);
+		return sctp_sf_discard_chunk(net, ep, asoc, type, arg,
+					     commands);
 
 	/* Make sure that the ADDIP chunk has a valid length.  */
-	if (!sctp_chunk_length_valid(asconf_ack, sizeof(sctp_addip_chunk_t)))
+	if (!sctp_chunk_length_valid(asconf_ack,
+				     sizeof(struct sctp_addip_chunk)))
 		return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
 						  commands);
 
-	addip_hdr = (sctp_addiphdr_t *)asconf_ack->skb->data;
+	addip_hdr = (struct sctp_addiphdr *)asconf_ack->skb->data;
 	rcvd_serial = ntohl(addip_hdr->serial);
 
 	/* Verify the ASCONF-ACK chunk before processing it. */
@@ -3767,7 +3765,7 @@ sctp_disposition_t sctp_sf_do_asconf_ack(struct net *net,
 			   (void *)err_param, commands);
 
 	if (last_asconf) {
-		addip_hdr = (sctp_addiphdr_t *)last_asconf->subh.addip_hdr;
+		addip_hdr = (struct sctp_addiphdr *)last_asconf->subh.addip_hdr;
 		sent_serial = ntohl(addip_hdr->serial);
 	} else {
 		sent_serial = asoc->addip_serial - 1;
@@ -3782,7 +3780,7 @@ sctp_disposition_t sctp_sf_do_asconf_ack(struct net *net,
 	if (ADDIP_SERIAL_gte(rcvd_serial, sent_serial + 1) &&
 	    !(asoc->addip_last_asconf)) {
 		abort = sctp_make_abort(asoc, asconf_ack,
-					sizeof(sctp_errhdr_t));
+					sizeof(struct sctp_errhdr));
 		if (abort) {
 			sctp_init_cause(abort, SCTP_ERROR_ASCONF_ACK, 0);
 			sctp_add_cmd_sf(commands, SCTP_CMD_REPLY,
@@ -3818,7 +3816,7 @@ sctp_disposition_t sctp_sf_do_asconf_ack(struct net *net,
 		}
 
 		abort = sctp_make_abort(asoc, asconf_ack,
-					sizeof(sctp_errhdr_t));
+					sizeof(struct sctp_errhdr));
 		if (abort) {
 			sctp_init_cause(abort, SCTP_ERROR_RSRC_LOW, 0);
 			sctp_add_cmd_sf(commands, SCTP_CMD_REPLY,
@@ -4095,7 +4093,7 @@ static sctp_ierror_t sctp_sf_authenticate(struct net *net,
 	/* Pull in the auth header, so we can do some more verification */
 	auth_hdr = (struct sctp_authhdr *)chunk->skb->data;
 	chunk->subh.auth_hdr = auth_hdr;
-	skb_pull(chunk->skb, sizeof(struct sctp_authhdr));
+	skb_pull(chunk->skb, sizeof(*auth_hdr));
 
 	/* Make sure that we support the HMAC algorithm from the auth
 	 * chunk.
@@ -4114,7 +4112,8 @@ static sctp_ierror_t sctp_sf_authenticate(struct net *net,
 	/* Make sure that the length of the signature matches what
 	 * we expect.
 	 */
-	sig_len = ntohs(chunk->chunk_hdr->length) - sizeof(sctp_auth_chunk_t);
+	sig_len = ntohs(chunk->chunk_hdr->length) -
+		  sizeof(struct sctp_auth_chunk);
 	hmac = sctp_auth_get_hmac(ntohs(auth_hdr->hmac_id));
 	if (sig_len != hmac->hmac_len)
 		return SCTP_IERROR_PROTO_VIOLATION;
@@ -4136,8 +4135,8 @@ static sctp_ierror_t sctp_sf_authenticate(struct net *net,
 	memset(digest, 0, sig_len);
 
 	sctp_auth_calculate_hmac(asoc, chunk->skb,
-				(struct sctp_auth_chunk *)chunk->chunk_hdr,
-				GFP_ATOMIC);
+				 (struct sctp_auth_chunk *)chunk->chunk_hdr,
+				 GFP_ATOMIC);
 
 	/* Discard the packet if the digests do not match */
 	if (memcmp(save_digest, digest, sig_len)) {
@@ -4454,11 +4453,10 @@ static sctp_disposition_t sctp_sf_abort_violation(
 		/* Treat INIT-ACK as a special case during COOKIE-WAIT. */
 		if (chunk->chunk_hdr->type == SCTP_CID_INIT_ACK &&
 		    !asoc->peer.i.init_tag) {
-			sctp_initack_chunk_t *initack;
+			struct sctp_initack_chunk *initack;
 
-			initack = (sctp_initack_chunk_t *)chunk->chunk_hdr;
-			if (!sctp_chunk_length_valid(chunk,
-						     sizeof(sctp_initack_chunk_t)))
+			initack = (struct sctp_initack_chunk *)chunk->chunk_hdr;
+			if (!sctp_chunk_length_valid(chunk, sizeof(*initack)))
 				abort->chunk_hdr->flags |= SCTP_CHUNK_FLAG_T;
 			else {
 				unsigned int inittag;
@@ -4521,7 +4519,7 @@ nomem:
  * Handle a protocol violation when the chunk length is invalid.
  * "Invalid" length is identified as smaller than the minimal length a
  * given chunk can be.  For example, a SACK chunk has invalid length
- * if its length is set to be smaller than the size of sctp_sack_chunk_t.
+ * if its length is set to be smaller than the size of struct sctp_sack_chunk.
  *
  * We inform the other end by sending an ABORT with a Protocol Violation
  * error code.
@@ -5424,12 +5422,14 @@ sctp_disposition_t sctp_sf_do_9_2_shutdown_ack(
 	 */
 	if (chunk) {
 		if (!sctp_vtag_verify(chunk, asoc))
-			return sctp_sf_pdiscard(net, ep, asoc, type, arg, commands);
+			return sctp_sf_pdiscard(net, ep, asoc, type, arg,
+						commands);
 
 		/* Make sure that the SHUTDOWN chunk has a valid length. */
-		if (!sctp_chunk_length_valid(chunk, sizeof(struct sctp_shutdown_chunk_t)))
-			return sctp_sf_violation_chunklen(net, ep, asoc, type, arg,
-							  commands);
+		if (!sctp_chunk_length_valid(
+				chunk, sizeof(struct sctp_shutdown_chunk)))
+			return sctp_sf_violation_chunklen(net, ep, asoc, type,
+							  arg, commands);
 	}
 
 	/* If it has no more outstanding DATA chunks, the SHUTDOWN receiver
@@ -6107,9 +6107,9 @@ static struct sctp_packet *sctp_ootb_pkt_new(struct net *net,
 		switch (chunk->chunk_hdr->type) {
 		case SCTP_CID_INIT_ACK:
 		{
-			sctp_initack_chunk_t *initack;
+			struct sctp_initack_chunk *initack;
 
-			initack = (sctp_initack_chunk_t *)chunk->chunk_hdr;
+			initack = (struct sctp_initack_chunk *)chunk->chunk_hdr;
 			vtag = ntohl(initack->init_hdr.init_tag);
 			break;
 		}
