@@ -338,6 +338,11 @@ ENTRY(__switch_to)
 	REG_L s9,  TASK_THREAD_S9_RA(a4)
 	REG_L s10, TASK_THREAD_S10_RA(a4)
 	REG_L s11, TASK_THREAD_S11_RA(a4)
+	/* Swap the CPU entry around. */
+	lw a3, TASK_TI_CPU(a0)
+	lw a4, TASK_TI_CPU(a1)
+	sw a3, TASK_TI_CPU(a1)
+	sw a4, TASK_TI_CPU(a0)
 #if TASK_TI != 0
 #error "TASK_TI != 0: tp will contain a 'struct thread_info', not a 'struct task_struct' so get_current() won't work."
 	addi tp, a1, TASK_TI

@@ -42,7 +42,7 @@ void arch_send_call_function_single_ipi(int cpu);
  * Instead of using C we're using asm-offsets.h to get the current processor
  * ID.
  */
-#define raw_smp_processor_id() (*((int*)((char*)get_current() + TASK_CPU)))
+#define raw_smp_processor_id() (*((int*)((char*)get_current() + TASK_TI_CPU)))
 
 /* Interprocessor interrupt handler */
 irqreturn_t handle_ipi(void);
