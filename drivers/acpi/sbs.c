@@ -638,7 +638,7 @@ static int disable_sbs_manager(const struct dmi_system_id *d)
 	return 0;
 }
 
-static struct dmi_system_id acpi_sbs_dmi_table[] = {
+static const struct dmi_system_id acpi_sbs_dmi_table[] = {
 	{
 		.callback = disable_sbs_manager,
 		.ident = "Apple",

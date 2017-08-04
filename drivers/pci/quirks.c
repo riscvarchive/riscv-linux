@@ -1706,7 +1706,7 @@ static int dmi_disable_ioapicreroute(const struct dmi_system_id *d)
 	return 0;
 }
 
-static struct dmi_system_id boot_interrupt_dmi_table[] = {
+static const struct dmi_system_id boot_interrupt_dmi_table[] = {
 	/*
 	 * Systems to exclude from boot interrupt reroute quirks
 	 */
