@@ -191,7 +191,7 @@ static unsigned int ipv6_conntrack_local(void *priv,
 	return nf_conntrack_in(state->net, PF_INET6, state->hook, skb);
 }
 
-static struct nf_hook_ops ipv6_conntrack_ops[] __read_mostly = {
+static const struct nf_hook_ops ipv6_conntrack_ops[] = {
 	{
 		.hook		= ipv6_conntrack_in,
 		.pf		= NFPROTO_IPV6,
@@ -398,25 +398,12 @@ static struct nf_conntrack_l4proto *builtin_l4proto6[] = {
 
 static int ipv6_net_init(struct net *net)
 {
-	int ret = 0;
-
-	ret = nf_ct_l4proto_pernet_register(net, builtin_l4proto6,
-					    ARRAY_SIZE(builtin_l4proto6));
-	if (ret < 0)
-		return ret;
-
-	ret = nf_ct_l3proto_pernet_register(net, &nf_conntrack_l3proto_ipv6);
-	if (ret < 0) {
-		pr_err("nf_conntrack_ipv6: pernet registration failed.\n");
-		nf_ct_l4proto_pernet_unregister(net, builtin_l4proto6,
-						ARRAY_SIZE(builtin_l4proto6));
-	}
-	return ret;
+	return nf_ct_l4proto_pernet_register(net, builtin_l4proto6,
+					     ARRAY_SIZE(builtin_l4proto6));
 }
 
 static void ipv6_net_exit(struct net *net)
 {
-	nf_ct_l3proto_pernet_unregister(net, &nf_conntrack_l3proto_ipv6);
 	nf_ct_l4proto_pernet_unregister(net, builtin_l4proto6,
 					ARRAY_SIZE(builtin_l4proto6));
 }
