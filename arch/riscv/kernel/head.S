@@ -55,6 +55,7 @@ ENTRY(_start)
 
 	/* Restore C environment */
 	la tp, init_task
+	sw s0, TASK_TI_CPU(tp)
 
 	la sp, init_thread_union
 	li a0, ASM_THREAD_SIZE
