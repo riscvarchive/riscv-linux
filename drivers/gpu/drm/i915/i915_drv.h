@@ -80,8 +80,8 @@
 
 #define DRIVER_NAME		"i915"
 #define DRIVER_DESC		"Intel Graphics"
-#define DRIVER_DATE		"20170717"
-#define DRIVER_TIMESTAMP	1500275179
+#define DRIVER_DATE		"20170731"
+#define DRIVER_TIMESTAMP	1501488491
 
 /* Use I915_STATE_WARN(x) and I915_STATE_WARN_ON() (rather than WARN() and
  * WARN_ON()) for hw state sanity checks to check for unexpected conditions
@@ -602,7 +602,7 @@ struct drm_i915_file_private {
  * to limit the badly behaving clients access to gpu.
  */
 #define I915_MAX_CLIENT_CONTEXT_BANS 3
-	int context_bans;
+	atomic_t context_bans;
 };
 
 /* Used by dp and fdi links */
@@ -715,11 +715,6 @@ struct drm_i915_display_funcs {
 	void (*fdi_link_train)(struct intel_crtc *crtc,
 			       const struct intel_crtc_state *crtc_state);
 	void (*init_clock_gating)(struct drm_i915_private *dev_priv);
-	int (*queue_flip)(struct drm_device *dev, struct drm_crtc *crtc,
-			  struct drm_framebuffer *fb,
-			  struct drm_i915_gem_object *obj,
-			  struct drm_i915_gem_request *req,
-			  uint32_t flags);
 	void (*hpd_irq_setup)(struct drm_i915_private *dev_priv);
 	/* clock updates for mode set */
 	/* cursor updates */
@@ -1063,6 +1058,11 @@ struct intel_fbc {
 	bool underrun_detected;
 	struct work_struct underrun_work;
 
+	/*
+	 * Due to the atomic rules we can't access some structures without the
+	 * appropriate locking, so we cache information here in order to avoid
+	 * these problems.
+	 */
 	struct intel_fbc_state_cache {
 		struct i915_vma *vma;
 
@@ -1084,6 +1084,13 @@ struct intel_fbc {
 		} fb;
 	} state_cache;
 
+	/*
+	 * This structure contains everything that's relevant to program the
+	 * hardware registers. When we want to figure out if we need to disable
+	 * and re-enable FBC for a new configuration we just check if there's
+	 * something different in the struct. The genx_fbc_activate functions
+	 * are supposed to read from it in order to program the registers.
+	 */
 	struct intel_fbc_reg_params {
 		struct i915_vma *vma;
 
@@ -1159,8 +1166,8 @@ enum intel_pch {
 	PCH_CPT,	/* Cougarpoint/Pantherpoint PCH */
 	PCH_LPT,	/* Lynxpoint/Wildcatpoint PCH */
 	PCH_SPT,        /* Sunrisepoint PCH */
-	PCH_KBP,        /* Kabypoint PCH */
-	PCH_CNP,        /* Cannonpoint PCH */
+	PCH_KBP,        /* Kaby Lake PCH */
+	PCH_CNP,        /* Cannon Lake PCH */
 	PCH_NOP,
 };
 
@@ -1388,12 +1395,23 @@ struct i915_power_well {
 	bool hw_enabled;
 	u64 domains;
 	/* unique identifier for this power well */
-	unsigned long id;
+	enum i915_power_well_id id;
 	/*
 	 * Arbitraty data associated with this power well. Platform and power
 	 * well specific.
 	 */
-	unsigned long data;
+	union {
+		struct {
+			enum dpio_phy phy;
+		} bxt;
+		struct {
+			/* Mask of pipes whose IRQ logic is backed by the pw */
+			u8 irq_pipe_mask;
+			/* The pw is backing the VGA functionality */
+			bool has_vga:1;
+			bool has_fuses:1;
+		} hsw;
+	};
 	const struct i915_power_well_ops *ops;
 };
 
@@ -1903,6 +1921,24 @@ struct i915_oa_reg {
 	u32 value;
 };
 
+struct i915_oa_config {
+	char uuid[UUID_STRING_LEN + 1];
+	int id;
+
+	const struct i915_oa_reg *mux_regs;
+	u32 mux_regs_len;
+	const struct i915_oa_reg *b_counter_regs;
+	u32 b_counter_regs_len;
+	const struct i915_oa_reg *flex_regs;
+	u32 flex_regs_len;
+
+	struct attribute_group sysfs_metric;
+	struct attribute *attrs[2];
+	struct device_attribute sysfs_metric_id;
+
+	atomic_t ref_count;
+};
+
 struct i915_perf_stream;
 
 /**
@@ -2015,12 +2051,36 @@ struct i915_perf_stream {
 	 * type of configured stream.
 	 */
 	const struct i915_perf_stream_ops *ops;
+
+	/**
+	 * @oa_config: The OA configuration used by the stream.
+	 */
+	struct i915_oa_config *oa_config;
 };
 
 /**
  * struct i915_oa_ops - Gen specific implementation of an OA unit stream
  */
 struct i915_oa_ops {
+	/**
+	 * @is_valid_b_counter_reg: Validates register's address for
+	 * programming boolean counters for a particular platform.
+	 */
+	bool (*is_valid_b_counter_reg)(struct drm_i915_private *dev_priv,
+				       u32 addr);
+
+	/**
+	 * @is_valid_mux_reg: Validates register's address for programming mux
+	 * for a particular platform.
+	 */
+	bool (*is_valid_mux_reg)(struct drm_i915_private *dev_priv, u32 addr);
+
+	/**
+	 * @is_valid_flex_reg: Validates register's address for programming
+	 * flex EU filtering for a particular platform.
+	 */
+	bool (*is_valid_flex_reg)(struct drm_i915_private *dev_priv, u32 addr);
+
 	/**
 	 * @init_oa_buffer: Resets the head and tail pointers of the
 	 * circular buffer for periodic OA reports.
@@ -2039,20 +2099,13 @@ struct i915_oa_ops {
 	void (*init_oa_buffer)(struct drm_i915_private *dev_priv);
 
 	/**
-	 * @select_metric_set: The auto generated code that checks whether a
-	 * requested OA config is applicable to the system and if so sets up
-	 * the mux, oa and flex eu register config pointers according to the
-	 * current dev_priv->perf.oa.metrics_set.
-	 */
-	int (*select_metric_set)(struct drm_i915_private *dev_priv);
-
-	/**
 	 * @enable_metric_set: Selects and applies any MUX configuration to set
 	 * up the Boolean and Custom (B/C) counters that are part of the
 	 * counter reports being sampled. May apply system constraints such as
 	 * disabling EU clock gating as required.
 	 */
-	int (*enable_metric_set)(struct drm_i915_private *dev_priv);
+	int (*enable_metric_set)(struct drm_i915_private *dev_priv,
+				 const struct i915_oa_config *oa_config);
 
 	/**
 	 * @disable_metric_set: Remove system constraints associated with using
@@ -2147,9 +2200,6 @@ struct drm_i915_private {
 
 	/* protects the irq masks */
 	spinlock_t irq_lock;
-
-	/* protects the mmio flip data */
-	spinlock_t mmio_flip_lock;
 
 	bool display_irqs_enabled;
 
@@ -2255,7 +2305,6 @@ struct drm_i915_private {
 
 	struct intel_crtc *plane_to_crtc_mapping[I915_MAX_PIPES];
 	struct intel_crtc *pipe_to_crtc_mapping[I915_MAX_PIPES];
-	wait_queue_head_t pending_flip_queue;
 
 #ifdef CONFIG_DEBUG_FS
 	struct intel_pipe_crc pipe_crc[I915_MAX_PIPES];
@@ -2416,10 +2465,32 @@ struct drm_i915_private {
 		struct kobject *metrics_kobj;
 		struct ctl_table_header *sysctl_header;
 
+		/*
+		 * Lock associated with adding/modifying/removing OA configs
+		 * in dev_priv->perf.metrics_idr.
+		 */
+		struct mutex metrics_lock;
+
+		/*
+		 * List of dynamic configurations, you need to hold
+		 * dev_priv->perf.metrics_lock to access it.
+		 */
+		struct idr metrics_idr;
+
+		/*
+		 * Lock associated with anything below within this structure
+		 * except exclusive_stream.
+		 */
 		struct mutex lock;
 		struct list_head streams;
 
 		struct {
+			/*
+			 * The stream currently using the OA unit. If accessed
+			 * outside a syscall associated to its file
+			 * descriptor, you need to hold
+			 * dev_priv->drm.struct_mutex.
+			 */
 			struct i915_perf_stream *exclusive_stream;
 
 			u32 specific_ctx_id;
@@ -2438,16 +2509,7 @@ struct drm_i915_private {
 			int period_exponent;
 			int timestamp_frequency;
 
-			int metrics_set;
-
-			const struct i915_oa_reg *mux_regs[6];
-			int mux_regs_lens[6];
-			int n_mux_configs;
-
-			const struct i915_oa_reg *b_counter_regs;
-			int b_counter_regs_len;
-			const struct i915_oa_reg *flex_regs;
-			int flex_regs_len;
+			struct i915_oa_config test_config;
 
 			struct {
 				struct i915_vma *vma;
@@ -2534,7 +2596,6 @@ struct drm_i915_private {
 
 			struct i915_oa_ops ops;
 			const struct i915_oa_format *oa_formats;
-			int n_builtin_sets;
 		} oa;
 	} perf;
 
@@ -3108,8 +3169,12 @@ extern int i915_driver_load(struct pci_dev *pdev,
 extern void i915_driver_unload(struct drm_device *dev);
 extern int intel_gpu_reset(struct drm_i915_private *dev_priv, u32 engine_mask);
 extern bool intel_has_gpu_reset(struct drm_i915_private *dev_priv);
-extern void i915_reset(struct drm_i915_private *dev_priv);
-extern int i915_reset_engine(struct intel_engine_cs *engine);
+
+#define I915_RESET_QUIET BIT(0)
+extern void i915_reset(struct drm_i915_private *i915, unsigned int flags);
+extern int i915_reset_engine(struct intel_engine_cs *engine,
+			     unsigned int flags);
+
 extern bool intel_has_reset_engine(struct drm_i915_private *dev_priv);
 extern int intel_guc_reset(struct drm_i915_private *dev_priv);
 extern void intel_engine_init_hangcheck(struct intel_engine_cs *engine);
@@ -3296,6 +3361,26 @@ static inline void i915_gem_drain_freed_objects(struct drm_i915_private *i915)
 	do {
 		rcu_barrier();
 	} while (flush_work(&i915->mm.free_work));
+}
+
+static inline void i915_gem_drain_workqueue(struct drm_i915_private *i915)
+{
+	/*
+	 * Similar to objects above (see i915_gem_drain_freed-objects), in
+	 * general we have workers that are armed by RCU and then rearm
+	 * themselves in their callbacks. To be paranoid, we need to
+	 * drain the workqueue a second time after waiting for the RCU
+	 * grace period so that we catch work queued via RCU from the first
+	 * pass. As neither drain_workqueue() nor flush_workqueue() report
+	 * a result, we make an assumption that we only don't require more
+	 * than 2 passes to catch all recursive RCU delayed work.
+	 *
+	 */
+	int pass = 2;
+	do {
+		rcu_barrier();
+		drain_workqueue(i915->wq);
+	} while (--pass);
 }
 
 struct i915_vma * __must_check
@@ -3595,6 +3680,10 @@ i915_gem_context_lookup_timeline(struct i915_gem_context *ctx,
 
 int i915_perf_open_ioctl(struct drm_device *dev, void *data,
 			 struct drm_file *file);
+int i915_perf_add_config_ioctl(struct drm_device *dev, void *data,
+			       struct drm_file *file);
+int i915_perf_remove_config_ioctl(struct drm_device *dev, void *data,
+				  struct drm_file *file);
 void i915_oa_init_reg_state(struct intel_engine_cs *engine,
 			    struct i915_gem_context *ctx,
 			    uint32_t *reg_state);
