@@ -2374,7 +2374,7 @@ static int selinux_bprm_set_creds(struct linux_binprm *bprm)
 
 	/* SELinux context only depends on initial program or script and not
 	 * the script interpreter */
-	if (bprm->cred_prepared)
+	if (bprm->called_set_creds)
 		return 0;
 
 	old_tsec = current_security();
@@ -2460,30 +2460,17 @@ static int selinux_bprm_set_creds(struct linux_binprm *bprm)
 
 		/* Clear any possibly unsafe personality bits on exec: */
 		bprm->per_clear |= PER_CLEAR_ON_SETID;
-	}
 
-	return 0;
-}
-
-static int selinux_bprm_secureexec(struct linux_binprm *bprm)
-{
-	const struct task_security_struct *tsec = current_security();
-	u32 sid, osid;
-	int atsecure = 0;
-
-	sid = tsec->sid;
-	osid = tsec->osid;
-
-	if (osid != sid) {
 		/* Enable secure mode for SIDs transitions unless
 		   the noatsecure permission is granted between
 		   the two SIDs, i.e. ahp returns 0. */
-		atsecure = avc_has_perm(osid, sid,
-					SECCLASS_PROCESS,
-					PROCESS__NOATSECURE, NULL);
+		rc = avc_has_perm(old_tsec->sid, new_tsec->sid,
+				  SECCLASS_PROCESS, PROCESS__NOATSECURE,
+				  NULL);
+		bprm->secureexec |= !!rc;
 	}
 
-	return !!atsecure;
+	return 0;
 }
 
 static int match_file(const void *p, struct file *file, unsigned fd)
@@ -6284,7 +6271,6 @@ static struct security_hook_list selinux_hooks[] __lsm_ro_after_init = {
 	LSM_HOOK_INIT(bprm_set_creds, selinux_bprm_set_creds),
 	LSM_HOOK_INIT(bprm_committing_creds, selinux_bprm_committing_creds),
 	LSM_HOOK_INIT(bprm_committed_creds, selinux_bprm_committed_creds),
-	LSM_HOOK_INIT(bprm_secureexec, selinux_bprm_secureexec),
 
 	LSM_HOOK_INIT(sb_alloc_security, selinux_sb_alloc_security),
 	LSM_HOOK_INIT(sb_free_security, selinux_sb_free_security),
