@@ -109,6 +109,7 @@ enum {
 	Opt_nolazytime,
 	Opt_usrquota,
 	Opt_grpquota,
+	Opt_prjquota,
 	Opt_err,
 };
 
@@ -146,6 +147,7 @@ static match_table_t f2fs_tokens = {
 	{Opt_nolazytime, "nolazytime"},
 	{Opt_usrquota, "usrquota"},
 	{Opt_grpquota, "grpquota"},
+	{Opt_prjquota, "prjquota"},
 	{Opt_err, NULL},
 };
 
@@ -392,9 +394,13 @@ static int parse_options(struct super_block *sb, char *options)
 		case Opt_grpquota:
 			set_opt(sbi, GRPQUOTA);
 			break;
+		case Opt_prjquota:
+			set_opt(sbi, PRJQUOTA);
+			break;
 #else
 		case Opt_usrquota:
 		case Opt_grpquota:
+		case Opt_prjquota:
 			f2fs_msg(sb, KERN_INFO,
 					"quota operations not supported");
 			break;
@@ -446,6 +452,7 @@ static struct inode *f2fs_alloc_inode(struct super_block *sb)
 #endif
 	/* Will be used by directory only */
 	fi->i_dir_level = F2FS_SB(sb)->dir_level;
+
 	return &fi->vfs_inode;
 }
 
@@ -642,7 +649,7 @@ static void f2fs_put_super(struct super_block *sb)
 
 	kfree(sbi->ckpt);
 
-	f2fs_exit_sysfs(sbi);
+	f2fs_unregister_sysfs(sbi);
 
 	sb->s_fs_info = NULL;
 	if (sbi->s_chksum_driver)
@@ -698,6 +705,48 @@ static int f2fs_unfreeze(struct super_block *sb)
 	return 0;
 }
 
+#ifdef CONFIG_QUOTA
+static int f2fs_statfs_project(struct super_block *sb,
+				kprojid_t projid, struct kstatfs *buf)
+{
+	struct kqid qid;
+	struct dquot *dquot;
+	u64 limit;
+	u64 curblock;
+
+	qid = make_kqid_projid(projid);
+	dquot = dqget(sb, qid);
+	if (IS_ERR(dquot))
+		return PTR_ERR(dquot);
+	spin_lock(&dq_data_lock);
+
+	limit = (dquot->dq_dqb.dqb_bsoftlimit ?
+		 dquot->dq_dqb.dqb_bsoftlimit :
+		 dquot->dq_dqb.dqb_bhardlimit) >> sb->s_blocksize_bits;
+	if (limit && buf->f_blocks > limit) {
+		curblock = dquot->dq_dqb.dqb_curspace >> sb->s_blocksize_bits;
+		buf->f_blocks = limit;
+		buf->f_bfree = buf->f_bavail =
+			(buf->f_blocks > curblock) ?
+			 (buf->f_blocks - curblock) : 0;
+	}
+
+	limit = dquot->dq_dqb.dqb_isoftlimit ?
+		dquot->dq_dqb.dqb_isoftlimit :
+		dquot->dq_dqb.dqb_ihardlimit;
+	if (limit && buf->f_files > limit) {
+		buf->f_files = limit;
+		buf->f_ffree =
+			(buf->f_files > dquot->dq_dqb.dqb_curinodes) ?
+			 (buf->f_files - dquot->dq_dqb.dqb_curinodes) : 0;
+	}
+
+	spin_unlock(&dq_data_lock);
+	dqput(dquot);
+	return 0;
+}
+#endif
+
 static int f2fs_statfs(struct dentry *dentry, struct kstatfs *buf)
 {
 	struct super_block *sb = dentry->d_sb;
@@ -733,6 +782,12 @@ static int f2fs_statfs(struct dentry *dentry, struct kstatfs *buf)
 	buf->f_fsid.val[0] = (u32)id;
 	buf->f_fsid.val[1] = (u32)(id >> 32);
 
+#ifdef CONFIG_QUOTA
+	if (is_inode_flag_set(dentry->d_inode, FI_PROJ_INHERIT) &&
+			sb_has_quota_limits_enabled(sb, PRJQUOTA)) {
+		f2fs_statfs_project(sb, F2FS_I(dentry->d_inode)->i_projid, buf);
+	}
+#endif
 	return 0;
 }
 
@@ -813,6 +868,8 @@ static int f2fs_show_options(struct seq_file *seq, struct dentry *root)
 		seq_puts(seq, ",usrquota");
 	if (test_opt(sbi, GRPQUOTA))
 		seq_puts(seq, ",grpquota");
+	if (test_opt(sbi, PRJQUOTA))
+		seq_puts(seq, ",prjquota");
 #endif
 
 	return 0;
@@ -1065,7 +1122,7 @@ static ssize_t f2fs_quota_write(struct super_block *sb, int type,
 	}
 
 	if (len == towrite)
-		return err;
+		return 0;
 	inode->i_version++;
 	inode->i_mtime = inode->i_ctime = current_time(inode);
 	f2fs_mark_inode_dirty_sync(inode, false);
@@ -1171,6 +1228,12 @@ static void f2fs_quota_off_umount(struct super_block *sb)
 		f2fs_quota_off(sb, type);
 }
 
+int f2fs_get_projid(struct inode *inode, kprojid_t *projid)
+{
+	*projid = F2FS_I(inode)->i_projid;
+	return 0;
+}
+
 static const struct dquot_operations f2fs_quota_operations = {
 	.get_reserved_space = f2fs_get_reserved_space,
 	.write_dquot	= dquot_commit,
@@ -1180,6 +1243,7 @@ static const struct dquot_operations f2fs_quota_operations = {
 	.write_info	= dquot_commit_info,
 	.alloc_dquot	= dquot_alloc,
 	.destroy_dquot	= dquot_destroy,
+	.get_projid	= f2fs_get_projid,
 	.get_next_id	= dquot_get_next_id,
 };
 
@@ -1303,8 +1367,15 @@ static const struct export_operations f2fs_export_ops = {
 
 static loff_t max_file_blocks(void)
 {
-	loff_t result = (DEF_ADDRS_PER_INODE - F2FS_INLINE_XATTR_ADDRS);
+	loff_t result = 0;
 	loff_t leaf_count = ADDRS_PER_BLOCK;
+
+	/*
+	 * note: previously, result is equal to (DEF_ADDRS_PER_INODE -
+	 * F2FS_INLINE_XATTR_ADDRS), but now f2fs try to reserve more
+	 * space in inode.i_addr, it will be more safe to reassign
+	 * result as zero.
+	 */
 
 	/* two direct node blocks */
 	result += (leaf_count * 2);
@@ -1956,7 +2027,7 @@ try_onemore:
 #ifdef CONFIG_QUOTA
 	sb->dq_op = &f2fs_quota_operations;
 	sb->s_qcop = &f2fs_quotactl_ops;
-	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP | QTYPE_MASK_PRJ;
 #endif
 
 	sb->s_op = &f2fs_sops;
@@ -2122,7 +2193,7 @@ try_onemore:
 		goto free_root_inode;
 	}
 
-	err = f2fs_init_sysfs(sbi);
+	err = f2fs_register_sysfs(sbi);
 	if (err)
 		goto free_root_inode;
 
@@ -2193,7 +2264,7 @@ skip_recovery:
 
 free_sysfs:
 	f2fs_sync_inode_meta(sbi);
-	f2fs_exit_sysfs(sbi);
+	f2fs_unregister_sysfs(sbi);
 free_root_inode:
 	dput(sb->s_root);
 	sb->s_root = NULL;
@@ -2311,7 +2382,7 @@ static int __init init_f2fs_fs(void)
 	err = create_extent_cache();
 	if (err)
 		goto free_checkpoint_caches;
-	err = f2fs_register_sysfs();
+	err = f2fs_init_sysfs();
 	if (err)
 		goto free_extent_cache;
 	err = register_shrinker(&f2fs_shrinker_info);
@@ -2330,7 +2401,7 @@ free_filesystem:
 free_shrinker:
 	unregister_shrinker(&f2fs_shrinker_info);
 free_sysfs:
-	f2fs_unregister_sysfs();
+	f2fs_exit_sysfs();
 free_extent_cache:
 	destroy_extent_cache();
 free_checkpoint_caches:
@@ -2350,7 +2421,7 @@ static void __exit exit_f2fs_fs(void)
 	f2fs_destroy_root_stats();
 	unregister_filesystem(&f2fs_fs_type);
 	unregister_shrinker(&f2fs_shrinker_info);
-	f2fs_unregister_sysfs();
+	f2fs_exit_sysfs();
 	destroy_extent_cache();
 	destroy_checkpoint_caches();
 	destroy_segment_manager_caches();

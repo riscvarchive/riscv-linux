@@ -178,6 +178,7 @@ F2FS_RW_ATTR(GC_THREAD, f2fs_gc_kthread, gc_no_gc_sleep_time, no_gc_sleep_time);
 F2FS_RW_ATTR(GC_THREAD, f2fs_gc_kthread, gc_idle, gc_idle);
 F2FS_RW_ATTR(SM_INFO, f2fs_sm_info, reclaim_segments, rec_prefree_segments);
 F2FS_RW_ATTR(DCC_INFO, discard_cmd_control, max_small_discards, max_discards);
+F2FS_RW_ATTR(DCC_INFO, discard_cmd_control, discard_granularity, discard_granularity);
 F2FS_RW_ATTR(RESERVED_BLOCKS, f2fs_sb_info, reserved_blocks, reserved_blocks);
 F2FS_RW_ATTR(SM_INFO, f2fs_sm_info, batched_trim_sections, trim_sections);
 F2FS_RW_ATTR(SM_INFO, f2fs_sm_info, ipu_policy, ipu_policy);
@@ -205,6 +206,7 @@ static struct attribute *f2fs_attrs[] = {
 	ATTR_LIST(gc_idle),
 	ATTR_LIST(reclaim_segments),
 	ATTR_LIST(max_small_discards),
+	ATTR_LIST(discard_granularity),
 	ATTR_LIST(batched_trim_sections),
 	ATTR_LIST(ipu_policy),
 	ATTR_LIST(min_ipu_util),
@@ -304,7 +306,7 @@ static const struct file_operations f2fs_seq_##_name##_fops = {		\
 F2FS_PROC_FILE_DEF(segment_info);
 F2FS_PROC_FILE_DEF(segment_bits);
 
-int __init f2fs_register_sysfs(void)
+int __init f2fs_init_sysfs(void)
 {
 	f2fs_proc_root = proc_mkdir("fs/f2fs", NULL);
 
@@ -314,13 +316,13 @@ int __init f2fs_register_sysfs(void)
 	return 0;
 }
 
-void f2fs_unregister_sysfs(void)
+void f2fs_exit_sysfs(void)
 {
 	kset_unregister(f2fs_kset);
 	remove_proc_entry("fs/f2fs", NULL);
 }
 
-int f2fs_init_sysfs(struct f2fs_sb_info *sbi)
+int f2fs_register_sysfs(struct f2fs_sb_info *sbi)
 {
 	struct super_block *sb = sbi->sb;
 	int err;
@@ -351,7 +353,7 @@ err_out:
 	return err;
 }
 
-void f2fs_exit_sysfs(struct f2fs_sb_info *sbi)
+void f2fs_unregister_sysfs(struct f2fs_sb_info *sbi)
 {
 	kobject_del(&sbi->s_kobj);
 	kobject_put(&sbi->s_kobj);
