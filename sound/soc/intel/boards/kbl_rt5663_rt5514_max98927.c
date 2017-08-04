@@ -62,6 +62,8 @@ struct kbl_codec_private {
 enum {
 	KBL_DPCM_AUDIO_PB = 0,
 	KBL_DPCM_AUDIO_CP,
+	KBL_DPCM_AUDIO_HS_PB,
+	KBL_DPCM_AUDIO_ECHO_REF_CP,
 	KBL_DPCM_AUDIO_DMIC_CP,
 	KBL_DPCM_AUDIO_HDMI1_PB,
 	KBL_DPCM_AUDIO_HDMI2_PB,
@@ -105,12 +107,12 @@ static const struct snd_soc_dapm_route kabylake_map[] = {
 	/* CODEC BE connections */
 	{ "Left HiFi Playback", NULL, "ssp0 Tx" },
 	{ "Right HiFi Playback", NULL, "ssp0 Tx" },
-	{ "ssp0 Tx", NULL, "codec0_out" },
+	{ "ssp0 Tx", NULL, "spk_out" },
 
 	{ "AIF Playback", NULL, "ssp1 Tx" },
-	{ "ssp1 Tx", NULL, "codec1_out" },
+	{ "ssp1 Tx", NULL, "hs_out" },
 
-	{ "codec0_in", NULL, "ssp1 Rx" },
+	{ "hs_in", NULL, "ssp1 Rx" },
 	{ "ssp1 Rx", NULL, "AIF Capture" },
 
 	{ "codec1_in", NULL, "ssp0 Rx" },
@@ -358,11 +360,18 @@ static int kabylake_ssp0_hw_params(struct snd_pcm_substream *substream,
 				return ret;
 			}
 		}
-		if (!strcmp(codec_dai->component->name, MAXIM_DEV0_NAME) ||
-			!strcmp(codec_dai->component->name, MAXIM_DEV1_NAME)) {
-			ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xF0, 3, 8, 16);
+		if (!strcmp(codec_dai->component->name, MAXIM_DEV0_NAME)) {
+			ret = snd_soc_dai_set_tdm_slot(codec_dai, 0x30, 3, 8, 16);
 			if (ret < 0) {
-				dev_err(rtd->dev, "set TDM slot err:%d\n", ret);
+				dev_err(rtd->dev, "DEV0 TDM slot err:%d\n", ret);
+				return ret;
+			}
+		}
+
+		if (!strcmp(codec_dai->component->name, MAXIM_DEV1_NAME)) {
+			ret = snd_soc_dai_set_tdm_slot(codec_dai, 0xC0, 3, 8, 16);
+			if (ret < 0) {
+				dev_err(rtd->dev, "DEV1 TDM slot err:%d\n", ret);
 				return ret;
 			}
 		}
@@ -441,6 +450,28 @@ static struct snd_soc_dai_link kabylake_dais[] = {
 			SND_SOC_DPCM_TRIGGER_POST, SND_SOC_DPCM_TRIGGER_POST},
 		.dpcm_capture = 1,
 		.ops = &kabylake_rt5663_fe_ops,
+	},
+	[KBL_DPCM_AUDIO_HS_PB] = {
+		.name = "Kbl Audio Headset Playback",
+		.stream_name = "Headset Audio",
+		.cpu_dai_name = "System Pin2",
+		.codec_name = "snd-soc-dummy",
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.platform_name = "0000:00:1f.3",
+		.dpcm_playback = 1,
+		.nonatomic = 1,
+		.dynamic = 1,
+	},
+	[KBL_DPCM_AUDIO_ECHO_REF_CP] = {
+		.name = "Kbl Audio Echo Reference cap",
+		.stream_name = "Echoreference Capture",
+		.cpu_dai_name = "Echoref Pin",
+		.codec_name = "snd-soc-dummy",
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.platform_name = "0000:00:1f.3",
+		.init = NULL,
+		.capture_only = 1,
+		.nonatomic = 1,
 	},
 	[KBL_DPCM_AUDIO_DMIC_CP] = {
 		.name = "Kbl Audio DMIC cap",

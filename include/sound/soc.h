@@ -888,7 +888,6 @@ struct snd_soc_codec {
 	struct list_head list;
 
 	/* runtime */
-	unsigned int cache_bypass:1; /* Suppress access to the cache */
 	unsigned int cache_init:1; /* codec cache has been initialized */
 
 	/* codec IO */
@@ -1234,7 +1233,6 @@ struct snd_soc_pcm_runtime {
 	struct delayed_work delayed_work;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_dpcm_root;
-	struct dentry *debugfs_dpcm_state;
 #endif
 
 	unsigned int num; /* 0-based and monotonic increasing */

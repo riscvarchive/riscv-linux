@@ -22,6 +22,7 @@
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include "skl-sst-dsp.h"
+#include "cnl-sst-dsp.h"
 #include "skl-sst-ipc.h"
 #include "skl.h"
 #include "../common/sst-dsp.h"
@@ -201,6 +202,7 @@ static struct skl_dsp_loader_ops bxt_get_loader_ops(void)
 static const struct skl_dsp_ops dsp_ops[] = {
 	{
 		.id = 0x9d70,
+		.num_cores = 2,
 		.loader_ops = skl_get_loader_ops,
 		.init = skl_sst_dsp_init,
 		.init_fw = skl_sst_init_fw,
@@ -208,6 +210,7 @@ static const struct skl_dsp_ops dsp_ops[] = {
 	},
 	{
 		.id = 0x9d71,
+		.num_cores = 2,
 		.loader_ops = skl_get_loader_ops,
 		.init = kbl_sst_dsp_init,
 		.init_fw = skl_sst_init_fw,
@@ -215,6 +218,7 @@ static const struct skl_dsp_ops dsp_ops[] = {
 	},
 	{
 		.id = 0x5a98,
+		.num_cores = 2,
 		.loader_ops = bxt_get_loader_ops,
 		.init = bxt_sst_dsp_init,
 		.init_fw = bxt_sst_init_fw,
@@ -222,10 +226,19 @@ static const struct skl_dsp_ops dsp_ops[] = {
 	},
 	{
 		.id = 0x3198,
+		.num_cores = 2,
 		.loader_ops = bxt_get_loader_ops,
 		.init = bxt_sst_dsp_init,
 		.init_fw = bxt_sst_init_fw,
 		.cleanup = bxt_sst_dsp_cleanup
+	},
+	{
+		.id = 0x9dc8,
+		.num_cores = 4,
+		.loader_ops = bxt_get_loader_ops,
+		.init = cnl_sst_dsp_init,
+		.init_fw = cnl_sst_init_fw,
+		.cleanup = cnl_sst_dsp_cleanup
 	},
 };
 
@@ -249,6 +262,7 @@ int skl_init_dsp(struct skl *skl)
 	struct skl_dsp_loader_ops loader_ops;
 	int irq = bus->irq;
 	const struct skl_dsp_ops *ops;
+	struct skl_dsp_cores *cores;
 	int ret;
 
 	/* enable ppcap interrupt */
@@ -275,6 +289,20 @@ int skl_init_dsp(struct skl *skl)
 		return ret;
 
 	skl->skl_sst->dsp_ops = ops;
+	cores = &skl->skl_sst->cores;
+	cores->count = ops->num_cores;
+
+	cores->state = kcalloc(cores->count, sizeof(*cores->state), GFP_KERNEL);
+	if (!cores->state)
+		return -ENOMEM;
+
+	cores->usage_count = kcalloc(cores->count, sizeof(*cores->usage_count),
+				     GFP_KERNEL);
+	if (!cores->usage_count) {
+		kfree(cores->state);
+		return -ENOMEM;
+	}
+
 	dev_dbg(bus->dev, "dsp registration status=%d\n", ret);
 
 	return ret;
@@ -290,6 +318,9 @@ int skl_free_dsp(struct skl *skl)
 	snd_hdac_ext_bus_ppcap_int_enable(&skl->ebus, false);
 
 	ctx->dsp_ops->cleanup(bus->dev, ctx);
+
+	kfree(ctx->cores.state);
+	kfree(ctx->cores.usage_count);
 
 	if (ctx->dsp->addr.lpe)
 		iounmap(ctx->dsp->addr.lpe);
@@ -950,7 +981,7 @@ static void skl_dump_bind_info(struct skl_sst *ctx, struct skl_module_cfg
 {
 	dev_dbg(ctx->dev, "%s: src module_id = %d  src_instance=%d\n",
 		__func__, src_module->id.module_id, src_module->id.pvt_id);
-	dev_dbg(ctx->dev, "%s: dst_module=%d dst_instacne=%d\n", __func__,
+	dev_dbg(ctx->dev, "%s: dst_module=%d dst_instance=%d\n", __func__,
 		 dst_module->id.module_id, dst_module->id.pvt_id);
 
 	dev_dbg(ctx->dev, "src_module state = %d dst module state = %d\n",
