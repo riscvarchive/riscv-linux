@@ -444,8 +444,8 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 		ret = drm_universal_plane_init(rcdu->ddev, &plane->plane, crtcs,
 					       &rcar_du_vsp_plane_funcs,
 					       formats_kms,
-					       ARRAY_SIZE(formats_kms), type,
-					       NULL);
+					       ARRAY_SIZE(formats_kms),
+					       NULL, type, NULL);
 		if (ret < 0)
 			return ret;
 
