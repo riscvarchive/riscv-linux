@@ -73,6 +73,10 @@ bool dumpstate = false;
 MODULE_PARM_DESC(dumpstate, "Dump KMS state on errors");
 module_param(dumpstate, bool, 0600);
 
+static bool modeset = true;
+MODULE_PARM_DESC(modeset, "Use kernel modesetting [KMS] (1=on (default), 0=disable)");
+module_param(modeset, bool, 0600);
+
 /*
  * Util/helpers:
  */
@@ -510,22 +514,35 @@ static void load_gpu(struct drm_device *dev)
 	mutex_unlock(&init_lock);
 }
 
-static int msm_open(struct drm_device *dev, struct drm_file *file)
+static int context_init(struct drm_device *dev, struct drm_file *file)
 {
 	struct msm_file_private *ctx;
-
-	/* For now, load gpu on open.. to avoid the requirement of having
-	 * firmware in the initrd.
-	 */
-	load_gpu(dev);
 
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
 		return -ENOMEM;
 
+	msm_submitqueue_init(dev, ctx);
+
 	file->driver_priv = ctx;
 
 	return 0;
+}
+
+static int msm_open(struct drm_device *dev, struct drm_file *file)
+{
+	/* For now, load gpu on open.. to avoid the requirement of having
+	 * firmware in the initrd.
+	 */
+	load_gpu(dev);
+
+	return context_init(dev, file);
+}
+
+static void context_close(struct msm_file_private *ctx)
+{
+	msm_submitqueue_close(ctx);
+	kfree(ctx);
 }
 
 static void msm_postclose(struct drm_device *dev, struct drm_file *file)
@@ -538,7 +555,7 @@ static void msm_postclose(struct drm_device *dev, struct drm_file *file)
 		priv->lastctx = NULL;
 	mutex_unlock(&dev->struct_mutex);
 
-	kfree(ctx);
+	context_close(ctx);
 }
 
 static void msm_lastclose(struct drm_device *dev)
@@ -733,6 +750,8 @@ static int msm_ioctl_wait_fence(struct drm_device *dev, void *data,
 	struct msm_drm_private *priv = dev->dev_private;
 	struct drm_msm_wait_fence *args = data;
 	ktime_t timeout = to_ktime(args->timeout);
+	struct msm_gpu_submitqueue *queue;
+	int ret;
 
 	if (args->pad) {
 		DRM_ERROR("invalid pad: %08x\n", args->pad);
@@ -742,7 +761,14 @@ static int msm_ioctl_wait_fence(struct drm_device *dev, void *data,
 	if (!priv->gpu)
 		return 0;
 
-	return msm_wait_fence(priv->gpu->fctx, args->fence, &timeout, true);
+	queue = msm_submitqueue_get(file->driver_priv, args->queueid);
+	if (!queue)
+		return -ENOENT;
+
+	ret = msm_wait_fence(queue->fctx, args->fence, &timeout, true);
+
+	msm_submitqueue_put(queue);
+	return ret;
 }
 
 static int msm_ioctl_gem_madvise(struct drm_device *dev, void *data,
@@ -783,6 +809,28 @@ unlock:
 	return ret;
 }
 
+
+static int msm_ioctl_submitqueue_new(struct drm_device *dev, void *data,
+		struct drm_file *file)
+{
+	struct drm_msm_submitqueue *args = data;
+
+	if (args->flags & ~MSM_SUBMITQUEUE_FLAGS)
+		return -EINVAL;
+
+	return msm_submitqueue_create(dev, file->driver_priv, args->prio,
+		args->flags, &args->id);
+}
+
+
+static int msm_ioctl_submitqueue_close(struct drm_device *dev, void *data,
+		struct drm_file *file)
+{
+	struct drm_msm_submitqueue *args = data;
+
+	return msm_submitqueue_remove(file->driver_priv, args->id);
+}
+
 static const struct drm_ioctl_desc msm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(MSM_GET_PARAM,    msm_ioctl_get_param,    DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(MSM_GEM_NEW,      msm_ioctl_gem_new,      DRM_AUTH|DRM_RENDER_ALLOW),
@@ -792,6 +840,8 @@ static const struct drm_ioctl_desc msm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(MSM_GEM_SUBMIT,   msm_ioctl_gem_submit,   DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(MSM_WAIT_FENCE,   msm_ioctl_wait_fence,   DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(MSM_GEM_MADVISE,  msm_ioctl_gem_madvise,  DRM_AUTH|DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(MSM_SUBMITQUEUE_NEW,   msm_ioctl_submitqueue_new,   DRM_AUTH|DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(MSM_SUBMITQUEUE_CLOSE, msm_ioctl_submitqueue_close, DRM_AUTH|DRM_RENDER_ALLOW),
 };
 
 static const struct vm_operations_struct vm_ops = {
@@ -879,8 +929,37 @@ static int msm_pm_resume(struct device *dev)
 }
 #endif
 
+#ifdef CONFIG_PM
+static int msm_runtime_suspend(struct device *dev)
+{
+	struct drm_device *ddev = dev_get_drvdata(dev);
+	struct msm_drm_private *priv = ddev->dev_private;
+
+	DBG("");
+
+	if (priv->mdss)
+		return msm_mdss_disable(priv->mdss);
+
+	return 0;
+}
+
+static int msm_runtime_resume(struct device *dev)
+{
+	struct drm_device *ddev = dev_get_drvdata(dev);
+	struct msm_drm_private *priv = ddev->dev_private;
+
+	DBG("");
+
+	if (priv->mdss)
+		return msm_mdss_enable(priv->mdss);
+
+	return 0;
+}
+#endif
+
 static const struct dev_pm_ops msm_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(msm_pm_suspend, msm_pm_resume)
+	SET_RUNTIME_PM_OPS(msm_runtime_suspend, msm_runtime_resume, NULL)
 };
 
 /*
@@ -1104,6 +1183,9 @@ static struct platform_driver msm_platform_driver = {
 
 static int __init msm_drm_register(void)
 {
+	if (!modeset)
+		return -EINVAL;
+
 	DBG("init");
 	msm_mdp_register();
 	msm_dsi_register();

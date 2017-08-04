@@ -55,14 +55,10 @@ struct msm_fence_cb;
 struct msm_gem_address_space;
 struct msm_gem_vma;
 
-#define NUM_DOMAINS 2    /* one for KMS, then one per gpu core (?) */
-
 struct msm_file_private {
-	/* currently we don't do anything useful with this.. but when
-	 * per-context address spaces are supported we'd keep track of
-	 * the context's page-tables here.
-	 */
-	int dummy;
+	rwlock_t queuelock;
+	struct list_head submitqueues;
+	int queueid;
 };
 
 enum msm_mdp_plane_property {
@@ -77,6 +73,8 @@ struct msm_vblank_ctrl {
 	struct list_head event_list;
 	spinlock_t lock;
 };
+
+#define MSM_GPU_MAX_RINGS 4
 
 struct msm_drm_private {
 
@@ -237,6 +235,12 @@ struct drm_gem_object *msm_gem_new(struct drm_device *dev,
 		uint32_t size, uint32_t flags);
 struct drm_gem_object *msm_gem_new_locked(struct drm_device *dev,
 		uint32_t size, uint32_t flags);
+void *msm_gem_kernel_new(struct drm_device *dev, uint32_t size,
+		uint32_t flags, struct msm_gem_address_space *aspace,
+		struct drm_gem_object **bo, uint64_t *iova);
+void *msm_gem_kernel_new_locked(struct drm_device *dev, uint32_t size,
+		uint32_t flags, struct msm_gem_address_space *aspace,
+		struct drm_gem_object **bo, uint64_t *iova);
 struct drm_gem_object *msm_gem_import(struct drm_device *dev,
 		struct dma_buf *dmabuf, struct sg_table *sgt);
 
@@ -248,10 +252,10 @@ uint32_t msm_framebuffer_iova(struct drm_framebuffer *fb,
 		struct msm_gem_address_space *aspace, int plane);
 struct drm_gem_object *msm_framebuffer_bo(struct drm_framebuffer *fb, int plane);
 const struct msm_format *msm_framebuffer_format(struct drm_framebuffer *fb);
-struct drm_framebuffer *msm_framebuffer_init(struct drm_device *dev,
-		const struct drm_mode_fb_cmd2 *mode_cmd, struct drm_gem_object **bos);
 struct drm_framebuffer *msm_framebuffer_create(struct drm_device *dev,
 		struct drm_file *file, const struct drm_mode_fb_cmd2 *mode_cmd);
+struct drm_framebuffer * msm_alloc_stolen_fb(struct drm_device *dev,
+		int w, int h, int p, uint32_t format);
 
 struct drm_fb_helper *msm_fbdev_init(struct drm_device *dev);
 void msm_fbdev_free(struct drm_device *dev);
@@ -314,6 +318,18 @@ void __iomem *msm_ioremap(struct platform_device *pdev, const char *name,
 		const char *dbgname);
 void msm_writel(u32 data, void __iomem *addr);
 u32 msm_readl(const void __iomem *addr);
+
+struct msm_gpu_submitqueue;
+int msm_submitqueue_init(struct drm_device *drm, struct msm_file_private *ctx);
+struct msm_gpu_submitqueue *msm_submitqueue_get(struct msm_file_private *ctx,
+		u32 id);
+int msm_submitqueue_create(struct drm_device *drm, struct msm_file_private *ctx,
+		u32 prio, u32 flags, u32 *id);
+int msm_submitqueue_remove(struct msm_file_private *ctx, u32 id);
+void msm_submitqueue_close(struct msm_file_private *ctx);
+
+void msm_submitqueue_destroy(struct kref *kref);
+
 
 #define DBG(fmt, ...) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
 #define VERB(fmt, ...) if (0) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
