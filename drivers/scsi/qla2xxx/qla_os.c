@@ -710,7 +710,7 @@ qla2x00_sp_free_dma(void *ptr)
 	}
 
 end:
-	if ((sp->type != SRB_NVME_CMD) && (sp->type != SRB_NVME_LS)) {
+	if (sp->type != SRB_NVME_CMD && sp->type != SRB_NVME_LS) {
 		CMD_SP(cmd) = NULL;
 		qla2x00_rel_sp(sp);
 	}
@@ -1715,8 +1715,8 @@ qla2x00_abort_all_cmds(scsi_qla_host_t *vha, int res)
 			if (sp) {
 				req->outstanding_cmds[cnt] = NULL;
 				if (sp->cmd_type == TYPE_SRB) {
-					if ((sp->type == SRB_NVME_CMD) ||
-					    (sp->type == SRB_NVME_LS)) {
+					if (sp->type == SRB_NVME_CMD ||
+					    sp->type == SRB_NVME_LS) {
 						sp_get(sp);
 						spin_unlock_irqrestore(
 						    &ha->hardware_lock, flags);
@@ -2751,6 +2751,7 @@ qla2x00_probe_one(struct pci_dev *pdev, const struct pci_device_id *id)
 	spin_lock_init(&ha->tgt.sess_lock);
 	spin_lock_init(&ha->tgt.atio_lock);
 
+	atomic_set(&ha->nvme_active_aen_cnt, 0);
 
 	/* Clear our data area */
 	ha->bars = bars;
@@ -5828,6 +5829,17 @@ intr_on_check:
 			mutex_unlock(&ha->mq_lock);
 		}
 
+		if (test_and_clear_bit(SET_ZIO_THRESHOLD_NEEDED, &base_vha->dpc_flags)) {
+			ql_log(ql_log_info, base_vha, 0xffffff,
+				"nvme: SET ZIO Activity exchange threshold to %d.\n",
+						ha->nvme_last_rptd_aen);
+			if (qla27xx_set_zio_threshold(base_vha, ha->nvme_last_rptd_aen)) {
+				ql_log(ql_log_info, base_vha, 0xffffff,
+					"nvme: Unable to SET ZIO Activity exchange threshold to %d.\n",
+						ha->nvme_last_rptd_aen);
+			}
+		}
+
 		if (!IS_QLAFX00(ha))
 			qla2x00_do_dpc_all_vps(base_vha);
 
@@ -6025,12 +6037,15 @@ qla2x00_timer(scsi_qla_host_t *vha)
 	 * FC-NVME
 	 * see if the active AEN count has changed from what was last reported.
 	 */
-	if (atomic_read(&vha->nvme_active_aen_cnt) != vha->nvme_last_rptd_aen) {
-		vha->nvme_last_rptd_aen =
-		    atomic_read(&vha->nvme_active_aen_cnt);
+	if (!vha->vp_idx &&
+		atomic_read(&ha->nvme_active_aen_cnt) != ha->nvme_last_rptd_aen &&
+		ha->zio_mode == QLA_ZIO_MODE_6) {
 		ql_log(ql_log_info, vha, 0x3002,
-		    "reporting new aen count of %d to the fw\n",
-		    vha->nvme_last_rptd_aen);
+			"nvme: Sched: Set ZIO exchange threshold to %d.\n",
+			ha->nvme_last_rptd_aen);
+		ha->nvme_last_rptd_aen = atomic_read(&ha->nvme_active_aen_cnt);
+		set_bit(SET_ZIO_THRESHOLD_NEEDED, &vha->dpc_flags);
+		start_dpc++;
 	}
 
 	/* Schedule the DPC routine if needed */
