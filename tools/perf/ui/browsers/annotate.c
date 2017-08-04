@@ -9,14 +9,16 @@
 #include "../../util/symbol.h"
 #include "../../util/evsel.h"
 #include "../../util/config.h"
+#include "../../util/evlist.h"
 #include <inttypes.h>
 #include <pthread.h>
 #include <linux/kernel.h>
+#include <linux/string.h>
 #include <sys/ttydefaults.h>
 
 struct disasm_line_samples {
-	double		percent;
-	u64		nr;
+	double		      percent;
+	struct sym_hist_entry he;
 };
 
 #define IPC_WIDTH 6
@@ -108,11 +110,12 @@ static int annotate_browser__set_jumps_percent_color(struct annotate_browser *br
 
 static int annotate_browser__pcnt_width(struct annotate_browser *ab)
 {
-	int w = 7 * ab->nr_events;
+	return (annotate_browser__opts.show_total_period ? 12 : 7) * ab->nr_events;
+}
 
-	if (ab->have_cycles)
-		w += IPC_WIDTH + CYCLES_WIDTH;
-	return w;
+static int annotate_browser__cycles_width(struct annotate_browser *ab)
+{
+	return ab->have_cycles ? IPC_WIDTH + CYCLES_WIDTH : 0;
 }
 
 static void annotate_browser__write(struct ui_browser *browser, void *entry, int row)
@@ -125,7 +128,8 @@ static void annotate_browser__write(struct ui_browser *browser, void *entry, int
 			     (!current_entry || (browser->use_navkeypressed &&
 					         !browser->navkeypressed)));
 	int width = browser->width, printed;
-	int i, pcnt_width = annotate_browser__pcnt_width(ab);
+	int i, pcnt_width = annotate_browser__pcnt_width(ab),
+	       cycles_width = annotate_browser__cycles_width(ab);
 	double percent_max = 0.0;
 	char bf[256];
 	bool show_title = false;
@@ -149,8 +153,8 @@ static void annotate_browser__write(struct ui_browser *browser, void *entry, int
 						bdl->samples[i].percent,
 						current_entry);
 			if (annotate_browser__opts.show_total_period) {
-				ui_browser__printf(browser, "%6" PRIu64 " ",
-						   bdl->samples[i].nr);
+				ui_browser__printf(browser, "%11" PRIu64 " ",
+						   bdl->samples[i].he.period);
 			} else {
 				ui_browser__printf(browser, "%6.2f ",
 						   bdl->samples[i].percent);
@@ -160,9 +164,11 @@ static void annotate_browser__write(struct ui_browser *browser, void *entry, int
 		ui_browser__set_percent_color(browser, 0, current_entry);
 
 		if (!show_title)
-			ui_browser__write_nstring(browser, " ", 7 * ab->nr_events);
-		else
-			ui_browser__printf(browser, "%*s", 7, "Percent");
+			ui_browser__write_nstring(browser, " ", pcnt_width);
+		else {
+			ui_browser__printf(browser, "%*s", pcnt_width,
+					   annotate_browser__opts.show_total_period ? "Period" : "Percent");
+		}
 	}
 	if (ab->have_cycles) {
 		if (dl->ipc)
@@ -188,7 +194,7 @@ static void annotate_browser__write(struct ui_browser *browser, void *entry, int
 		width += 1;
 
 	if (!*dl->line)
-		ui_browser__write_nstring(browser, " ", width - pcnt_width);
+		ui_browser__write_nstring(browser, " ", width - pcnt_width - cycles_width);
 	else if (dl->offset == -1) {
 		if (dl->line_nr && annotate_browser__opts.show_linenr)
 			printed = scnprintf(bf, sizeof(bf), "%-*d ",
@@ -197,7 +203,7 @@ static void annotate_browser__write(struct ui_browser *browser, void *entry, int
 			printed = scnprintf(bf, sizeof(bf), "%*s  ",
 				    ab->addr_width, " ");
 		ui_browser__write_nstring(browser, bf, printed);
-		ui_browser__write_nstring(browser, dl->line, width - printed - pcnt_width + 1);
+		ui_browser__write_nstring(browser, dl->line, width - printed - pcnt_width - cycles_width + 1);
 	} else {
 		u64 addr = dl->offset;
 		int color = -1;
@@ -254,7 +260,7 @@ static void annotate_browser__write(struct ui_browser *browser, void *entry, int
 		}
 
 		disasm_line__scnprintf(dl, bf, sizeof(bf), !annotate_browser__opts.use_offset);
-		ui_browser__write_nstring(browser, bf, width - pcnt_width - 3 - printed);
+		ui_browser__write_nstring(browser, bf, width - pcnt_width - cycles_width - 3 - printed);
 	}
 
 	if (current_entry)
@@ -270,6 +276,25 @@ static bool disasm_line__is_valid_jump(struct disasm_line *dl, struct symbol *sy
 		return false;
 
 	return true;
+}
+
+static bool is_fused(struct annotate_browser *ab, struct disasm_line *cursor)
+{
+	struct disasm_line *pos = list_prev_entry(cursor, node);
+	const char *name;
+
+	if (!pos)
+		return false;
+
+	if (ins__is_lock(&pos->ins))
+		name = pos->ops.locked.ins.name;
+	else
+		name = pos->ins.name;
+
+	if (!name || !cursor->ins.name)
+		return false;
+
+	return ins__is_fused(ab->arch, name, cursor->ins.name);
 }
 
 static void annotate_browser__draw_current_jump(struct ui_browser *browser)
@@ -307,6 +332,13 @@ static void annotate_browser__draw_current_jump(struct ui_browser *browser)
 	ui_browser__set_color(browser, HE_COLORSET_JUMP_ARROWS);
 	__ui_browser__line_arrow(browser, pcnt_width + 2 + ab->addr_width,
 				 from, to);
+
+	if (is_fused(ab, cursor)) {
+		ui_browser__mark_fused(browser,
+				       pcnt_width + 3 + ab->addr_width,
+				       from - 1,
+				       to > from ? true : false);
+	}
 }
 
 static unsigned int annotate_browser__refresh(struct ui_browser *browser)
@@ -422,14 +454,14 @@ static void annotate_browser__calc_percent(struct annotate_browser *browser,
 		next = disasm__get_next_ip_line(&notes->src->source, pos);
 
 		for (i = 0; i < browser->nr_events; i++) {
-			u64 nr_samples;
+			struct sym_hist_entry sample;
 
 			bpos->samples[i].percent = disasm__calc_percent(notes,
 						evsel->idx + i,
 						pos->offset,
 						next ? next->offset : len,
-						&path, &nr_samples);
-			bpos->samples[i].nr = nr_samples;
+						&path, &sample);
+			bpos->samples[i].he = sample;
 
 			if (max_percent < bpos->samples[i].percent)
 				max_percent = bpos->samples[i].percent;
@@ -1074,7 +1106,8 @@ int symbol__tui_annotate(struct symbol *sym, struct map *map,
 	}
 
 	err = symbol__disassemble(sym, map, perf_evsel__env_arch(evsel),
-				  sizeof_bdl, &browser.arch);
+				  sizeof_bdl, &browser.arch,
+				  perf_evsel__env_cpuid(evsel));
 	if (err) {
 		char msg[BUFSIZ];
 		symbol__strerror_disassemble(sym, map, err, msg, sizeof(msg));
@@ -1170,7 +1203,7 @@ static int annotate__config(const char *var, const char *value,
 	struct annotate_config *cfg;
 	const char *name;
 
-	if (prefixcmp(var, "annotate.") != 0)
+	if (!strstarts(var, "annotate."))
 		return 0;
 
 	name = var + 9;
