@@ -10,10 +10,14 @@
 #include <linux/const.h>
 #include <asm/types.h>
 
+#define _PAGE_SHIFT	12
+#define _PAGE_SIZE	(_AC(1, UL) << _PAGE_SHIFT)
+#define _PAGE_MASK	(~(_PAGE_SIZE - 1))
+
 /* PAGE_SHIFT determines the page size */
-#define PAGE_SHIFT      12
-#define PAGE_SIZE	(_AC(1,UL) << PAGE_SHIFT)
-#define PAGE_MASK       (~(PAGE_SIZE-1))
+#define PAGE_SHIFT	_PAGE_SHIFT
+#define PAGE_SIZE	_PAGE_SIZE
+#define PAGE_MASK	_PAGE_MASK
 #define PAGE_DEFAULT_ACC	0
 #define PAGE_DEFAULT_KEY	(PAGE_DEFAULT_ACC << 4)
 
@@ -133,6 +137,9 @@ static inline int page_reset_referenced(unsigned long addr)
 struct page;
 void arch_free_page(struct page *page, int order);
 void arch_alloc_page(struct page *page, int order);
+void arch_set_page_dat(struct page *page, int order);
+void arch_set_page_nodat(struct page *page, int order);
+int arch_test_page_nodat(struct page *page);
 void arch_set_page_states(int make_stable);
 
 static inline int devmem_is_allowed(unsigned long pfn)
