@@ -298,6 +298,9 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	}
 
 	acpi_speed = i2c_acpi_find_bus_speed(&pdev->dev);
+	/* Some broken DSTDs use 1MiHz instead of 1MHz */
+	if (acpi_speed == 1048576)
+		acpi_speed = 1000000;
 	/*
 	 * Find bus speed from the "clock-frequency" device property, ACPI
 	 * or by using fast mode if neither is set.
@@ -319,7 +322,8 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	if (dev->clk_freq != 100000 && dev->clk_freq != 400000
 	    && dev->clk_freq != 1000000 && dev->clk_freq != 3400000) {
 		dev_err(&pdev->dev,
-			"Only 100kHz, 400kHz, 1MHz and 3.4MHz supported");
+			"%d Hz is unsupported, only 100kHz, 400kHz, 1MHz and 3.4MHz are supported\n",
+			dev->clk_freq);
 		ret = -EINVAL;
 		goto exit_reset;
 	}
@@ -428,8 +432,7 @@ static void dw_i2c_plat_complete(struct device *dev)
 #ifdef CONFIG_PM
 static int dw_i2c_plat_suspend(struct device *dev)
 {
-	struct platform_device *pdev = to_platform_device(dev);
-	struct dw_i2c_dev *i_dev = platform_get_drvdata(pdev);
+	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
 
 	i_dev->disable(i_dev);
 	i2c_dw_plat_prepare_clk(i_dev, false);
@@ -439,8 +442,7 @@ static int dw_i2c_plat_suspend(struct device *dev)
 
 static int dw_i2c_plat_resume(struct device *dev)
 {
-	struct platform_device *pdev = to_platform_device(dev);
-	struct dw_i2c_dev *i_dev = platform_get_drvdata(pdev);
+	struct dw_i2c_dev *i_dev = dev_get_drvdata(dev);
 
 	i2c_dw_plat_prepare_clk(i_dev, true);
 	i_dev->init(i_dev);
