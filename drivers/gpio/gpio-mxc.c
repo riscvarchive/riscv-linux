@@ -324,20 +324,21 @@ static int gpio_set_wake_irq(struct irq_data *d, u32 enable)
 	struct irq_chip_generic *gc = irq_data_get_irq_chip_data(d);
 	struct mxc_gpio_port *port = gc->private;
 	u32 gpio_idx = d->hwirq;
+	int ret;
 
 	if (enable) {
 		if (port->irq_high && (gpio_idx >= 16))
-			enable_irq_wake(port->irq_high);
+			ret = enable_irq_wake(port->irq_high);
 		else
-			enable_irq_wake(port->irq);
+			ret = enable_irq_wake(port->irq);
 	} else {
 		if (port->irq_high && (gpio_idx >= 16))
-			disable_irq_wake(port->irq_high);
+			ret = disable_irq_wake(port->irq_high);
 		else
-			disable_irq_wake(port->irq);
+			ret = disable_irq_wake(port->irq);
 	}
 
-	return 0;
+	return ret;
 }
 
 static int mxc_gpio_init_gc(struct mxc_gpio_port *port, int irq_base)
@@ -424,6 +425,9 @@ static int mxc_gpio_probe(struct platform_device *pdev)
 		return PTR_ERR(port->base);
 
 	port->irq_high = platform_get_irq(pdev, 1);
+	if (port->irq_high < 0)
+		port->irq_high = 0;
+
 	port->irq = platform_get_irq(pdev, 0);
 	if (port->irq < 0)
 		return port->irq;
