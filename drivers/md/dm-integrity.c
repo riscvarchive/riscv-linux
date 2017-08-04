@@ -225,6 +225,8 @@ struct dm_integrity_c {
 	struct alg_spec internal_hash_alg;
 	struct alg_spec journal_crypt_alg;
 	struct alg_spec journal_mac_alg;
+
+	atomic64_t number_of_mismatches;
 };
 
 struct dm_integrity_range {
@@ -309,6 +311,8 @@ static void dm_integrity_dtr(struct dm_target *ti);
 
 static void dm_integrity_io_error(struct dm_integrity_c *ic, const char *msg, int err)
 {
+	if (err == -EILSEQ)
+		atomic64_inc(&ic->number_of_mismatches);
 	if (!cmpxchg(&ic->failed, 0, err))
 		DMERR("Error on %s: %d", msg, err);
 }
@@ -1040,7 +1044,7 @@ static int dm_integrity_rw_tag(struct dm_integrity_c *ic, unsigned char *tag, se
 			memcpy(tag, dp, to_copy);
 		} else if (op == TAG_WRITE) {
 			memcpy(dp, tag, to_copy);
-			dm_bufio_mark_buffer_dirty(b);
+			dm_bufio_mark_partial_buffer_dirty(b, *metadata_offset, *metadata_offset + to_copy);
 		} else  {
 			/* e.g.: op == TAG_CMP */
 			if (unlikely(memcmp(dp, tag, to_copy))) {
@@ -1273,6 +1277,7 @@ again:
 					DMERR("Checksum failed at sector 0x%llx",
 					      (unsigned long long)(sector - ((r + ic->tag_size - 1) / ic->tag_size)));
 					r = -EILSEQ;
+					atomic64_inc(&ic->number_of_mismatches);
 				}
 				if (likely(checksums != checksums_onstack))
 					kfree(checksums);
@@ -2230,7 +2235,7 @@ static void dm_integrity_status(struct dm_target *ti, status_type_t type,
 
 	switch (type) {
 	case STATUSTYPE_INFO:
-		result[0] = '\0';
+		DMEMIT("%llu", (unsigned long long)atomic64_read(&ic->number_of_mismatches));
 		break;
 
 	case STATUSTYPE_TABLE: {
@@ -2775,7 +2780,7 @@ static int dm_integrity_ctr(struct dm_target *ti, unsigned argc, char **argv)
 	int r;
 	unsigned extra_args;
 	struct dm_arg_set as;
-	static struct dm_arg _args[] = {
+	static const struct dm_arg _args[] = {
 		{0, 9, "Invalid number of feature args"},
 	};
 	unsigned journal_sectors, interleave_sectors, buffer_sectors, journal_watermark, sync_msec;
@@ -2803,6 +2808,7 @@ static int dm_integrity_ctr(struct dm_target *ti, unsigned argc, char **argv)
 	bio_list_init(&ic->flush_bio_list);
 	init_waitqueue_head(&ic->copy_to_journal_wait);
 	init_completion(&ic->crypto_backoff);
+	atomic64_set(&ic->number_of_mismatches, 0);
 
 	r = dm_get_device(ti, argv[0], dm_table_get_mode(ti->table), &ic->dev);
 	if (r) {
@@ -3199,7 +3205,7 @@ static void dm_integrity_dtr(struct dm_target *ti)
 
 static struct target_type integrity_target = {
 	.name			= "integrity",
-	.version		= {1, 0, 0},
+	.version		= {1, 1, 0},
 	.module			= THIS_MODULE,
 	.features		= DM_TARGET_SINGLETON | DM_TARGET_INTEGRITY,
 	.ctr			= dm_integrity_ctr,
