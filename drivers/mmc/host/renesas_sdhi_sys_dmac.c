@@ -1,5 +1,5 @@
 /*
- * DMA function for TMIO MMC implementations
+ * DMA support use of SYS DMAC with SDHI SD/SDIO controller
  *
  * Copyright (C) 2016-17 Renesas Electronics Corporation
  * Copyright (C) 2016-17 Sang Engineering, Wolfram Sang
@@ -18,8 +18,10 @@
 #include <linux/mmc/host.h>
 #include <linux/mod_devicetable.h>
 #include <linux/module.h>
+#include <linux/of_device.h>
 #include <linux/pagemap.h>
 #include <linux/scatterlist.h>
+#include <linux/sys_soc.h>
 
 #include "renesas_sdhi.h"
 #include "tmio_mmc.h"
@@ -124,6 +126,11 @@ static void renesas_sdhi_sys_dmac_abort_dma(struct tmio_mmc_host *host)
 		dmaengine_terminate_all(host->chan_tx);
 
 	renesas_sdhi_sys_dmac_enable_dma(host, true);
+}
+
+static void renesas_sdhi_sys_dmac_dataend_dma(struct tmio_mmc_host *host)
+{
+	complete(&host->dma_dataend);
 }
 
 static void renesas_sdhi_sys_dmac_dma_callback(void *arg)
@@ -451,10 +458,24 @@ static const struct tmio_mmc_dma_ops renesas_sdhi_sys_dmac_dma_ops = {
 	.request = renesas_sdhi_sys_dmac_request_dma,
 	.release = renesas_sdhi_sys_dmac_release_dma,
 	.abort = renesas_sdhi_sys_dmac_abort_dma,
+	.dataend = renesas_sdhi_sys_dmac_dataend_dma,
+};
+
+/*
+ * Whitelist of specific R-Car Gen3 SoC ES versions to use this DMAC
+ * implementation. Currently empty as all supported ES versions use
+ * the internal DMAC.
+ */
+static const struct soc_device_attribute gen3_soc_whitelist[] = {
+        { /* sentinel */ }
 };
 
 static int renesas_sdhi_sys_dmac_probe(struct platform_device *pdev)
 {
+	if (of_device_get_match_data(&pdev->dev) == &of_rcar_gen3_compatible &&
+	    !soc_device_match(gen3_soc_whitelist))
+		return -ENODEV;
+
 	return renesas_sdhi_probe(pdev, &renesas_sdhi_sys_dmac_dma_ops);
 }
 
