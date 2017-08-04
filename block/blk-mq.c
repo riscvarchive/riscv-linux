@@ -620,11 +620,10 @@ static void blk_mq_requeue_work(struct work_struct *work)
 		container_of(work, struct request_queue, requeue_work.work);
 	LIST_HEAD(rq_list);
 	struct request *rq, *next;
-	unsigned long flags;
 
-	spin_lock_irqsave(&q->requeue_lock, flags);
+	spin_lock_irq(&q->requeue_lock);
 	list_splice_init(&q->requeue_list, &rq_list);
-	spin_unlock_irqrestore(&q->requeue_lock, flags);
+	spin_unlock_irq(&q->requeue_lock);
 
 	list_for_each_entry_safe(rq, next, &rq_list, queuelist) {
 		if (!(rq->rq_flags & RQF_SOFTBARRIER))
@@ -1098,8 +1097,18 @@ static void __blk_mq_run_hw_queue(struct blk_mq_hw_ctx *hctx)
 {
 	int srcu_idx;
 
+	/*
+	 * We should be running this queue from one of the CPUs that
+	 * are mapped to it.
+	 */
 	WARN_ON(!cpumask_test_cpu(raw_smp_processor_id(), hctx->cpumask) &&
 		cpu_online(hctx->next_cpu));
+
+	/*
+	 * We can't run the queue inline with ints disabled. Ensure that
+	 * we catch bad users of this early.
+	 */
+	WARN_ON_ONCE(in_interrupt());
 
 	if (!(hctx->flags & BLK_MQ_F_BLOCKING)) {
 		rcu_read_lock();
