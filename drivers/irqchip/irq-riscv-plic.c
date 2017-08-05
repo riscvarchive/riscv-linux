@@ -231,7 +231,7 @@ static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
 {
 	struct plic_data *data = d->host_data;
 
-	irq_set_chip_and_handler(irq, &data->chip, handle_fasteoi_irq);
+	irq_set_chip_and_handler(irq, &data->chip, handle_simple_irq);
 	irq_set_chip_data(irq, data);
 	irq_set_noprobe(irq);
 
