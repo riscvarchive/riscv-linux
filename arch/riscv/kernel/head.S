@@ -115,11 +115,15 @@ relocate:
 	li a1, CONFIG_NR_CPUS
 	bgeu a0, a1, .Lsecondary_park
 
-	slli a0, a0, LGREG
+	/* Set trap vector to spin forever to help debug */
+	la a3, .Lsecondary_park
+	csrw stvec, a3
+
+	slli a3, a0, LGREG
 	la a1, __cpu_up_stack_pointer
 	la a2, __cpu_up_task_pointer
-	add a1, a0, a1
-	add a2, a0, a2
+	add a1, a3, a1
+	add a2, a3, a2
 
 	/*
 	 * This hart didn't win the lottery, so we wait for the winning hart to
