@@ -96,7 +96,7 @@ static __always_inline c_type atomic##prefix##_fetch_##op##c_or(c_type i, atomic
 }
 
 #define ATOMIC_OP_RETURN(op, asm_op, c_op, I, asm_or, c_or, asm_type, c_type, prefix)			\
-static __always_inline c_type atomic##prefix##_##op##_return##c_or(int i, atomic##prefix##_t *v)	\
+static __always_inline c_type atomic##prefix##_##op##_return##c_or(c_type i, atomic##prefix##_t *v)	\
 {													\
         return atomic##prefix##_fetch_##op##c_or(i, v) c_op I;						\
 }
@@ -182,37 +182,37 @@ ATOMIC_OPS(add_negative, add,  <, 0)
 #undef ATOMIC_OP
 #undef ATOMIC_OPS
 
-#define ATOMIC_OP(op, func_op, c_op, I, prefix)					\
+#define ATOMIC_OP(op, func_op, c_op, I, c_type, prefix)				\
 static __always_inline void atomic##prefix##_##op(atomic##prefix##_t *v)	\
 {										\
 	atomic##prefix##_##func_op(I, v);					\
 }
 
-#define ATOMIC_FETCH_OP(op, func_op, c_op, I, prefix)				\
-static __always_inline int atomic##prefix##_fetch_##op(atomic##prefix##_t *v)	\
-{										\
-	return atomic##prefix##_fetch_##func_op(I, v);				\
+#define ATOMIC_FETCH_OP(op, func_op, c_op, I, c_type, prefix)				\
+static __always_inline c_type atomic##prefix##_fetch_##op(atomic##prefix##_t *v)	\
+{											\
+	return atomic##prefix##_fetch_##func_op(I, v);					\
 }
 
-#define ATOMIC_OP_RETURN(op, asm_op, c_op, I, prefix)				\
-static __always_inline int atomic##prefix##_##op##_return(atomic##prefix##_t *v) \
-{										\
-        return atomic##prefix##_fetch_##op(v) c_op I;				\
+#define ATOMIC_OP_RETURN(op, asm_op, c_op, I, c_type, prefix)				\
+static __always_inline c_type atomic##prefix##_##op##_return(atomic##prefix##_t *v)	\
+{											\
+        return atomic##prefix##_fetch_##op(v) c_op I;					\
 }
 
 #ifdef CONFIG_GENERIC_ATOMIC64
 #define ATOMIC_OPS(op, asm_op, c_op, I)						\
-        ATOMIC_OP       (op, asm_op, c_op, I,   )				\
-        ATOMIC_FETCH_OP (op, asm_op, c_op, I,   )				\
-        ATOMIC_OP_RETURN(op, asm_op, c_op, I,   )
+        ATOMIC_OP       (op, asm_op, c_op, I,  int,   )				\
+        ATOMIC_FETCH_OP (op, asm_op, c_op, I,  int,   )				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I,  int,   )
 #else
 #define ATOMIC_OPS(op, asm_op, c_op, I)						\
-        ATOMIC_OP       (op, asm_op, c_op, I,   )				\
-        ATOMIC_FETCH_OP (op, asm_op, c_op, I,   )				\
-        ATOMIC_OP_RETURN(op, asm_op, c_op, I,   )				\
-        ATOMIC_OP       (op, asm_op, c_op, I, 64)				\
-        ATOMIC_FETCH_OP (op, asm_op, c_op, I, 64)				\
-        ATOMIC_OP_RETURN(op, asm_op, c_op, I, 64)
+        ATOMIC_OP       (op, asm_op, c_op, I,  int,   )				\
+        ATOMIC_FETCH_OP (op, asm_op, c_op, I,  int,   )				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I,  int,   )				\
+        ATOMIC_OP       (op, asm_op, c_op, I, long, 64)				\
+        ATOMIC_FETCH_OP (op, asm_op, c_op, I, long, 64)				\
+        ATOMIC_OP_RETURN(op, asm_op, c_op, I, long, 64)
 #endif
 
 ATOMIC_OPS(inc, add, +,  1)
@@ -241,39 +241,39 @@ ATOMIC_OP(dec_and_test, dec, ==, 0, 64)
 /* This is required to provide a barrier on success. */
 static __always_inline int __atomic_add_unless(atomic_t *v, int a, int u)
 {
-       register int prev, rc;
+       int prev, rc;
 
 	__asm__ __volatile__ (
 		"0:\n\t"
-		"lr.w.aqrl %0, %2\n\t"
-		"beq       %0, %4, 1f\n\t"
-		"add       %1, %0, %3\n\t"
-		"sc.w.aqrl %1, %1, %2\n\t"
-		"bnez      %1, 0b\n\t"
+		"lr.w.aqrl  %[p],  %[c]\n\t"
+		"beq        %[p],  %[u], 1f\n\t"
+		"add       %[rc],  %[p], %[a]\n\t"
+		"sc.w.aqrl %[rc], %[rc], %[c]\n\t"
+		"bnez      %[rc], 0b\n\t"
 		"1:"
-		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
-		: "r" (a), "r" (u)
+		: [p]"=&r" (prev), [rc]"=&r" (rc), [c]"+A" (v->counter)
+		: [a]"r" (a), [u]"r" (u)
 		: "memory");
-	return prev;
+	return prev != u;
 }
 
 #ifndef CONFIG_GENERIC_ATOMIC64
-static __always_inline long atomic64_add_unless(atomic64_t *v, long a, long u)
+static __always_inline int atomic64_add_unless(atomic64_t *v, long a, long u)
 {
-       register long prev, rc;
+       long prev, rc;
 
 	__asm__ __volatile__ (
 		"0:\n\t"
-		"lr.d.aqrl %0, %2\n\t"
-		"beq       %0, %4, 1f\n\t"
-		"add       %1, %0, %3\n\t"
-		"sc.d.aqrl %1, %1, %2\n\t"
-		"bnez      %1, 0b\n\t"
+		"lr.d.aqrl  %[p],  %[c]\n\t"
+		"beq        %[p],  %[u], 1f\n\t"
+		"add       %[rc],  %[p], %[a]\n\t"
+		"sc.d.aqrl %[rc], %[rc], %[c]\n\t"
+		"bnez      %[rc], 0b\n\t"
 		"1:"
-		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
-		: "r" (a), "r" (u)
+		: [p]"=&r" (prev), [rc]"=&r" (rc), [c]"+A" (v->counter)
+		: [a]"r" (a), [u]"r" (u)
 		: "memory");
-	return prev;
+	return prev != u;
 }
 #endif
 
@@ -287,7 +287,7 @@ static __always_inline int atomic_inc_not_zero(atomic_t *v)
 }
 
 #ifndef CONFIG_GENERIC_ATOMIC64
-static __always_inline int atomic64_inc_not_zero(atomic64_t *v)
+static __always_inline long atomic64_inc_not_zero(atomic64_t *v)
 {
         return atomic64_add_unless(v, 1, 0);
 }
@@ -327,21 +327,20 @@ ATOMIC_OPS(_relaxed,      )
 
 static __always_inline int atomic_sub_if_positive(atomic_t *v, int offset)
 {
-       register int prev, rc;
+       int prev, rc;
 
 	__asm__ __volatile__ (
 		"0:\n\t"
-		"lr.w.aqrl %0, %2\n\t"
-		"sub       %1, %0, %3\n\t"
-		"bltz      %1, 1f\n\t"
-		"sc.w.aqrl %1, %1, %2\n\t"
-		"bnez      %1, 0b\n\t"
-		"sub       %0, %0, %3\n\t"
+		"lr.w.aqrl  %[p],  %[c]\n\t"
+		"sub       %[rc],  %[p], %[o]\n\t"
+		"bltz      %[rc],    1f\n\t"
+		"sc.w.aqrl %[rc], %[rc], %[c]\n\t"
+		"bnez      %[rc],    0b\n\t"
 		"1:"
-		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
-		: "r" (offset)
+		: [p]"=&r" (prev), [rc]"=&r" (rc), [c]"+A" (v->counter)
+		: [o]"r" (offset)
 		: "memory");
-	return prev;
+	return prev - offset;
 }
 
 #define atomic_dec_if_positive(v)	atomic_sub_if_positive(v, 1)
@@ -349,21 +348,20 @@ static __always_inline int atomic_sub_if_positive(atomic_t *v, int offset)
 #ifndef CONFIG_GENERIC_ATOMIC64
 static __always_inline long atomic64_sub_if_positive(atomic64_t *v, int offset)
 {
-       register long prev, rc;
+       long prev, rc;
 
 	__asm__ __volatile__ (
 		"0:\n\t"
-		"lr.d.aqrl %0, %2\n\t"
-		"sub       %1, %0, %3\n\t"
-		"bltz      %1, 1f\n\t"
-		"sc.d.aqrl %1, %1, %2\n\t"
-		"bnez      %1, 0b\n\t"
-		"sub       %0, %0, %3\n\t"
+		"lr.d.aqrl  %[p],  %[c]\n\t"
+		"sub       %[rc],  %[p], %[o]\n\t"
+		"bltz      %[rc],    1f\n\t"
+		"sc.d.aqrl %[rc], %[rc], %[c]\n\t"
+		"bnez      %[rc],    0b\n\t"
 		"1:"
-		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
-		: "r" (offset)
+		: [p]"=&r" (prev), [rc]"=&r" (rc), [c]"+A" (v->counter)
+		: [o]"r" (offset)
 		: "memory");
-	return prev;
+	return prev - offset;
 }
 
 #define atomic64_dec_if_positive(v)	atomic64_sub_if_positive(v, 1)
