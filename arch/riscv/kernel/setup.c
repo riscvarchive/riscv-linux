@@ -211,9 +211,9 @@ static void __init setup_bootmem(void)
 
 void __init setup_arch(char **cmdline_p)
 {
-#if defined(CONFIG_TTY_RISCV_SBI) && defined(CONFIG_EARLY_PRINTK)
+#if defined(CONFIG_HVC_RISCV_SBI) && defined(CONFIG_EARLY_PRINTK)
 	if (likely(early_console == NULL)) {
-		early_console = &riscv_sbi_early_console;
+		early_console = &riscv_sbi_early_console_dev;
 		register_console(early_console);
 	}
 #endif
