@@ -35,11 +35,11 @@ static __always_inline void atomic_set(atomic_t *v, int i)
 
 #ifndef CONFIG_GENERIC_ATOMIC64
 #define ATOMIC64_INIT(i) { (i) }
-static __always_inline int atomic64_read(const atomic64_t *v)
+static __always_inline long atomic64_read(const atomic64_t *v)
 {
 	return READ_ONCE(v->counter);
 }
-static __always_inline void atomic64_set(atomic64_t *v, int i)
+static __always_inline void atomic64_set(atomic64_t *v, long i)
 {
 	WRITE_ONCE(v->counter, i);
 }
