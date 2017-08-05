@@ -254,11 +254,11 @@ static __always_inline int __atomic_add_unless(atomic_t *v, int a, int u)
 		: [p]"=&r" (prev), [rc]"=&r" (rc), [c]"+A" (v->counter)
 		: [a]"r" (a), [u]"r" (u)
 		: "memory");
-	return prev != u;
+	return prev;
 }
 
 #ifndef CONFIG_GENERIC_ATOMIC64
-static __always_inline int atomic64_add_unless(atomic64_t *v, long a, long u)
+static __always_inline long __atomic64_add_unless(atomic64_t *v, long a, long u)
 {
        long prev, rc;
 
@@ -273,7 +273,12 @@ static __always_inline int atomic64_add_unless(atomic64_t *v, long a, long u)
 		: [p]"=&r" (prev), [rc]"=&r" (rc), [c]"+A" (v->counter)
 		: [a]"r" (a), [u]"r" (u)
 		: "memory");
-	return prev != u;
+	return prev;
+}
+
+static __always_inline int atomic64_add_unless(atomic64_t *v, long a, long u)
+{
+	return __atomic64_add_unless(v, a, u) != u;
 }
 #endif
 
