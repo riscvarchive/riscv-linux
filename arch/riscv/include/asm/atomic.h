@@ -325,4 +325,48 @@ ATOMIC_OPS(_relaxed,      )
 #undef ATOMIC_OPS
 #undef ATOMIC_OP
 
+static __always_inline int atomic_sub_if_positive(atomic_t *v, int offset)
+{
+       register int prev, rc;
+
+	__asm__ __volatile__ (
+		"0:\n\t"
+		"lr.w.aqrl %0, %2\n\t"
+		"sub       %1, %0, %3\n\t"
+		"bltz      %1, 1f\n\t"
+		"sc.w.aqrl %1, %1, %2\n\t"
+		"bnez      %1, 0b\n\t"
+		"sub       %0, %0, %3\n\t"
+		"1:"
+		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
+		: "r" (offset)
+		: "memory");
+	return prev;
+}
+
+#define atomic_dec_if_positive(v)	atomic_sub_if_positive(v, 1)
+
+#ifndef CONFIG_GENERIC_ATOMIC64
+static __always_inline long atomic64_sub_if_positive(atomic64_t *v, int offset)
+{
+       register long prev, rc;
+
+	__asm__ __volatile__ (
+		"0:\n\t"
+		"lr.d.aqrl %0, %2\n\t"
+		"sub       %1, %0, %3\n\t"
+		"bltz      %1, 1f\n\t"
+		"sc.d.aqrl %1, %1, %2\n\t"
+		"bnez      %1, 0b\n\t"
+		"sub       %0, %0, %3\n\t"
+		"1:"
+		: "=&r" (prev), "=&r" (rc), "+A" (v->counter)
+		: "r" (offset)
+		: "memory");
+	return prev;
+}
+
+#define atomic64_dec_if_positive(v)	atomic64_sub_if_positive(v, 1)
+#endif
+
 #endif /* _ASM_RISCV_ATOMIC_H */
