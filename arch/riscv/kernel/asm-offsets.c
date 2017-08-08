@@ -111,6 +111,7 @@ void asm_offsets(void)
 	OFFSET(PT_T5, pt_regs, t5);
 	OFFSET(PT_T6, pt_regs, t6);
 	OFFSET(PT_GP, pt_regs, gp);
+	OFFSET(PT_ORIG_A0, pt_regs, orig_a0);
 	OFFSET(PT_SSTATUS, pt_regs, sstatus);
 	OFFSET(PT_SBADADDR, pt_regs, sbadaddr);
 	OFFSET(PT_SCAUSE, pt_regs, scause);

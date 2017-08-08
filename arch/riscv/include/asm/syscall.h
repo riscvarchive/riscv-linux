@@ -45,7 +45,7 @@ static inline void syscall_set_nr(struct task_struct *task,
 static inline void syscall_rollback(struct task_struct *task,
 				    struct pt_regs *regs)
 {
-	/* FIXME: We can't do this... */
+        regs->a0 = regs->orig_a0;
 }
 
 static inline long syscall_get_error(struct task_struct *task,
@@ -75,7 +75,13 @@ static inline void syscall_get_arguments(struct task_struct *task,
 					 unsigned long *args)
 {
 	BUG_ON(i + n > 6);
-	memcpy(args, &regs->a0 + i * sizeof(regs->a0), n * sizeof(args[0]));
+	if (i == 0) {
+		args[0] = regs->orig_a0;
+		args++;
+		i++;
+		n--;
+	}
+	memcpy(args, &regs->a1 + i * sizeof(regs->a1), n * sizeof(args[0]));
 }
 
 static inline void syscall_set_arguments(struct task_struct *task,
@@ -84,7 +90,13 @@ static inline void syscall_set_arguments(struct task_struct *task,
 					 const unsigned long *args)
 {
 	BUG_ON(i + n > 6);
-	memcpy(&regs->a0 + i * sizeof(regs->a0), args, n * sizeof(regs->a0));
+        if (i == 0) {
+                regs->orig_a0 = args[0];
+                args++;
+                i++;
+                n--;
+        }
+	memcpy(&regs->a1 + i * sizeof(regs->a1), args, n * sizeof(regs->a0));
 }
 
 #endif	/* _ASM_TILE_SYSCALL_H */

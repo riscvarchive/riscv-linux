@@ -187,6 +187,8 @@ ENTRY(handle_exception)
 	tail do_trap_unknown
 
 handle_syscall:
+	 /* save the initial A0 value (needed in signal handlers) */
+	REG_S a0, PT_ORIG_A0(sp)
 	/*
 	 * Advance SEPC to avoid executing the original
 	 * scall instruction on sret
