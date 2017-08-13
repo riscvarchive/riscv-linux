@@ -30,12 +30,15 @@ $(obj)/vdso.so.dbg: $(src)/vdso.lds $(obj-vdso) FORCE
 
 SYSCFLAGS_vdso.so.dbg = -shared -s -Wl,-soname=linux-vdso.so.1 \
                             $(call cc-ldoption, -Wl$(comma)--hash-style=both)
-SYSCFLAGS_vdso_dummy.o = -r
+SYSCFLAGS_vdso-dummy.o = -r
 $(obj)/vdso-dummy.o: $(src)/vdso.lds $(obj)/rt_sigreturn.o FORCE
 	$(call if_changed,vdsold)
 
+$(obj)/vdso-dummy-moved.o: $(obj)/vdso-dummy.o FORCE
+	$(call if_changed,vdso_move)
+
 LDFLAGS_vdso-syms.o := -r -R
-$(obj)/vdso-syms.o: $(obj)/vdso-dummy.o FORCE
+$(obj)/vdso-syms.o: $(obj)/vdso-dummy-moved.o FORCE
 	$(call if_changed,ld)
 
 # strip rule for the .so file
@@ -52,6 +55,11 @@ quiet_cmd_vdsold = VDSOLD  $@
                            -Wl,-T,$(filter-out FORCE,$^) -o $@.tmp -lgcc && \
                    $(CROSS_COMPILE)objcopy \
                            $(patsubst %, -G __vdso_%, $(vdso-syms)) $@.tmp $@
+
+quiet_cmd_vdso_move = VDSOMV  $@
+      cmd_vdso_move = $(CROSS_COMPILE)objcopy \
+                               --change-section-address "*+$(CONFIG_PAGE_OFFSET)" \
+                               $< $@
 
 # install commands for the unstripped file
 quiet_cmd_vdso_install = INSTALL $@

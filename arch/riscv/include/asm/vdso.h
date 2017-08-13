@@ -23,10 +23,16 @@
 struct vdso_data {
 };
 
-#define VDSO_SYMBOL(base, name)					\
-({								\
-	extern const char __vdso_##name[];			\
-	(void __user *)((unsigned long)(base) + __vdso_##name);	\
+/*
+ * In order to ensure that all the VDSO symbols can be mapped into Linux's
+ * address space we offset them by PAGE_OFFSET when generating the vdso-syms.o,
+ * which requires us to re-offset them when producing the address for
+ * userspace.
+ */
+#define VDSO_SYMBOL(base, name)							\
+({										\
+	extern const char __vdso_##name[];					\
+	(void __user *)((unsigned long)(base) + __vdso_##name - PAGE_OFFSET);	\
 })
 
 #endif /* _ASM_RISCV_VDSO_H */
