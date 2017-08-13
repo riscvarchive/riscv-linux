@@ -46,11 +46,38 @@ config ARCH_PHYS_ADDR_T_64BIT
 config ARCH_DMA_ADDR_T_64BIT
 	def_bool y
 
+# We must be able to map all physical memory into the kernel, but the compiler
+# is still a bit more efficient when generating code if it's setup in a manner
+# such that it can only map 2GiB of memory.
+choice
+	prompt "Kernel Code Model"
+	default CMODEL_MEDLOW if 32BIT
+	default CMODEL_MEDANY if 64BIT
+
+	config CMODEL_MEDLOW
+		bool "medium low code model"
+	config CMODEL_MEDANY
+		bool "medium any code model"
+endchoice
+
+choice
+	prompt "Maximum Physical Memory"
+	default MAXPHYSMEM_2GB if 32BIT
+	default MAXPHYSMEM_2GB if 64BIT && CMODEL_MEDLOW
+	default MAXPHYSMEM_128GB if 64BIT && CMODEL_MEDANY
+
+	config MAXPHYSMEM_2GB
+		bool "2GiB"
+	config MAXPHYSMEM_128GB
+		depends on 64BIT && CMODEL_MEDANY
+		bool "128GiB"
+endchoice
+
 config PAGE_OFFSET
 	hex
-	default 0xC0000000 if 32BIT
-	default 0xffffffff80000000 if 64BIT
-	default 0
+	default 0xC0000000 if 32BIT && MAXPHYSMEM_2GB
+	default 0xffffffff80000000 if 64BIT && MAXPHYSMEM_2GB
+	default 0xffffffe000000000 if 64BIT && MAXPHYSMEM_128GB
 
 config STACKTRACE_SUPPORT
 	def_bool y

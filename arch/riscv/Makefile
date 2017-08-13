@@ -50,6 +50,13 @@ KBUILD_CFLAGS += -march=$(KBUILD_MARCH)$(KBUILD_ARCH_A)$(KBUILD_ARCH_C)
 KBUILD_CFLAGS += -mno-save-restore
 KBUILD_CFLAGS += -DCONFIG_PAGE_OFFSET=$(CONFIG_PAGE_OFFSET)
 
+ifeq ($(CONFIG_CMODEL_MEDLOW),y)
+	KBUILD_CFLAGS += -mcmodel=medlow
+endif
+ifeq ($(CONFIG_CMODEL_MEDANY),y)
+	KBUILD_CFLAGS += -mcmodel=medany
+endif
+
 # GCC versions that support the "-mstrict-align" option default to allowing
 # unaligned accesses.  While unaligned accesses are explicitly allowed in the
 # RISC-V ISA, they're emulated by machine mode traps on all extant
