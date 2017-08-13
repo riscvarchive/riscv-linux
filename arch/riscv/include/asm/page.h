@@ -29,11 +29,7 @@
  * When not using MMU this corresponds to the first free page in
  * physical memory (aligned on a page boundary).
  */
-#ifdef CONFIG_64BIT
-#define PAGE_OFFSET		_AC(0xffffffff80000000, UL)
-#else
-#define PAGE_OFFSET		_AC(0xc0000000, UL)
-#endif
+#define PAGE_OFFSET		_AC(CONFIG_PAGE_OFFSET, UL)
 
 #define KERN_VIRT_SIZE (-PAGE_OFFSET)
 
