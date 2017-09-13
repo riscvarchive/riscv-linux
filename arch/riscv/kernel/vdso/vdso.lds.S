@@ -67,7 +67,7 @@ PHDRS
  */
 VERSION
 {
-	LINUX_2.6 {
+	LINUX_4.15 {
 	global:
 		__vdso_rt_sigreturn;
 		__vdso_cmpxchg32;
