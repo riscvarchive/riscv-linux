@@ -11261,6 +11261,7 @@ T:	git https://github.com/riscv/riscv-linux
 S:	Supported
 F:	arch/riscv/
 K:	riscv
+N:	riscv
 
 ROCCAT DRIVERS
 M:	Stefan Achatz <erazor_de@users.sourceforge.net>
