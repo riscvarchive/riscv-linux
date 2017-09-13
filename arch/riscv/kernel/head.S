@@ -130,6 +130,7 @@ relocate:
 	 * get far enough along the boot process that it should continue.
 	 */
 .Lwait_for_cpu_up:
+	/* FIXME: We should WFI to save some energy here. */
 	REG_L sp, (a1)
 	REG_L tp, (a2)
 	beqz sp, .Lwait_for_cpu_up
