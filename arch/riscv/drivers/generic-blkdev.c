@@ -138,8 +138,6 @@ static void generic_blkdev_rq_handler(struct request_queue *rq)
 	struct request *req;
 	unsigned long flags;
 
-	spin_lock_irqsave(rq->queue_lock, flags);
-
 	while ((req = blk_fetch_request(rq)) != NULL) {
 		struct generic_blkdev_port *port = generic_blkdev_req_port(req);
 
@@ -164,8 +162,6 @@ static void generic_blkdev_rq_handler(struct request_queue *rq)
 			break;
 		}
 	}
-
-	spin_unlock_irqrestore(rq->queue_lock, flags);
 }
 
 static int generic_blkdev_parse_dt(struct generic_blkdev_port *port)
