@@ -2117,6 +2117,12 @@ void pci_device_add(struct pci_dev *dev, struct pci_bus *bus)
 	/* Setup MSI irq domain */
 	pci_set_msi_domain(dev);
 
+	/* Apply any bus-specific fixups needed */
+	if (bus->ops->add_dev) {
+		ret = bus->ops->add_dev(bus, dev);
+		WARN_ON(ret < 0);
+	}
+
 	/* Notifier could use PCI capabilities */
 	dev->match_driver = false;
 	ret = device_add(&dev->dev);
