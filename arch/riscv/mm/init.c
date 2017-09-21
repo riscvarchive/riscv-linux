@@ -17,6 +17,7 @@
 #include <linux/initrd.h>
 #include <linux/memblock.h>
 #include <linux/swap.h>
+#include <linux/swiotlb.h>
 
 #include <asm/tlbflush.h>
 #include <asm/sections.h>
@@ -58,6 +59,8 @@ void __init paging_init(void)
 
 void __init mem_init(void)
 {
+	swiotlb_init(1);
+
 #ifdef CONFIG_FLATMEM
 	BUG_ON(!mem_map);
 #endif /* CONFIG_FLATMEM */

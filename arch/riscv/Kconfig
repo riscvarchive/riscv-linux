@@ -48,6 +48,12 @@ config ZONE_DMA
 	bool
 	default y
 
+config SWIOTLB
+	def_bool y
+
+config IOMMU_HELPER
+	def_bool y
+
 config ARCH_DMA_ADDR_T_64BIT
 	def_bool y
 

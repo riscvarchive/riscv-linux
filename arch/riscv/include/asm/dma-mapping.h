@@ -19,12 +19,11 @@
 #ifndef __ASM_RISCV_DMA_MAPPING_H
 #define __ASM_RISCV_DMA_MAPPING_H
 
-/* Use ops->dma_mapping_error (if it exists) or assume success */
-// #undef DMA_ERROR_CODE
+extern const struct dma_map_ops dma_riscv_ops;
 
 static inline const struct dma_map_ops *get_arch_dma_ops(struct bus_type *bus)
 {
-	return &dma_noop_ops;
+	return &dma_riscv_ops;
 }
 
 static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
@@ -33,6 +32,20 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 		return false;
 
 	return addr + size - 1 <= *dev->dma_mask;
+}
+
+static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr)
+{
+        return paddr;
+}
+
+static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
+{
+        return daddr;
+}
+
+static inline void dma_mark_clean(void *addr, size_t size)
+{
 }
 
 #endif	/* __ASM_RISCV_DMA_MAPPING_H */
