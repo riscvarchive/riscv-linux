@@ -23,13 +23,23 @@
 #include <asm/pgtable.h>
 #include <asm/io.h>
 
+// Memory below the 4GiB threshold is special/precious.
+// We use this memory for devices which cannot DMA to all of ZONE_NORMAL.
+#define MAX_DMA_PHYSICAL 0x100000000ULL
+
 static void __init zone_sizes_init(void)
 {
-	unsigned long zones_size[MAX_NR_ZONES];
+	unsigned long max_zone_pfns[MAX_NR_ZONES];
 
-	memset(zones_size, 0, sizeof(zones_size));
-	zones_size[ZONE_NORMAL] = max_mapnr;
-	free_area_init_node(0, zones_size, pfn_base, NULL);
+	memset(max_zone_pfns, 0, sizeof(max_zone_pfns));
+	max_zone_pfns[ZONE_DMA] = PFN_DOWN(MAX_DMA_PHYSICAL);
+	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
+
+	// With <= 2GiB it is possible to have only ZONE_DMA
+	if (max_zone_pfns[ZONE_DMA] > max_zone_pfns[ZONE_NORMAL])
+		max_zone_pfns[ZONE_DMA] = max_zone_pfns[ZONE_NORMAL];
+
+	free_area_init_nodes(max_zone_pfns);
 }
 
 void setup_zero_page(void)
