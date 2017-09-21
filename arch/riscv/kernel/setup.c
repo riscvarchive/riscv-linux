@@ -166,7 +166,7 @@ static int __init mem_end_override(char *p)
 	end = memparse(p, &p) & PMD_MASK;
 	if (end == 0)
 		return -EINVAL;
-	memblock_add(base, end - base);
+	memblock_add_node(base, end - base, 0);
 	return 0;
 }
 early_param("mem_end", mem_end_override);
@@ -203,6 +203,16 @@ static void __init setup_bootmem(void)
 	early_init_fdt_scan_reserved_mem();
 	memblock_allow_resize();
 	memblock_dump_all();
+
+	for_each_memblock(memory, reg) {
+		unsigned long start_pfn, end_pfn;
+
+		start_pfn = memblock_region_memory_base_pfn(reg);
+		end_pfn = memblock_region_memory_end_pfn(reg);
+		memblock_set_node(start_pfn << PAGE_SHIFT,
+		                  (end_pfn - start_pfn) << PAGE_SHIFT,
+		                  &memblock.memory, 0);
+	}
 }
 
 void __init setup_arch(char **cmdline_p)
