@@ -118,7 +118,7 @@ static struct generic_blkdev_port *generic_blkdev_req_port(struct request *req)
 static void generic_blkdev_queue_request(struct request *req, int write)
 {
 	struct generic_blkdev_port *port = generic_blkdev_req_port(req);
-	uint32_t addr = bio_to_phys(req->bio);
+	uint32_t addr = page_to_phys(bio_page(req->bio)) + bio_offset(req->bio);
 	uint32_t offset = blk_rq_pos(req);
 	uint32_t len = blk_rq_sectors(req);
 	uint32_t tag;
@@ -143,7 +143,6 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 static void generic_blkdev_rq_handler(struct request_queue *rq)
 {
 	struct request *req;
-	unsigned long flags;
 
 	while ((req = blk_fetch_request(rq)) != NULL) {
 		struct generic_blkdev_port *port = generic_blkdev_req_port(req);
