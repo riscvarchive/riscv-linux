@@ -1,5 +1,6 @@
 # Copied from arch/tile/kernel/vdso/Makefile
 
+LIBGCC := $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
 # Symbols present in the vdso
 vdso-syms = rt_sigreturn
 
@@ -48,7 +49,7 @@ $(obj)/%.so: $(obj)/%.so.dbg FORCE
 # Make sure only to export the intended __vdso_xxx symbol offsets.
 quiet_cmd_vdsold = VDSOLD  $@
       cmd_vdsold = $(CC) $(KCFLAGS) -nostdlib $(SYSCFLAGS_$(@F)) \
-                           -Wl,-T,$(filter-out FORCE,$^) -o $@.tmp -lgcc && \
+                           -Wl,-T,$(filter-out FORCE,$^) -o $@.tmp $(LIBGCC) && \
                    $(CROSS_COMPILE)objcopy \
                            $(patsubst %, -G __vdso_%, $(vdso-syms)) $@.tmp $@
 
