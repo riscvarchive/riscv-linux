@@ -41,7 +41,7 @@ void riscv_timer_interrupt(void)
 
 void __init init_clockevent(void)
 {
-	timer_probe();
+	riscv_timer_init_secondary();
 	csr_set(sie, SIE_STIE);
 }
 
@@ -57,5 +57,5 @@ void __init time_init(void)
 
 	lpj_fine = riscv_timebase / HZ;
 
-	init_clockevent();
+	timer_probe();
 }
