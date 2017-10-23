@@ -2,7 +2,7 @@
 
 LIBGCC := $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
 # Symbols present in the vdso
-vdso-syms = rt_sigreturn
+vdso-syms = rt_sigreturn gettimeofday clock_gettime clock_getres getcpu
 
 # Files to link into the vdso
 obj-vdso = $(patsubst %, %.o, $(vdso-syms))

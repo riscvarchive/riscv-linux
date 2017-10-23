@@ -70,8 +70,10 @@ VERSION
 	LINUX_4.15 {
 	global:
 		__vdso_rt_sigreturn;
-		__vdso_cmpxchg32;
-		__vdso_cmpxchg64;
+		__vdso_gettimeofday;
+		__vdso_clock_gettime;
+		__vdso_clock_getres;
+		__vdso_getcpu;
 	local: *;
 	};
 }
