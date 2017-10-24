@@ -25,15 +25,15 @@
 #define SECTOR_SHIFT 9
 
 #define GENERIC_BLKDEV_ADDR 0
-#define GENERIC_BLKDEV_OFFSET 4
-#define GENERIC_BLKDEV_LEN 8
-#define GENERIC_BLKDEV_WRITE 12
-#define GENERIC_BLKDEV_REQUEST 16
-#define GENERIC_BLKDEV_NREQUEST 20
-#define GENERIC_BLKDEV_COMPLETE 24
-#define GENERIC_BLKDEV_NCOMPLETE 28
-#define GENERIC_BLKDEV_NSECTORS 32
-#define GENERIC_BLKDEV_MAX_REQUEST_LENGTH 36
+#define GENERIC_BLKDEV_OFFSET 8
+#define GENERIC_BLKDEV_LEN 12
+#define GENERIC_BLKDEV_WRITE 16
+#define GENERIC_BLKDEV_REQUEST 17
+#define GENERIC_BLKDEV_NREQUEST 18
+#define GENERIC_BLKDEV_COMPLETE 19
+#define GENERIC_BLKDEV_NCOMPLETE 20
+#define GENERIC_BLKDEV_NSECTORS 24
+#define GENERIC_BLKDEV_MAX_REQUEST_LENGTH 28
 
 struct generic_blkdev_port {
 	struct device *dev;
@@ -56,31 +56,18 @@ static struct block_device_operations generic_blkdev_fops = {
 	.owner = THIS_MODULE
 };
 
-static inline uint32_t generic_blkdev_read_reg(
-		struct generic_blkdev_port *port, unsigned long offset)
-{
-	return ioread32(port->iomem + offset);
-}
-
-static inline void generic_blkdev_write_reg(
-		struct generic_blkdev_port *port,
-		unsigned long offset, uint32_t value)
-{
-	iowrite32(value, port->iomem + offset);
-}
-
 static void generic_blkdev_process_completions(struct generic_blkdev_port *port)
 {
 	uint32_t ncomplete, tag;
 	struct generic_blkdev_request *breq;
 	int i;
 
-	ncomplete = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NCOMPLETE);
+	ncomplete = ioread8(port->iomem + GENERIC_BLKDEV_NCOMPLETE);
 
 	printk(KERN_DEBUG "Processing %d completions\n", ncomplete);
 
 	for (i = 0; i < ncomplete; i++) {
-		tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_COMPLETE);
+		tag = ioread8(port->iomem + GENERIC_BLKDEV_COMPLETE);
 		printk(KERN_DEBUG "Complete request %d\n", tag);
 		BUG_ON(list_empty(&port->reqbuf[tag]));
 		breq = list_entry(port->reqbuf[tag].prev,
@@ -124,13 +111,13 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 	uint32_t tag;
 	struct generic_blkdev_request *breq;
 
-	generic_blkdev_write_reg(port, GENERIC_BLKDEV_ADDR, addr);
-	generic_blkdev_write_reg(port, GENERIC_BLKDEV_OFFSET, offset);
-	generic_blkdev_write_reg(port, GENERIC_BLKDEV_LEN, len);
-	generic_blkdev_write_reg(port, GENERIC_BLKDEV_WRITE, write);
+	iowrite64(addr,   port->iomem + GENERIC_BLKDEV_ADDR);
+	iowrite32(offset, port->iomem + GENERIC_BLKDEV_OFFSET);
+	iowrite32(len,    port->iomem + GENERIC_BLKDEV_LEN);
+	iowrite8 (write,  port->iomem + GENERIC_BLKDEV_WRITE);
 	mb();
 
-	tag = generic_blkdev_read_reg(port, GENERIC_BLKDEV_REQUEST);
+	tag = ioread8(port->iomem + GENERIC_BLKDEV_REQUEST);
 	breq = kmalloc(sizeof(struct generic_blkdev_request), GFP_ATOMIC);
 	breq->req = req;
 	list_add_tail(&breq->list, &port->reqbuf[tag]);
@@ -162,7 +149,7 @@ static void generic_blkdev_rq_handler(struct request_queue *rq)
 			__blk_end_request_all(req, -EIO);
 		}
 
-		if (generic_blkdev_read_reg(port, GENERIC_BLKDEV_NREQUEST) == 0) {
+		if (ioread8(port->iomem + GENERIC_BLKDEV_NREQUEST) == 0) {
 			port->qrunning = 0;
 			blk_stop_queue(port->queue);
 			break;
@@ -203,7 +190,7 @@ static int generic_blkdev_parse_dt(struct generic_blkdev_port *port)
 
 static int generic_blkdev_setup(struct generic_blkdev_port *port)
 {
-	uint32_t nsectors = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NSECTORS);
+	uint32_t nsectors = ioread32(port->iomem + GENERIC_BLKDEV_NSECTORS);
 	struct device *dev = port->dev;
 	uint32_t i, ntags, max_req_len;
 
@@ -218,8 +205,8 @@ static int generic_blkdev_setup(struct generic_blkdev_port *port)
 		return port->major;
 	}
 
-	ntags = generic_blkdev_read_reg(port, GENERIC_BLKDEV_NREQUEST);
-	max_req_len = generic_blkdev_read_reg(port, GENERIC_BLKDEV_MAX_REQUEST_LENGTH);
+	ntags = ioread8(port->iomem + GENERIC_BLKDEV_NREQUEST);
+	max_req_len = ioread32(port->iomem + GENERIC_BLKDEV_MAX_REQUEST_LENGTH);
 	port->qrunning = 1;
 	port->reqbuf = devm_kzalloc(
 			port->dev, ntags * sizeof(struct list_head), GFP_KERNEL);
