@@ -19,6 +19,7 @@
 #include <linux/mm.h>
 #include <linux/sched.h>
 #include <asm/tlbflush.h>
+#include <asm/cacheflush.h>
 
 static inline void enter_lazy_tlb(struct mm_struct *mm,
 	struct task_struct *task)
@@ -46,12 +47,31 @@ static inline void set_pgdir(pgd_t *pgd)
 	csr_write(sptbr, virt_to_pfn(pgd) | SPTBR_MODE);
 }
 
+static inline void flush_icache_deferred(struct mm_struct *mm)
+{
+#ifdef CONFIG_SMP
+	unsigned int cpu = smp_processor_id();
+	cpumask_t *mask = &mm->context.icache_stale_mask;
+	if (cpumask_test_cpu(cpu, mask)) {
+		cpumask_clear_cpu(cpu, mask);
+		smp_mb();
+		local_flush_icache_all();
+	}
+#endif
+}
+
 static inline void switch_mm(struct mm_struct *prev,
 	struct mm_struct *next, struct task_struct *task)
 {
 	if (likely(prev != next)) {
+		unsigned int cpu = smp_processor_id();
+		cpumask_clear_cpu(cpu, mm_cpumask(prev));
+		cpumask_set_cpu(cpu, mm_cpumask(next));
+
 		set_pgdir(next->pgd);
 		local_flush_tlb_all();
+
+		flush_icache_deferred(next);
 	}
 }
 

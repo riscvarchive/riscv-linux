@@ -108,3 +108,28 @@ void smp_send_reschedule(int cpu)
 {
 	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
 }
+
+void flush_icache_mm(struct mm_struct *mm, bool local)
+{
+	unsigned int cpu;
+	cpumask_t others, *mask;
+
+	preempt_disable();
+
+	/* Flush other harts' I$ if mm is later scheduled there. */
+	mask = &mm->context.icache_stale_mask;
+	cpumask_setall(mask);
+
+	/* Flush this hart's I$ now. */
+	cpu = smp_processor_id();
+	cpumask_clear_cpu(cpu, mask);
+	local_flush_icache_all();
+
+	/* Flush the I$ of other harts concurrently executing. */
+	cpumask_andnot(&others, mm_cpumask(mm), cpumask_of(cpu));
+	local |= cpumask_empty(&others);
+	if (mm != current->active_mm || !local)
+		sbi_remote_fence_i(others.bits);
+
+	preempt_enable();
+}
