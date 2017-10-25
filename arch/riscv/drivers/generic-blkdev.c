@@ -105,7 +105,7 @@ static struct generic_blkdev_port *generic_blkdev_req_port(struct request *req)
 static void generic_blkdev_queue_request(struct request *req, int write)
 {
 	struct generic_blkdev_port *port = generic_blkdev_req_port(req);
-	uint32_t addr = page_to_phys(bio_page(req->bio)) + bio_offset(req->bio);
+	uint64_t addr = page_to_phys(bio_page(req->bio)) + bio_offset(req->bio);
 	uint32_t offset = blk_rq_pos(req);
 	uint32_t len = blk_rq_sectors(req);
 	uint32_t tag;
@@ -123,7 +123,7 @@ static void generic_blkdev_queue_request(struct request *req, int write)
 	list_add_tail(&breq->list, &port->reqbuf[tag]);
 
 	printk(KERN_DEBUG
-		"generic-blkdev: %s [addr %x] [off %x] [len %d] [tag: %d]\n",
+		"generic-blkdev: %s [addr %llx] [off %x] [len %d] [tag: %d]\n",
 		(write) ? "w" : "r", addr, offset, len, tag);
 }
 
