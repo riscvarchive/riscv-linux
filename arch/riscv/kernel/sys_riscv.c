@@ -16,6 +16,7 @@
 #include <linux/syscalls.h>
 #include <asm/cmpxchg.h>
 #include <asm/unistd.h>
+#include <asm/cacheflush.h>
 
 static long riscv_sys_mmap(unsigned long addr, unsigned long len,
 			   unsigned long prot, unsigned long flags,
@@ -47,3 +48,16 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
 	return riscv_sys_mmap(addr, len, prot, flags, fd, offset, 12);
 }
 #endif /* !CONFIG_64BIT */
+
+#ifdef CONFIG_SMP
+SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, uintptr_t, end,
+	uintptr_t, flags)
+{
+	struct mm_struct *mm = current->mm;
+	bool local = flags & 1;
+
+	flush_icache_mm(mm, local);
+
+	return 0;
+}
+#endif
