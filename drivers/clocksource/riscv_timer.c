@@ -84,11 +84,11 @@ static int hart_of_timer(struct device_node *dev)
 {
 	u32 hart;
 
-	if (!dev->parent)
+	if (!dev)
 		return -1;
-	if (!of_device_is_compatible(dev->parent, "riscv"))
+	if (!of_device_is_compatible(dev, "riscv"))
 		return -1;
-	if (of_property_read_u32(dev->parent, "reg", &hart))
+	if (of_property_read_u32(dev, "reg", &hart))
 		return -1;
 
 	return hart;
@@ -110,4 +110,4 @@ static int timer_riscv_init_dt(struct device_node *n)
 	return 0;
 }
 
-TIMER_OF_DECLARE(riscv_timer, "riscv,cpu-timer", timer_riscv_init_dt);
+TIMER_OF_DECLARE(riscv_timer, "riscv", timer_riscv_init_dt);
