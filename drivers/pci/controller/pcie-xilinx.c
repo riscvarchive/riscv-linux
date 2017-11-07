@@ -209,7 +209,11 @@ static int xilinx_pcie_dma_supported(struct device *dev, u64 mask)
 static int xilinx_pcie_add_dev(struct pci_bus *bus, struct pci_dev *dev)
 {
 	struct xilinx_pcie_port *port = bus->sysdata;
-	dev->dev.dma_ops = &port->child_ops;
+	if (dev->dev.dma_ops != NULL) {
+		memcpy(&port->child_ops, dev->dev.dma_ops, sizeof(port->child_ops));
+		port->child_ops.dma_supported = xilinx_pcie_dma_supported;
+		dev->dev.dma_ops = &port->child_ops;
+	}
 	return 0;
 }
 
@@ -682,10 +686,6 @@ static int xilinx_pcie_probe(struct platform_device *pdev)
 	bridge->ops = &xilinx_pcie_ops;
 	bridge->map_irq = of_irq_parse_and_map_pci;
 	bridge->swizzle_irq = pci_common_swizzle;
-
-	// Setup DMA ops for child devices
-	memcpy(&port->child_ops, dev->dma_ops, sizeof(struct dma_map_ops));
-	port->child_ops.dma_supported = xilinx_pcie_dma_supported;
 
 #ifdef CONFIG_PCI_MSI
 	xilinx_pcie_msi_chip.dev = dev;
