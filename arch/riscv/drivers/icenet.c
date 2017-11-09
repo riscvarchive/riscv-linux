@@ -130,7 +130,7 @@ static inline void post_send(
 	iowrite64(packet, nic->iomem + ICENET_SEND_REQ);
 	sk_buff_cq_push(&nic->send_cq, skb, data);
 
-	printk(KERN_DEBUG "IceNet: tx addr=%lx len=%llu\n", addr, len);
+//	printk(KERN_DEBUG "IceNet: tx addr=%lx len=%llu\n", addr, len);
 }
 
 static inline void post_recv(
@@ -189,8 +189,8 @@ static void complete_recv(struct net_device *ndev)
 		ndev->stats.rx_bytes += len;
 		netif_rx(skb);
 
-		printk(KERN_DEBUG "IceNet: rx addr=%p, len=%d\n",
-				skb->data, len);
+//		printk(KERN_DEBUG "IceNet: rx addr=%p, len=%d\n",
+//				skb->data, len);
 	}
 }
 
