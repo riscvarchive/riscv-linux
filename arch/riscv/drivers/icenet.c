@@ -33,7 +33,6 @@
 
 struct sk_buff_cq_entry {
 	struct sk_buff *skb;
-	void *data;
 };
 
 struct sk_buff_cq {
@@ -52,24 +51,18 @@ static inline void sk_buff_cq_init(struct sk_buff_cq *cq)
 }
 
 static inline void sk_buff_cq_push(
-		struct sk_buff_cq *cq, struct sk_buff *skb, void *data)
+		struct sk_buff_cq *cq, struct sk_buff *skb)
 {
 	cq->entries[cq->tail].skb = skb;
-	cq->entries[cq->tail].data = data;
 	cq->tail = (cq->tail + 1) & (CIRC_BUF_LEN - 1);
 }
 
 static inline struct sk_buff *sk_buff_cq_pop(struct sk_buff_cq *cq)
 {
 	struct sk_buff *skb;
-	void *data;
 
 	skb = cq->entries[cq->head].skb;
-	data = cq->entries[cq->head].data;
 	cq->head = (cq->head + 1) & (CIRC_BUF_LEN - 1);
-
-	if (data)
-		kfree(data);
 
 	return skb;
 }
@@ -107,28 +100,16 @@ static inline int recv_comp_avail(struct icenet_device *nic)
 static inline void post_send(
 		struct icenet_device *nic, struct sk_buff *skb)
 {
-	uintptr_t addr = virt_to_phys(skb->data), align;
+	uintptr_t addr = virt_to_phys(skb->data);
 	uint64_t len = skb->len, packet;
-	void *data = NULL;
 
-	if (unlikely((addr & ALIGN_MASK) != NET_IP_ALIGN)) {
-		// This is really annoying, but if the skb data buffer is
-		// not aligned the way we need it to be, we have to copy it
-		// to a different buffer.
-		len = DMA_LEN_ALIGN(len + NET_IP_ALIGN);
-		data = kmalloc(len + ALIGN_BYTES, GFP_ATOMIC);
-		align = DMA_PTR_ALIGN(data) - data;
-		addr = virt_to_phys(data + align);
-		skb_copy_bits(skb, 0, data + align + NET_IP_ALIGN, skb->len);
-	} else {
-		addr = addr - NET_IP_ALIGN;
-		len = DMA_LEN_ALIGN(len + NET_IP_ALIGN);
-	}
+	addr -= NET_IP_ALIGN;
+	len += NET_IP_ALIGN;
 
 	packet = (len << 48) | (addr & 0xffffffffffffL);
 
 	iowrite64(packet, nic->iomem + ICENET_SEND_REQ);
-	sk_buff_cq_push(&nic->send_cq, skb, data);
+	sk_buff_cq_push(&nic->send_cq, skb);
 
 //	printk(KERN_DEBUG "IceNet: tx addr=%lx len=%llu\n", addr, len);
 }
@@ -143,7 +124,7 @@ static inline void post_recv(
 	addr = virt_to_phys(skb->data);
 
 	iowrite64(addr, nic->iomem + ICENET_RECV_REQ);
-	sk_buff_cq_push(&nic->recv_cq, skb, NULL);
+	sk_buff_cq_push(&nic->recv_cq, skb);
 }
 
 static inline int can_send(struct icenet_device *nic)
