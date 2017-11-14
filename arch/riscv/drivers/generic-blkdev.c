@@ -72,6 +72,7 @@ static void generic_blkdev_process_completions(struct generic_blkdev_port *port)
 		BUG_ON(list_empty(&port->reqbuf[tag]));
 		breq = list_entry(port->reqbuf[tag].prev,
 				struct generic_blkdev_request, list);
+		mb();
 		__blk_end_request_all(breq->req, 0);
 		list_del(&breq->list);
 		kfree(breq);
