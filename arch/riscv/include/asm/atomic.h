@@ -303,6 +303,7 @@ static __always_inline long atomic64_inc_not_zero(atomic64_t *v)
  * {cmp,}xchg and the operations that return, so they need a barrier.  We just
  * use the other implementations directly.
  */
+/* FIXME: There are relaxed versions of these. */
 #define ATOMIC_OP(c_t, prefix, c_or, size, asm_or)						\
 static __always_inline c_t atomic##prefix##_cmpxchg##c_or(atomic##prefix##_t *v, c_t o, c_t n) 	\
 {												\
