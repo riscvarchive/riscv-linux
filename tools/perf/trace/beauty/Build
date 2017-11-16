@@ -1,3 +1,0 @@
-libperf-y += clone.o
-libperf-y += fcntl.o
-libperf-y += statx.o
