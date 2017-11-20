@@ -1,0 +1,20 @@
+RISC-V Supervisor Binary Interface (SBI)
+
+The RISC-V privileged ISA specification mandates the presence of a supervisor
+binary interface that performs some operations which might otherwise require
+particularly complicated instructions.  This interface includes
+inter-processor interrupts, TLB flushes, i-cache and TLB shootdowns, a
+console, and power management.
+
+Required properties:
+- compatible: must contain one of the following
+ * "riscv,sbi" for the SBI defined by the privileged specification of the
+   system.
+
+Example:
+
+firmware {
+	sbi {
+		compatible = "riscv,sbi";
+	};
+};
