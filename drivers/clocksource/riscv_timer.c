@@ -26,13 +26,7 @@
  * timers on RISC-V systems.
  */
 DECLARE_PER_CPU(struct clock_event_device, riscv_clock_event);
-
-static struct clocksource riscv_clocksource = {
-	.name = "riscv_clocksource",
-	.rating = 300,
-	.mask = CLOCKSOURCE_MASK(BITS_PER_LONG),
-	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-};
+DECLARE_PER_CPU(struct clocksource, riscv_clocksource);
 
 static int next_event(unsigned long delta, struct clock_event_device *ce)
 {
@@ -68,6 +62,14 @@ static unsigned long long rdtime(struct clocksource *cs)
 	return get_cycles64();
 }
 
+DEFINE_PER_CPU(struct clocksource, riscv_clocksource) = {
+	.name = "riscv_clocksource",
+	.rating = 300,
+	.mask = CLOCKSOURCE_MASK(BITS_PER_LONG),
+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
+	.read = rdtime,
+};
+
 void timer_riscv_init(int cpu_id,
 		      unsigned long riscv_timebase,
 		      int (*next)(unsigned long, struct clock_event_device*))
@@ -75,14 +77,6 @@ void timer_riscv_init(int cpu_id,
 	struct clock_event_device *ce = per_cpu_ptr(&riscv_clock_event, cpu_id);
 
 	ce->cpumask = cpumask_of(cpu_id);
-	clockevents_config_and_register(ce, riscv_timebase, MINDELTA, MAXDELTA);
-}
-
-void riscv_timer_init_secondary(void)
-{
-	struct clock_event_device *ce = this_cpu_ptr(&riscv_clock_event);
-
-	ce->cpumask = cpumask_of(smp_processor_id());
 	clockevents_config_and_register(ce, riscv_timebase, MINDELTA, MAXDELTA);
 }
 
@@ -104,11 +98,10 @@ static int timer_riscv_init_dt(struct device_node *n)
 {
 	int cpu_id = hart_of_timer(n);
 	struct clock_event_device *ce = per_cpu_ptr(&riscv_clock_event, cpu_id);
-
-	riscv_clocksource.read = rdtime;
+	struct clocksource *cs = per_cpu_ptr(&riscv_clocksource, cpu_id);
 
 	if (cpu_id == smp_processor_id()) {
-		clocksource_register_hz(&riscv_clocksource, riscv_timebase);
+		clocksource_register_hz(cs, riscv_timebase);
 
 		ce->cpumask = cpumask_of(cpu_id);
 		clockevents_config_and_register(ce, riscv_timebase, MINDELTA, MAXDELTA);
