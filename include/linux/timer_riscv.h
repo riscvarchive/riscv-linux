@@ -31,5 +31,4 @@ void timer_riscv_init(int cpu_id,
 		      int (*next_event)(unsigned long, struct clock_event_device *));
 
 void clocksource_riscv_init(unsigned long long (*rdtime)(struct clocksource *));
-void riscv_timer_init_secondary(void);
 #endif
