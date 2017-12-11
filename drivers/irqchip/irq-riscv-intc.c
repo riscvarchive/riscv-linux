@@ -23,6 +23,7 @@
 #include <asm/ptrace.h>
 #include <asm/sbi.h>
 #include <asm/smp.h>
+#include <asm/handle_irq.h>
 
 #define PTR_BITS (8 * sizeof(uintptr_t))
 
@@ -52,10 +53,11 @@ static void riscv_software_interrupt(void)
 #endif
 }
 
-void riscv_intc_irq(unsigned int cause, struct pt_regs *regs)
+void riscv_intc_irq(struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
 	struct irq_domain *domain;
+	int cause = csr_read(scause);
 
 	irq_enter();
 
@@ -174,7 +176,7 @@ static void riscv_irq_disable(struct irq_data *d)
 		WARN_ON_ONCE(1);
 }
 
-static int riscv_intc_init(struct device_node *node, struct device_node *parent)
+static int __init riscv_intc_init(struct device_node *node, struct device_node *parent)
 {
 	int hart;
 	struct riscv_irq_data *data;
@@ -198,8 +200,15 @@ static int riscv_intc_init(struct device_node *node, struct device_node *parent)
 					     &riscv_irqdomain_ops, data);
 	if (!data->domain)
 		goto error_add_linear;
+
+	if (set_handle_irq(&riscv_intc_irq))
+		goto error_set_handle_irq;
+
 	pr_info("%s: %d local interrupts mapped\n", data->name, PTR_BITS);
 	return 0;
+
+error_set_handle_irq:
+	BUG();
 
 error_add_linear:
 	pr_warning("%s: unable to add IRQ domain\n",
