@@ -601,3 +601,6 @@ config GENERIC_CMPDI2
 
 config GENERIC_UCMPDI2
 	bool
+
+config GENERIC_HANDLE_IRQ
+	bool
