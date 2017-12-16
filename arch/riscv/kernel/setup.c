@@ -70,10 +70,6 @@ struct screen_info screen_info = {
 };
 #endif
 
-#ifdef CONFIG_CMDLINE_BOOL
-static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
-#endif /* CONFIG_CMDLINE_BOOL */
-
 unsigned long va_pa_offset;
 EXPORT_SYMBOL(va_pa_offset);
 unsigned long pfn_base;
@@ -239,25 +235,13 @@ static void __init setup_bootmem(void)
 
 void __init setup_arch(char **cmdline_p)
 {
-#if defined(CONFIG_EARLY_PRINTK)
-       if (likely(early_console == NULL)) {
-               early_console = &riscv_sbi_early_console_dev;
-               register_console(early_console);
-       }
+#if defined(CONFIG_HVC_RISCV_SBI) && defined(CONFIG_EARLY_PRINTK)
+	if (likely(early_console == NULL)) {
+		early_console = &riscv_sbi_early_console_dev;
+		register_console(early_console);
+	}
 #endif
 
-#ifdef CONFIG_CMDLINE_BOOL
-#ifdef CONFIG_CMDLINE_OVERRIDE
-	strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
-#else
-	if (builtin_cmdline[0] != '\0') {
-		/* Append bootloader command line to built-in */
-		strlcat(builtin_cmdline, " ", COMMAND_LINE_SIZE);
-		strlcat(builtin_cmdline, boot_command_line, COMMAND_LINE_SIZE);
-		strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
-	}
-#endif /* CONFIG_CMDLINE_OVERRIDE */
-#endif /* CONFIG_CMDLINE_BOOL */
 	*cmdline_p = boot_command_line;
 
 	parse_early_param();
