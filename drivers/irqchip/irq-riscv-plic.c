@@ -128,25 +128,25 @@ struct plic_data {
 
 /* Addressing helper functions. */
 static inline
-void __iomem *plic_enable_vector(struct plic_data *data, int contextid)
+u32 __iomem *plic_enable_vector(struct plic_data *data, int contextid)
 {
 	return data->reg + ENABLE_BASE + contextid * ENABLE_PER_HART;
 }
 
 static inline
-void __iomem *plic_priority(struct plic_data *data, int hwirq)
+u32 __iomem *plic_priority(struct plic_data *data, int hwirq)
 {
 	return data->reg + PRIORITY_BASE + hwirq * PRIORITY_PER_ID;
 }
 
 static inline
-void __iomem *plic_hart_threshold(struct plic_data *data, int contextid)
+u32 __iomem *plic_hart_threshold(struct plic_data *data, int contextid)
 {
 	return data->reg + CONTEXT_BASE + CONTEXT_PER_HART * contextid + CONTEXT_THRESHOLD;
 }
 
 static inline
-void __iomem *plic_hart_claim(struct plic_data *data, int contextid)
+u32 __iomem *plic_hart_claim(struct plic_data *data, int contextid)
 {
 	return data->reg + CONTEXT_BASE + CONTEXT_PER_HART * contextid + CONTEXT_CLAIM;
 }
@@ -172,7 +172,7 @@ void plic_complete(struct plic_data *data, int contextid, u32 claim)
 /* Explicit interrupt masking. */
 static void plic_disable(struct plic_data *data, int contextid, int hwirq)
 {
-	void __iomem *reg = plic_enable_vector(data, contextid) + (hwirq / 32);
+	u32 __iomem *reg = plic_enable_vector(data, contextid) + (hwirq / 32);
 	u32 mask = ~(1 << (hwirq % 32));
 
 	spin_lock(&data->lock);
@@ -182,7 +182,7 @@ static void plic_disable(struct plic_data *data, int contextid, int hwirq)
 
 static void plic_enable(struct plic_data *data, int contextid, int hwirq)
 {
-	void __iomem *reg = plic_enable_vector(data, contextid) + (hwirq / 32);
+	u32 __iomem *reg = plic_enable_vector(data, contextid) + (hwirq / 32);
 	u32 bit = 1 << (hwirq % 32);
 
 	spin_lock(&data->lock);
