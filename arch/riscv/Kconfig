@@ -36,6 +36,7 @@ config RISCV
 	select THREAD_INFO_IN_TASK
 	select RISCV_IRQ_INTC
 	select RISCV_TIMER
+	select GENERIC_HANDLE_IRQ
 
 config MMU
 	def_bool y

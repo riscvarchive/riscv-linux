@@ -169,8 +169,9 @@ ENTRY(handle_exception)
 	/* Handle interrupts */
 	slli a0, s4, 1
 	srli a0, a0, 1
-	move a1, sp /* pt_regs */
-	tail do_IRQ
+	move a0, sp /* pt_regs */
+	REG_L a1, handle_arch_irq
+	jr a1
 1:
 	/* Handle syscalls */
 	li t0, EXC_SYSCALL
