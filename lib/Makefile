@@ -258,3 +258,5 @@ obj-$(CONFIG_GENERIC_LSHRDI3) += lshrdi3.o
 obj-$(CONFIG_GENERIC_MULDI3) += muldi3.o
 obj-$(CONFIG_GENERIC_CMPDI2) += cmpdi2.o
 obj-$(CONFIG_GENERIC_UCMPDI2) += ucmpdi2.o
+
+obj-$(CONFIG_GENERIC_HANDLE_IRQ) += handle_irq.o
