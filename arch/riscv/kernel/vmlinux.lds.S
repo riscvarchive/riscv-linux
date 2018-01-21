@@ -12,7 +12,7 @@
  *   GNU General Public License for more details.
  */
 
-#define LOAD_OFFSET PAGE_OFFSET
+#define LOAD_OFFSET (PAGE_OFFSET-0x80000000)
 #include <asm/vmlinux.lds.h>
 #include <asm/page.h>
 #include <asm/cache.h>
@@ -26,7 +26,7 @@ jiffies = jiffies_64;
 SECTIONS
 {
 	/* Beginning of code and text segment */
-	. = LOAD_OFFSET;
+	. = PAGE_OFFSET;
 	_start = .;
 	__init_begin = .;
 	HEAD_TEXT_SECTION
