@@ -12,7 +12,7 @@
  *   GNU General Public License for more details.
  */
 
-#define LOAD_OFFSET (PAGE_OFFSET-0x80000000)
+#define LOAD_OFFSET (PAGE_OFFSET-CONFIG_LMA_OFFSET)
 #include <asm/vmlinux.lds.h>
 #include <asm/page.h>
 #include <asm/cache.h>
