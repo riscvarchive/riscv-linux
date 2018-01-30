@@ -171,6 +171,9 @@ ENTRY(handle_exception)
 	REG_L a1, handle_arch_irq
 	jr a1
 1:
+	/* Exceptions run with interrupts enabled */
+	csrs sstatus, SR_SIE
+
 	/* Handle syscalls */
 	li t0, EXC_SYSCALL
 	beq s4, t0, handle_syscall
@@ -197,8 +200,6 @@ handle_syscall:
 	 */
 	addi s2, s2, 0x4
 	REG_S s2, PT_SEPC(sp)
-	/* System calls run with interrupts enabled */
-	csrs sstatus, SR_SIE
 	/* Trace syscalls, but only if requested by the user. */
 	REG_L t0, TASK_TI_FLAGS(tp)
 	andi t0, t0, _TIF_SYSCALL_TRACE
