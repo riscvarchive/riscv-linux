@@ -1,0 +1,9 @@
+config CLK_U54_PRCI
+	bool "PRCI driver for U54 SoCs"
+	---help---
+	  Supports Power Reset Clock interface found in U540 SoCs
+
+config CLK_GEMGXL_MGMT
+	bool "TX clock switch for GEMGXL in U540 SoCs"
+	---help---
+	  Supports clock muxing between 10/100Mbit and 1Gbit TX clock on U540 SoCs
