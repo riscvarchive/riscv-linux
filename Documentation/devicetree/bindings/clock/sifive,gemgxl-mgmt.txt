@@ -1,0 +1,26 @@
+TX clock switch for GEMGXL in U540 SoCs
+
+This binding uses the common clock binding:
+    Documentation/devicetree/bindings/clock/clock-bindings.txt
+
+The U54 includes a clock mux to control the ethernet TX frequenecy. It
+switches between the local TX clock (125MHz) and PHY TX clocks. This is
+necessary to toggle between 1Gb and 100/10Mb speeds.
+
+Required properties:
+- compatible:	Should be "sifive,cadencegemgxlmgmt0"
+- #clock-cells:	Should be <0>
+- reg:		Specifies base physical address and size of the registers
+
+Example:
+
+	mgmt: cadence-gemgxl-mgmt@100a00000 {
+		compatible = "sifive,cadencegemgxlmgmt0";
+		#clock-cells = <0>;
+		reg = <0x0 0x100a0000 0x0 0x1000>;
+	};
+
+	ethernet@10090000 {
+		...
+		clocks = <&mgmt>; /* TX clock */
+	};
