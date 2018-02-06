@@ -1021,6 +1021,22 @@ static const struct flash_info spi_nor_ids[] = {
 
 	/* ISSI */
 	{ "is25cd512", INFO(0x7f9d20, 0, 32 * 1024,   2, SECT_4K) },
+	{ "is25wp032",  INFO(0x9d7016, 0, 32 * 1024,  128,
+	                SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ)
+	                .quad_enable = macronix_quad_enable,
+	},
+	{ "is25wp064",  INFO(0x9d7017, 0, 32 * 1024,  256,
+	                SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ)
+	                .quad_enable = macronix_quad_enable,
+	},
+	{ "is25wp128",  INFO(0x9d7018, 0, 32 * 1024,  512,
+	                SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ)
+	                .quad_enable = macronix_quad_enable,
+	},
+	{ "is25wp256d", INFO(0x9d7019, 0, 32 * 1024, 1024,
+	                SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ | SPI_NOR_4B_OPCODES)
+			.quad_enable = macronix_quad_enable,
+	},
 
 	/* Macronix */
 	{ "mx25l512e",   INFO(0xc22010, 0, 64 * 1024,   1, SECT_4K) },
@@ -1450,6 +1466,45 @@ static int macronix_quad_enable(struct spi_nor *nor)
 	}
 
 	return 0;
+}
+
+/**
+ * issi_unlock() - clear BP[0123] write-protection.
+ * @nor:	pointer to a 'struct spi_nor'
+ *
+ * Bits [2345] of the Status Register are BP[0123].
+ * ISSI chips use a different block protection scheme than other chips.
+ * Just disable the write-protect unilaterally.
+ *
+ * Return: 0 on success, -errno otherwise.
+ */
+static int issi_unlock(struct spi_nor *nor)
+{
+	int ret, val;
+	u8 mask = SR_BP0 | SR_BP1 | SR_BP2 | SR_BP3;
+
+	val = read_sr(nor);
+	if (val < 0)
+		return val;
+	if (!(val & mask))
+		return 0;
+
+	write_enable(nor);
+
+	write_sr(nor, val & ~mask);
+
+	ret = spi_nor_wait_till_ready(nor);
+	if (ret)
+		return ret;
+
+	ret = read_sr(nor);
+	if (ret > 0 && !(ret & mask)) {
+		dev_info(nor->dev, "ISSI Block Protection Bits cleared\n");
+		return 0;
+	} else {
+		dev_err(nor->dev, "ISSI Block Protection Bits not cleared\n");
+		return -EINVAL;
+	}
 }
 
 /*
@@ -2684,6 +2739,9 @@ static int spi_nor_init(struct spi_nor *nor)
 		spi_nor_wait_till_ready(nor);
 	}
 
+	if (JEDEC_MFR(nor->info) == SNOR_MFR_ISSI)
+		issi_unlock(nor);
+
 	if (nor->quad_enable) {
 		err = nor->quad_enable(nor);
 		if (err) {
@@ -2853,7 +2911,7 @@ int spi_nor_scan(struct spi_nor *nor, const char *name,
 	if (ret)
 		return ret;
 
-	if (nor->addr_width) {
+	if (nor->addr_width && JEDEC_MFR(info) != SNOR_MFR_ISSI) {
 		/* already configured from SFDP */
 	} else if (info->addr_width) {
 		nor->addr_width = info->addr_width;
