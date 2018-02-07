@@ -1,5 +1,4 @@
 /*
- * Copyright (C) 2012 Regents of the University of California
  * Copyright (C) 2017 SiFive
  *
  *   This program is free software; you can redistribute it and/or
@@ -12,15 +11,9 @@
  *   GNU General Public License for more details.
  */
 
-#include <linux/interrupt.h>
-#include <linux/irqchip.h>
-#include <linux/irqdomain.h>
+#ifndef IRQCHIP__IRQ_RISCV_INIT_H
+#define IRQCHIP__IRQ_RISCV_INIT_H
 
-#ifdef CONFIG_RISCV_INTC
-#include <linux/irqchip/irq-riscv-intc.h>
+void riscv_intc_irq(unsigned int cause, struct pt_regs *regs);
+
 #endif
-
-void __init init_IRQ(void)
-{
-	irqchip_init();
-}

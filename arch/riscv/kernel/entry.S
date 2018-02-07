@@ -78,10 +78,13 @@ _save_context:
 	REG_S x31, PT_T6(sp)
 
 	/*
-	 * Disable FPU to detect illegal usage of
-	 * floating point in kernel space
+	 * Disable user-mode memory access as it should only be set in the
+	 * actual user copy routines.
+	 *
+	 * Disable the FPU to detect illegal usage of floating point in kernel
+	 * space.
 	 */
-	li t0, SR_FS
+	li t0, SR_SUM | SR_FS
 
 	REG_L s0, TASK_TI_USER_SP(tp)
 	csrrc s1, sstatus, t0
@@ -166,8 +169,9 @@ ENTRY(handle_exception)
 	/* Handle interrupts */
 	slli a0, s4, 1
 	srli a0, a0, 1
-	move a1, sp /* pt_regs */
-	tail do_IRQ
+	move a0, sp /* pt_regs */
+	REG_L a1, handle_arch_irq
+	jr a1
 1:
 	/* Handle syscalls */
 	li t0, EXC_SYSCALL
