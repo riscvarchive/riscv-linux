@@ -1,0 +1,44 @@
+SiFive U54 SoC clocks
+
+This binding uses the common clock binding:
+    Documentation/devicetree/bindings/clock/clock-bindings.txt
+
+The U54 PRCI controller generates clocks for the U54 SoC. There is
+a core PLL that sets the processor frequency and PLLs for ethernet
+and DDR. It takes an input clock from the board, typically an oscillator
+or crystal.
+
+Required properties:
+- compatible:	Should be "sifive,aloeprci0"
+- #clock-cells:	Should be <1>
+- reg:		Specifies base physical address and size of the registers
+- clocks:	phandles to the parent clock used as input
+
+Example:
+
+	refclk: refclk {
+		#clock-cells = <0>;
+		compatible = "fixed-clock";
+		clock-frequency = <33333333>;
+		clock-output-names = "xtal";
+	};
+
+	u54: prci@10000000 {
+		compatible = "sifive,aloeprci0";
+		reg = <0x0 0x10000000 0x0 0x1000>;
+		clocks = <&refclk>;
+		#clock-cells = <1>;
+	};
+
+	tlclk: tlclk {
+		compatible = "fixed-factor-clock";
+		clocks = <&u54 0>; /* Core frequency */
+		#clock-cells = <0>;
+		clock-div = <2>;
+		clock-mult = <1>;
+	};
+
+	ethernet@10090000 {
+		...
+		clocks = <&prci 1>; /* TX clock */
+	};
