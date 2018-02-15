@@ -23,7 +23,6 @@
 #include <asm/ptrace.h>
 #include <asm/sbi.h>
 #include <asm/smp.h>
-#include <asm/handle_irq.h>
 
 #define PTR_BITS (8 * sizeof(uintptr_t))
 
