@@ -1,0 +1,4 @@
+config CLK_GEMGXL_MGMT
+	bool "TX clock switch for GEMGXL in U540 SoCs"
+	---help---
+	  Supports clock muxing between 10/100Mbit and 1Gbit TX clock on U540 SoCs
