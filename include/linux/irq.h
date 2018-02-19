@@ -1179,7 +1179,7 @@ int ipi_send_mask(unsigned int virq, const struct cpumask *dest);
  * Returns 0 on success, or -EBUSY if an IRQ handler has already been
  * registered.
  */
-void __init set_handle_irq(void (*handle_irq)(struct pt_regs *));
+int __init set_handle_irq(void (*handle_irq)(struct pt_regs *));
 
 /*
  * Allows interrupt handlers to find the irqchip that's been registered as the
