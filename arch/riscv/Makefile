@@ -70,3 +70,7 @@ core-y += arch/riscv/kernel/ arch/riscv/mm/
 libs-y += arch/riscv/lib/
 
 all: vmlinux
+
+PHONY += install
+install: vmlinux
+	sh $(srctree)/arch/riscv/install.sh $(KERNELRELEASE) $< System.map "$(INSTALL_PATH)"
