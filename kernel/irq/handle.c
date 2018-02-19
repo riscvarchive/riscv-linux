@@ -213,11 +213,12 @@ irqreturn_t handle_irq_event(struct irq_desc *desc)
 }
 
 #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
-void __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
+int __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
 {
 	if (handle_arch_irq)
-		return;
+		return -EBUSY;
 
 	handle_arch_irq = handle_irq;
+	return 0;
 }
 #endif
