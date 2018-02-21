@@ -200,14 +200,10 @@ static int __init riscv_intc_init(struct device_node *node, struct device_node *
 	if (!data->domain)
 		goto error_add_linear;
 
-	if (set_handle_irq(&riscv_intc_irq))
-		goto error_set_handle_irq;
+	set_handle_irq(&riscv_intc_irq);
 
 	pr_info("%s: %lu local interrupts mapped\n", data->name, PTR_BITS);
 	return 0;
-
-error_set_handle_irq:
-	BUG();
 
 error_add_linear:
 	pr_warning("%s: unable to add IRQ domain\n",
