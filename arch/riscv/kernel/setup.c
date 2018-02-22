@@ -59,6 +59,10 @@ struct console riscv_sbi_early_console_dev __initdata = {
 };
 #endif
 
+#ifdef CONFIG_CMDLINE_BOOL
+static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;
+#endif
+
 #ifdef CONFIG_DUMMY_CONSOLE
 struct screen_info screen_info = {
 	.orig_video_lines	= 30,
@@ -226,7 +230,21 @@ void __init setup_arch(char **cmdline_p)
                register_console(early_console);
        }
 #endif
+
+#ifdef CONFIG_CMDLINE_BOOL
+#ifdef CONFIG_CMDLINE_OVERRIDE
+	strlcpy(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
+#else /* CONFIG_CMDLINE_OVERRIDE */
+	if (builtin_cmdline[0]) {
+		if (boot_command_line[0])
+			strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
+		strlcat(boot_command_line, builtin_cmdline, COMMAND_LINE_SIZE);
+	}
+#endif /* CONFIG_CMDLINE_OVERRIDE */
+#endif /* CONFIG_CMDLINE_BOOL */
+
 	*cmdline_p = boot_command_line;
+
 
 	parse_early_param();
 
