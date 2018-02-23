@@ -221,18 +221,6 @@ static void plic_irq_disable(struct irq_data *d)
 			plic_disable(data, i, d->hwirq);
 }
 
-static void plic_irq_eoi(struct irq_data *d)
-{
-	/* FIXME: I can't figure out what's going on here: when I set the PLIC
-	 * driver to use hadle_fasteoi_irq I end up with !handler here.  The
-	 * difference is that here we get an irq_data and use
-	 * common.handler_data, while in the working version we get an
-	 * irq_desc and use irq_common_data.handler_data. */
-	struct plic_handler *handler = d->common->handler_data;
-	BUG_ON(!handler);
-	plic_complete(handler->data, handler->contextid, d->hwirq);
-}
-
 static int plic_irqdomain_map(struct irq_domain *d, unsigned int irq,
 			      irq_hw_number_t hwirq)
 {
@@ -325,7 +313,6 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 	data->chip.irq_unmask = plic_irq_unmask;
 	data->chip.irq_enable = plic_irq_enable;
 	data->chip.irq_disable = plic_irq_disable;
-	data->chip.irq_eoi = plic_irq_eoi;
 
 	for (i = 0; i < data->handlers; ++i) {
 		struct plic_handler *handler = &data->handler[i];
