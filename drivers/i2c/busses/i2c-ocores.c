@@ -33,6 +33,7 @@ struct ocores_i2c {
 	wait_queue_head_t wait;
 	struct i2c_adapter adap;
 	struct i2c_msg *msg;
+	int irq;
 	int pos;
 	int nmsgs;
 	int state; /* see STATE_ */
@@ -228,11 +229,21 @@ static int ocores_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 
 	oc_setreg(i2c, OCI2C_CMD, OCI2C_CMD_START);
 
-	if (wait_event_timeout(i2c->wait, (i2c->state == STATE_ERROR) ||
-			       (i2c->state == STATE_DONE), HZ))
+	if (i2c->irq >= 0) {
+		if (wait_event_timeout(i2c->wait, (i2c->state == STATE_ERROR) ||
+				       (i2c->state == STATE_DONE), HZ))
+			return (i2c->state == STATE_DONE) ? num : -EIO;
+		else
+			return -ETIMEDOUT;
+	} else {
+		while (i2c->state != STATE_ERROR && i2c->state != STATE_DONE) {
+			while (oc_getreg(i2c, OCI2C_STATUS) & OCI2C_STAT_TIP) { }
+			ocores_process(i2c);
+		}
+		while (oc_getreg(i2c, OCI2C_STATUS) & OCI2C_STAT_BUSY) { }
+		ocores_process(i2c);
 		return (i2c->state == STATE_DONE) ? num : -EIO;
-	else
-		return -ETIMEDOUT;
+	}
 }
 
 static int ocores_init(struct device *dev, struct ocores_i2c *i2c)
@@ -413,17 +424,14 @@ static int ocores_i2c_probe(struct platform_device *pdev)
 	struct ocores_i2c *i2c;
 	struct ocores_i2c_platform_data *pdata;
 	struct resource *res;
-	int irq;
 	int ret;
 	int i;
-
-	irq = platform_get_irq(pdev, 0);
-	if (irq < 0)
-		return irq;
 
 	i2c = devm_kzalloc(&pdev->dev, sizeof(*i2c), GFP_KERNEL);
 	if (!i2c)
 		return -ENOMEM;
+
+	i2c->irq = platform_get_irq(pdev, 0);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	i2c->base = devm_ioremap_resource(&pdev->dev, res);
@@ -478,11 +486,14 @@ static int ocores_i2c_probe(struct platform_device *pdev)
 		goto err_clk;
 
 	init_waitqueue_head(&i2c->wait);
-	ret = devm_request_irq(&pdev->dev, irq, ocores_isr, 0,
-			       pdev->name, i2c);
-	if (ret) {
-		dev_err(&pdev->dev, "Cannot claim IRQ\n");
-		goto err_clk;
+
+	if (i2c->irq >= 0) {
+		ret = devm_request_irq(&pdev->dev, i2c->irq, ocores_isr, 0,
+				       pdev->name, i2c);
+		if (ret) {
+			dev_err(&pdev->dev, "Cannot claim IRQ\n");
+			goto err_clk;
+		}
 	}
 
 	/* hook up driver to tree */
