@@ -1,0 +1,19 @@
+= SiFive U500 OTP controller device tree bindings =
+
+This binding represents the OTP controller found in U500 SoCs.
+
+!!! EXERCISE EXTREME CAUTION USING THIS DEVICE  !!!
+
+OTP bits can only be programmed once from 1 to 0. They are contained in the
+chip itself. Incorrectly modifying OTP contents may require a new chip.
+
+Required properties:
+- compatible: should be "sifive,ememoryotp0"
+- reg: Should contain registers location and length
+
+For example:
+
+	otp: sifive,ememoryotp0 {
+		compatible = "sifive,ememoryotp0";
+		reg = <0x0 0x10070000 0x0 0x1000>;
+	};

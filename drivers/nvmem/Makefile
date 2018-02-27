@@ -9,6 +9,8 @@ nvmem_core-y			:= core.o
 # Devices
 obj-$(CONFIG_NVMEM_BCM_OCOTP)	+= nvmem-bcm-ocotp.o
 nvmem-bcm-ocotp-y		:= bcm-ocotp.o
+obj-$(CONFIG_NVMEM_SIFIVE_U500_OTP)	+= nvmem-sifive-u500-otp.o
+nvmem-sifive-u500-otp-y		:= sifive-u500-otp.o
 obj-$(CONFIG_NVMEM_IMX_IIM)	+= nvmem-imx-iim.o
 nvmem-imx-iim-y			:= imx-iim.o
 obj-$(CONFIG_NVMEM_IMX_OCOTP)	+= nvmem-imx-ocotp.o
