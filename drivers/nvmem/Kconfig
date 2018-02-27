@@ -113,6 +113,16 @@ config NVMEM_BCM_OCOTP
 	  This driver can also be built as a module. If so, the module
 	  will be called nvmem-bcm-ocotp.
 
+config NVMEM_SIFIVE_U500_OTP
+	tristate "SiFive U500 OTP Controller support"
+	depends on HAS_IOMEM
+	help
+	  Say y here to enable read/write access to the SiFive U500
+	  OTP controller.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called nvmem-sifive-u500-otp.
+
 config NVMEM_SUNXI_SID
 	tristate "Allwinner SoCs SID support"
 	depends on ARCH_SUNXI
