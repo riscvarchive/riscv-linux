@@ -45,10 +45,19 @@ static void dma_riscv_free(struct device *dev, size_t size,
 	return swiotlb_free_coherent(dev, size, cpu_addr, dma_addr);
 }
 
+static int dma_riscv_supported(struct device *dev, u64 mask)
+{
+	/* Work-around for broken PCIe controllers */
+	if (IS_ENABLED(CONFIG_PCI_DMA_32) && mask > DMA_BIT_MASK(32))
+		return 0;
+
+	return swiotlb_dma_supported(dev, mask);
+}
+
 const struct dma_map_ops dma_riscv_ops = {
 	.alloc			= dma_riscv_alloc,
 	.free			= dma_riscv_free,
-	.dma_supported		= swiotlb_dma_supported,
+	.dma_supported		= dma_riscv_supported,
 	.map_page		= swiotlb_map_page,
 	.map_sg			= swiotlb_map_sg_attrs,
 	.unmap_page		= swiotlb_unmap_page,
