@@ -16,6 +16,7 @@
 #include <linux/clockchips.h>
 #include <linux/delay.h>
 #include <linux/timer_riscv.h>
+#include <linux/sched_clock.h>
 #include <asm/sbi.h>
 
 #define MINDELTA 100
@@ -94,7 +95,12 @@ static int hart_of_timer(struct device_node *dev)
 	return hart;
 }
 
-static int timer_riscv_init_dt(struct device_node *n)
+static u64 notrace timer_riscv_sched_read(void)
+{
+	return get_cycles64();
+}
+
+static int __init timer_riscv_init_dt(struct device_node *n)
 {
 	int cpu_id = hart_of_timer(n);
 	struct clock_event_device *ce = per_cpu_ptr(&riscv_clock_event, cpu_id);
@@ -102,6 +108,7 @@ static int timer_riscv_init_dt(struct device_node *n)
 
 	if (cpu_id == smp_processor_id()) {
 		clocksource_register_hz(cs, riscv_timebase);
+		sched_clock_register(timer_riscv_sched_read, 64, riscv_timebase);
 
 		ce->cpumask = cpumask_of(cpu_id);
 		clockevents_config_and_register(ce, riscv_timebase, MINDELTA, MAXDELTA);
