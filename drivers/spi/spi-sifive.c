@@ -231,33 +231,27 @@ static void sifive_spi_execute(struct sifive_spi *spi, struct spi_transfer *t, i
 	}
 }
 
-static int sifive_spi_transfer_one_message(struct spi_master *master, struct spi_message *msg)
+static int sifive_spi_transfer_one(struct spi_master *master, struct spi_device *device, struct spi_transfer *t)
 {
 	struct sifive_spi *spi = spi_master_get_devdata(master);
-	struct spi_device *device = msg->spi;
-	struct spi_transfer *t;
-	int is_last, cs_change, cs_enable, poll;
+	int poll;
 
-	/* Setup device-specific properties */
 	sifive_spi_prep_device(spi, device);
-
-	sifive_spi_write(spi, XSPI_CSMR_OFFSET, XSPI_CSM_MODE_HOLD);
-	list_for_each_entry(t, &msg->transfers, transfer_list) {
-		/* Setup transfer-specific properties */
-		poll = sifive_spi_prep_transfer(spi, device, t);
-		sifive_spi_execute(spi, t, poll);
-		msg->actual_length += t->len;
-
-		is_last = list_is_last(&t->transfer_list, &msg->transfers);
-		cs_change = !!t->cs_change;
-		cs_enable = !is_last ^ cs_change;
-		sifive_spi_write(spi, XSPI_CSMR_OFFSET, cs_enable ? XSPI_CSM_MODE_HOLD : XSPI_CSM_MODE_AUTO);
-	}
-
-	msg->status = 0;
-	spi_finalize_current_message(master);
+	poll = sifive_spi_prep_transfer(spi, device, t);
+	sifive_spi_execute(spi, t, poll);
 
 	return 0;
+}
+
+static void sifive_spi_set_cs(struct spi_device *device, bool is_high)
+{
+	struct sifive_spi *spi = spi_master_get_devdata(device->master);
+
+	/* Reverse polarity is handled by SCMR/CPOL. Not inverted CS. */
+	if (device->mode & SPI_CS_HIGH)
+		is_high = !is_high;
+
+	sifive_spi_write(spi, XSPI_CSMR_OFFSET, is_high ? XSPI_CSM_MODE_AUTO : XSPI_CSM_MODE_HOLD);
 }
 
 static irqreturn_t sifive_spi_irq(int irq, void *dev_id)
@@ -356,11 +350,12 @@ static int sifive_spi_probe(struct platform_device *pdev)
 	master->bus_num = pdev->id;
 	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_LSB_FIRST | SPI_CS_HIGH |
 	                    SPI_TX_DUAL | SPI_TX_QUAD | SPI_RX_DUAL | SPI_RX_QUAD;
-	master->flags = SPI_CONTROLLER_MUST_TX;
+	master->flags = SPI_CONTROLLER_MUST_TX | SPI_MASTER_GPIO_SS;
 	master->dev.of_node = pdev->dev.of_node;
 	master->bits_per_word_mask = SPI_BPW_MASK(bits_per_word);
 	master->num_chipselect = num_cs;
-	master->transfer_one_message = sifive_spi_transfer_one_message;
+	master->transfer_one = sifive_spi_transfer_one;
+	master->set_cs = sifive_spi_set_cs;
 
 	/* If mmc_spi sees a dma_mask, it starts using dma mapped buffers.
 	 * Probably it should rely on the SPI core auto mapping instead.
