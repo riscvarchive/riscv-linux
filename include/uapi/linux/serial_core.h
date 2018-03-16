@@ -281,4 +281,7 @@
 /* MediaTek BTIF */
 #define PORT_MTK_BTIF	117
 
+/* SiFive UART */
+#define PORT_SIFIVE_H5U	118
+
 #endif /* _UAPILINUX_SERIAL_CORE_H */
