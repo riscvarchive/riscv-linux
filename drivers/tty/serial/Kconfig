@@ -1167,6 +1167,7 @@ config SERIAL_OMAP_CONSOLE
 
 config SERIAL_SIFIVE
 	tristate "SiFive UART support"
+	depends on OF
 	select SERIAL_CORE
 	help
 	  If you have a SiFive Freedom U500 or similar SoC, enable this to
