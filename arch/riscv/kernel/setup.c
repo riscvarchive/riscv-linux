@@ -67,15 +67,20 @@ static void __init setup_initrd(void)
 	extern unsigned long __initramfs_size;
 	unsigned long size;
 
+	if (initrd_start)
+		goto found;
+
 	if (__initramfs_size > 0) {
 		initrd_start = (unsigned long)(&__initramfs_start);
 		initrd_end = initrd_start + __initramfs_size;
 	}
 
+	initrd_below_start_ok = 1;
 	if (initrd_start >= initrd_end) {
 		printk(KERN_INFO "initrd not found or empty");
 		goto disable;
 	}
+found:
 	if (__pa(initrd_end) > PFN_PHYS(max_low_pfn)) {
 		printk(KERN_ERR "initrd extends beyond end of memory");
 		goto disable;
@@ -83,13 +88,13 @@ static void __init setup_initrd(void)
 
 	size =  initrd_end - initrd_start;
 	memblock_reserve(__pa(initrd_start), size);
-	initrd_below_start_ok = 1;
 
 	printk(KERN_INFO "Initial ramdisk at: 0x%p (%lu bytes)\n",
 		(void *)(initrd_start), size);
 	return;
 disable:
 	pr_cont(" - disabling initrd\n");
+	initrd_below_start_ok = 0;
 	initrd_start = 0;
 	initrd_end = 0;
 }
