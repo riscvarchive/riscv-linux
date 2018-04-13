@@ -22,7 +22,6 @@ config RISCV
 	select COMMON_CLK
 	select DMA_DIRECT_OPS
 	select GENERIC_CLOCKEVENTS
-	select GENERIC_CPU_DEVICES
 	select GENERIC_IRQ_SHOW
 	select GENERIC_PCI_IOMAP
 	select GENERIC_STRNCPY_FROM_USER
@@ -173,6 +172,16 @@ config NR_CPUS
 	range 2 32
 	depends on SMP
 	default "8"
+
+config HOTPLUG_CPU
+	bool "Support for hot-pluggable CPUs"
+	select GENERIC_IRQ_MIGRATION
+	help
+
+	  Say Y here to experiment with turning CPUs off and on.  CPUs
+	  can be controlled through /sys/devices/system/cpu.
+
+	  Say N if you want to disable CPU hotplug.
 
 choice
 	prompt "CPU Tuning"
