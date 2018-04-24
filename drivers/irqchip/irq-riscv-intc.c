@@ -56,7 +56,16 @@ void riscv_intc_irq(struct pt_regs *regs)
 {
 	struct pt_regs *old_regs = set_irq_regs(regs);
 	struct irq_domain *domain;
-	int cause = csr_read(scause);
+	unsigned long cause = csr_read(scause);
+
+	/*
+	 * The high order bit of the trap cause register is always set for
+	 * interrupts, which allows us to differentiate them from exceptions
+	 * quickly.  The INTERRUPT_CAUSE_* macros don't contain that bit, so we
+	 * need to mask it off here.
+	 */
+	WARN_ON((cause & (1UL << (PTR_BITS - 1))) == 0);
+	cause = cause & ~(1UL << (PTR_BITS - 1));
 
 	irq_enter();
 
