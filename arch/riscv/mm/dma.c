@@ -35,14 +35,14 @@ static void *dma_riscv_alloc(struct device *dev, size_t size,
 		gfp |= __GFP_DMA32;
 	}
 
-	return swiotlb_alloc_coherent(dev, size, dma_handle, gfp);
+	return swiotlb_alloc(dev, size, dma_handle, gfp, attrs);
 }
 
 static void dma_riscv_free(struct device *dev, size_t size,
                           void *cpu_addr, dma_addr_t dma_addr,
                           unsigned long attrs)
 {
-	return swiotlb_free_coherent(dev, size, cpu_addr, dma_addr);
+	return swiotlb_free(dev, size, cpu_addr, dma_addr, attrs);
 }
 
 static int dma_riscv_supported(struct device *dev, u64 mask)
