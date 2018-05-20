@@ -965,17 +965,18 @@ static int sifive_serial_probe(struct platform_device *pdev)
 		goto probe_out2;
 	}
 
+	sifive_serial_add_console_port(ssp);
+
 	r = uart_add_one_port(&sifive_serial_uart_driver, &ssp->port);
 	if (r != 0) {
 		dev_err(&pdev->dev, "could not add uart: %d\n", r);
 		goto probe_out3;
 	}
 
-	sifive_serial_add_console_port(ssp);
-
 	return 0;
 
 probe_out3:
+	sifive_serial_remove_console_port(ssp);
 	free_irq(ssp->port.irq, ssp);
 probe_out2:
 	clk_notifier_unregister(ssp->clk, &ssp->clk_notifier);
