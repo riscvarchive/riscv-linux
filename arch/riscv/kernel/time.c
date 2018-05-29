@@ -35,6 +35,12 @@ void riscv_timer_interrupt(void)
 	 */
 	struct clock_event_device *evdev = this_cpu_ptr(&riscv_clock_event);
 
+	/*
+	 * There are no direct SBI calls to clear pending timer interrupt bit.
+	 * Disable timer interrupt to ignore pending interrupt until next
+	 * interrupt.
+	 */
+	csr_clear(sie, SIE_STIE);
 	evdev->event_handler(evdev);
 #endif
 }

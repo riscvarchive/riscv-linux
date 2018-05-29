@@ -38,6 +38,7 @@ static int next_event(unsigned long delta, struct clock_event_device *ce)
 	 * harts.
 	 */
 	BUG_ON(ce != this_cpu_ptr(&riscv_clock_event));
+	csr_set(sie, SIE_STIE);
 	sbi_set_timer(get_cycles64() + delta);
 	return 0;
 }
