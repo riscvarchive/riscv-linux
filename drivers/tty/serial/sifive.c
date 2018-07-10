@@ -745,7 +745,7 @@ static int __init early_sifive_serial_setup(struct earlycon_device *device,
 	return 0;
 }
 
-OF_EARLYCON_DECLARE(sifive, "sifive,freedom-uart", early_sifive_serial_setup);
+OF_EARLYCON_DECLARE(sifive, "sifive,uart0", early_sifive_serial_setup);
 #endif /* CONFIG_SERIAL_EARLYCON */
 
 /*
@@ -801,6 +801,9 @@ static int __init sifive_serial_console_setup(struct console *co, char *options)
 	int bits = 8;
 	int parity = 'n';
 	int flow = 'n';
+
+	if (co->index < 0 || co->index >= SIFIVE_SERIAL_MAX_PORTS)
+		return -ENODEV;
 
 	ssp = sifive_serial_console_ports[co->index];
 	if (!ssp)
@@ -965,17 +968,18 @@ static int sifive_serial_probe(struct platform_device *pdev)
 		goto probe_out2;
 	}
 
+	sifive_serial_add_console_port(ssp);
+
 	r = uart_add_one_port(&sifive_serial_uart_driver, &ssp->port);
 	if (r != 0) {
 		dev_err(&pdev->dev, "could not add uart: %d\n", r);
 		goto probe_out3;
 	}
 
-	sifive_serial_add_console_port(ssp);
-
 	return 0;
 
 probe_out3:
+	sifive_serial_remove_console_port(ssp);
 	free_irq(ssp->port.irq, ssp);
 probe_out2:
 	clk_notifier_unregister(ssp->clk, &ssp->clk_notifier);
