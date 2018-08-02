@@ -143,6 +143,7 @@ relocate:
 	tail smp_callin
 #endif
 
+.align 2
 .Lsecondary_park:
 	/* We lack SMP support or have too many harts, so park this hart */
 	wfi
