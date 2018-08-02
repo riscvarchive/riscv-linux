@@ -35,27 +35,34 @@ void riscv_timer_interrupt(void)
 	 */
 	struct clock_event_device *evdev = this_cpu_ptr(&riscv_clock_event);
 
+	/*
+	 * There are no direct SBI calls to clear pending timer interrupt bit.
+	 * Disable timer interrupt to ignore pending interrupt until next
+	 * interrupt.
+	 */
+	csr_clear(sie, SIE_STIE);
 	evdev->event_handler(evdev);
 #endif
 }
 
-void __init init_clockevent(void)
-{
-	timer_probe();
-	csr_set(sie, SIE_STIE);
-}
-
-void __init time_init(void)
+static long __init timebase_frequency(void)
 {
 	struct device_node *cpu;
 	u32 prop;
 
 	cpu = of_find_node_by_path("/cpus");
-	if (!cpu || of_property_read_u32(cpu, "timebase-frequency", &prop))
-		panic(KERN_WARNING "RISC-V system with no 'timebase-frequency' in DTS\n");
-	riscv_timebase = prop;
+	if (cpu && !of_property_read_u32(cpu, "timebase-frequency", &prop))
+		return prop;
+	cpu = of_find_node_by_path("/cpus/cpu@0");
+	if (cpu && !of_property_read_u32(cpu, "timebase-frequency", &prop))
+		return prop;
 
+	panic(KERN_WARNING "RISC-V system with no 'timebase-frequency' in DTS\n");
+}
+
+void __init time_init(void)
+{
+	riscv_timebase = timebase_frequency();
 	lpj_fine = riscv_timebase / HZ;
-
-	init_clockevent();
+	timer_probe();
 }

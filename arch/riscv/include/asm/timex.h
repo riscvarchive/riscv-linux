@@ -18,7 +18,7 @@
 
 typedef unsigned long cycles_t;
 
-static inline cycles_t get_cycles_inline(void)
+static inline notrace cycles_t get_cycles_inline(void)
 {
 	cycles_t n;
 
@@ -30,12 +30,12 @@ static inline cycles_t get_cycles_inline(void)
 #define get_cycles get_cycles_inline
 
 #ifdef CONFIG_64BIT
-static inline uint64_t get_cycles64(void)
+static inline notrace uint64_t get_cycles64(void)
 {
         return get_cycles();
 }
 #else
-static inline uint64_t get_cycles64(void)
+static inline notrace uint64_t get_cycles64(void)
 {
 	u32 lo, hi, tmp;
 	__asm__ __volatile__ (
