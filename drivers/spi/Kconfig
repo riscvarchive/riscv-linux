@@ -736,6 +736,13 @@ config SPI_ZYNQMP_GQSPI
 	help
 	  Enables Xilinx GQSPI controller driver for Zynq UltraScale+ MPSoC.
 
+config SPI_SIFIVE
+        tristate "SiFive SPI controller"
+        depends on HAS_IOMEM
+	select SPI_BITBANG
+        help
+          This exposes the SPI controller IP from SiFive.
+
 #
 # Add new SPI master controllers in alphabetical order above this line
 #
