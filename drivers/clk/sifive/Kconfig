@@ -1,5 +1,6 @@
 config CLK_U54_PRCI
 	bool "PRCI driver for U54 SoCs"
+	depends on RISCV
 	---help---
 	  Supports Power Reset Clock interface found in U540 SoCs
 
