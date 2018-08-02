@@ -52,6 +52,12 @@ config ZONE_DMA32
 	bool
 	default y if 64BIT
 
+config SWIOTLB
+	def_bool y
+
+config IOMMU_HELPER
+	def_bool y
+
 config PAGE_OFFSET
 	hex
 	default 0xC0000000 if 32BIT && MAXPHYSMEM_2GB
@@ -231,6 +237,19 @@ config PCI
 	  to support PCI bus devices.
 
 	  If you don't know what to do here, say Y.
+
+config PCI_DMA_32
+	bool "Support broken PCIe controllers"
+	depends on PCI
+	default PCIE_XILINX
+	help
+	  If you use a PCIe host controller which can only address 32 bits,
+	  enabling this option will cause all DMA to use the low 32 bits.
+
+	  These controllers then work, but hurt system performance.
+
+	  If you don't know what to do here, say N.
+
 
 config PCI_DOMAINS
 	def_bool PCI
