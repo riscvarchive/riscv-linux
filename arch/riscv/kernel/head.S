@@ -151,6 +151,7 @@ relocate:
 END(_start)
 
 .section .text
+#ifdef CONFIG_SMP
 .global boot_sec_cpu
 
 boot_sec_cpu:
@@ -161,6 +162,7 @@ boot_sec_cpu:
 	fence
 
 	tail smp_callin
+#endif
 
 __PAGE_ALIGNED_BSS
 	/* Empty zero page */
