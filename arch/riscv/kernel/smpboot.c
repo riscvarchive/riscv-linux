@@ -165,7 +165,7 @@ asmlinkage void smp_callin(void)
 	struct mm_struct *mm = &init_mm;
 
 	/* All kernel threads share the same mm context.  */
-	mm_grab(mm);
+	mmgrab(mm);
 	current->active_mm = mm;
 
 	trap_init();
