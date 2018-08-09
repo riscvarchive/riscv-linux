@@ -88,7 +88,9 @@ static inline void wait_for_interrupt(void)
 }
 
 struct device_node;
-extern int riscv_of_processor_hart(struct device_node *node);
+/* Returns the hart ID of the given device tree node, or -1 if the device tree
+ * node isn't a RISC-V hart. */
+extern int riscv_of_processor_hartid(struct device_node *node);
 
 extern void riscv_fill_hwcap(void);
 

@@ -110,6 +110,7 @@ struct xilinx_pcie_port {
 	unsigned long msi_pages;
 	u8 root_busno;
 	struct device *dev;
+	struct dma_map_ops child_ops;
 	struct irq_domain *msi_domain;
 	struct irq_domain *leg_domain;
 	struct list_head resources;
@@ -197,11 +198,31 @@ static void __iomem *xilinx_pcie_map_bus(struct pci_bus *bus,
 	return port->reg_base + relbus + where;
 }
 
+/* The Xilinx PCIe bridge only wires 32 bits for DMA mastering */
+static int xilinx_pcie_dma_supported(struct device *dev, u64 mask)
+{
+	if (mask > DMA_BIT_MASK(32)) return 0;
+	return dma_supported(&to_pci_dev(dev)->bus->dev, mask);
+}
+
+/* Adjust child dma_ops to reflect restricted DMA window */
+static int xilinx_pcie_add_dev(struct pci_bus *bus, struct pci_dev *dev)
+{
+	struct xilinx_pcie_port *port = bus->sysdata;
+	if (dev->dev.dma_ops != NULL) {
+		memcpy(&port->child_ops, dev->dev.dma_ops, sizeof(port->child_ops));
+		port->child_ops.dma_supported = xilinx_pcie_dma_supported;
+		dev->dev.dma_ops = &port->child_ops;
+	}
+	return 0;
+}
+
 /* PCIe operations */
 static struct pci_ops xilinx_pcie_ops = {
 	.map_bus = xilinx_pcie_map_bus,
 	.read	= pci_generic_config_read,
 	.write	= pci_generic_config_write,
+	.add_dev = xilinx_pcie_add_dev,
 };
 
 /* MSI functions */

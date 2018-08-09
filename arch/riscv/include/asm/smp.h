@@ -14,18 +14,10 @@
 #ifndef _ASM_RISCV_SMP_H
 #define _ASM_RISCV_SMP_H
 
-/* This both needs asm-offsets.h and is used when generating it. */
-#ifndef GENERATING_ASM_OFFSETS
-#include <asm/asm-offsets.h>
-#endif
-
 #include <linux/cpumask.h>
 #include <linux/irqreturn.h>
 
 #ifdef CONFIG_SMP
-
-/* SMP initialization hook for setup_arch */
-void __init init_clockevent(void);
 
 /* SMP initialization hook for setup_arch */
 void __init setup_smp(void);
@@ -36,17 +28,22 @@ void arch_send_call_function_ipi_mask(struct cpumask *mask);
 /* Hook for the generic smp_call_function_single() routine. */
 void arch_send_call_function_single_ipi(int cpu);
 
-/*
- * This is particularly ugly: it appears we can't actually get the definition
- * of task_struct here, but we need access to the CPU this task is running on.
- * Instead of using C we're using asm-offsets.h to get the current processor
- * ID.
- */
-#define raw_smp_processor_id() (*((int*)((char*)get_current() + TASK_TI_CPU)))
+/* Obtains the hart ID of the currently executing task.  This relies on
+ * THREAD_INFO_IN_TASK, but we define that unconditionally. */
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+#define get_ti()                ((struct thread_info *)get_current())
+#define raw_smp_processor_id()  (get_ti()->cpu)
+#endif
 
 /* Interprocessor interrupt handler */
 irqreturn_t handle_ipi(void);
 
+#ifdef CONFIG_HOTPLUG_CPU
+extern int __cpu_disable(void);
+extern void __cpu_die(unsigned int cpu);
+extern void cpu_play_dead(void);
+extern void boot_sec_cpu(void);
+#endif
 #endif /* CONFIG_SMP */
 
 #endif /* _ASM_RISCV_SMP_H */
