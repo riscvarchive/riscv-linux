@@ -343,7 +343,7 @@ static int plic_init(struct device_node *node, struct device_node *parent)
 		/* skip any contexts that lead to inactive harts */
 		if (of_device_is_compatible(parent.np, "riscv,cpu-intc") &&
 		    parent.np->parent &&
-		    riscv_of_processor_hart(parent.np->parent) < 0)
+		    riscv_of_processor_hartid(parent.np->parent) < 0)
 			continue;
 
 		parent_irq = irq_create_of_mapping(&parent);
