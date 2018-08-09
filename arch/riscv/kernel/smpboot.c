@@ -31,6 +31,7 @@
 #include <linux/of.h>
 #include <linux/sched/task_stack.h>
 #include <linux/sched/hotplug.h>
+#include <linux/sched/mm.h>
 #include <asm/irq.h>
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
@@ -165,7 +166,7 @@ asmlinkage void smp_callin(void)
 	struct mm_struct *mm = &init_mm;
 
 	/* All kernel threads share the same mm context.  */
-	mm_grab(mm);
+	mmgrab(mm);
 	current->active_mm = mm;
 
 	trap_init();
