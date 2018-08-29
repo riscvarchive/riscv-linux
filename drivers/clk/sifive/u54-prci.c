@@ -296,6 +296,7 @@ static int sifive_u54_prci_probe(struct platform_device *pdev)
 
 static const struct of_device_id sifive_u54_prci_of_match[] = {
 	{ .compatible = "sifive,aloeprci0", },
+	{ .compatible = "sifive,ux00prci0", },
 	{}
 };
 
